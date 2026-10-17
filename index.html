@@ -211,8 +211,8 @@
     #gameover-modal { justify-content: safe center; overflow-y: auto; }
     #gameover-modal, #gameover-modal * { touch-action: pan-y; }
     /* 스킬 시너지: 레벨업 카드 힌트 · 일시정지 목록 · 발동 알림 */
-    .upgrade-btn .syn-hint { display: block; margin-top: 6px; padding: 5px 8px; border-radius: 8px; font-style: normal; font-size: 11px; line-height: 1.5;
-      color: #fde68a; background: rgba(250, 204, 21, 0.1); border: 1px dashed rgba(250, 204, 21, 0.45); }
+    .upgrade-btn { position: relative; }
+    .upgrade-btn .syn-icons { position: absolute; right: 8px; bottom: 5px; font-style: normal; font-size: 11px; letter-spacing: 1px; opacity: 0.45; pointer-events: none; }
     .syn-row { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(250, 204, 21, 0.1); color: #fde68a; font-weight: 800; font-size: 13px; }
     .syn-row small { display: block; color: #cbd5e1; font-weight: 600; font-size: 11px; }
     #syn-toast { display: none; position: absolute; top: 200px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none;
@@ -294,6 +294,8 @@
     #shop-look .look-viewer .hero-preview { width: 150px; max-width: 150px; margin: 0; flex-shrink: 0; }
     #shop-look .look-viewer .tryon-label { flex: 1; text-align: left; font-size: 13px; line-height: 1.5; }
     .gameover-box .info-box { text-align: left; }
+    .shop-char { font-size: 12px; color: #94a3b8; padding: 6px 10px; border-radius: 10px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); }
+    .shop-char b { color: #e0f2fe; }
     .shop-row.trying { background: rgba(250, 204, 21, 0.08); border-radius: 8px; }
     .shop-row .cos-name { flex: 1; cursor: pointer; padding: 4px 0; }
     .pick-desc { margin-top: 6px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
@@ -923,6 +925,7 @@
       <div id="panel-shop" class="lobby-panel">
         <div class="panel-inner">
           <div class="panel-head"><h3>🛒 상점 <span id="shop-gold" class="gold-tag"></span></h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div id="shop-char" class="shop-char"></div>
           <div class="tab-row">
             <button id="tab-stat" class="pick-btn on" onclick="setShopTab('stat')">💪 능력치</button>
             <button id="tab-skill" class="pick-btn" onclick="setShopTab('skill')">✨ 스킬 강화</button>
@@ -1284,11 +1287,8 @@
         bestLevel: 1, bestKills: 0, plays: 0, clears: 0, noDeathClears: 0, gold: 0, titles: [], bestClearMs: 0, minimap: true,
         unlockedFloor: 1,      // 개방된 최고 층
         selectedFloor: 1,      // 로비에서 고른 층
-        character: "survivor", // 로비에서 고른 캐릭터
-        shop: { atk: 0, hp: 0, spd: 0 }, // 상점 영구 강화 단계
-        skillShop: { dmg: 0, cd: 0, area: 0, dur: 0 }, // 스킬 영구 강화 단계
-        owned: [],                       // 구매한 외형 ("slot:id")
-        equip: { hat: "", armor: "", weapon: "", aura: "" } // 장착 중인 외형
+        character: "survivor"  // 로비에서 고른 캐릭터
+        // 상점 강화·스킬 강화·외형은 캐릭터별로 따로 저장 (아래 cs() 참고). 골드·기록·층 개방은 계정 공통
       };
     }
     function loadSave() {
@@ -1298,17 +1298,56 @@
       } catch (e) {}
       return defaultSave();
     }
+
+    // ===== 캐릭터별 상점 데이터: 캐릭터마다 localStorage 키를 따로 씀 (survivalHeroChar_v1_캐릭터ID) =====
+    // 한 캐릭터로 강화·구매한 것은 다른 캐릭터에 적용되지 않음
+    const CHAR_SAVE_PREFIX = "survivalHeroChar_v1_";
+    function defaultCharSave() {
+      return {
+        shop: { atk: 0, hp: 0, spd: 0 },               // 기본 능력치 강화 단계
+        skillShop: { dmg: 0, cd: 0, area: 0, dur: 0 },  // 스킬 영구 강화 단계
+        owned: [],                                      // 구매한 외형 ("slot:id")
+        equip: { hat: "", armor: "", weapon: "", aura: "" } // 장착 중인 외형
+      };
+    }
+    function normalizeCharSave(c) {
+      const d = defaultCharSave();
+      c = c && typeof c === "object" ? c : {};
+      return {
+        shop: Object.assign(d.shop, c.shop),
+        skillShop: Object.assign(d.skillShop, c.skillShop),
+        owned: Array.isArray(c.owned) ? c.owned : [],
+        equip: Object.assign(d.equip, c.equip)
+      };
+    }
+    const charSaves = {};
+    // cs(): 지금 고른 캐릭터(또는 지정한 캐릭터)의 상점 데이터
+    function cs(id) {
+      id = id || save.character;
+      if (!charSaves[id]) {
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(CHAR_SAVE_PREFIX + id)); } catch (e) {}
+        charSaves[id] = normalizeCharSave(data);
+      }
+      return charSaves[id];
+    }
     function writeSave() {
-      try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+        for (const id in charSaves) localStorage.setItem(CHAR_SAVE_PREFIX + id, JSON.stringify(charSaves[id]));
+      } catch (e) {}
     }
     let save = loadSave();
     // 예전 저장 데이터에 새 항목이 빠져 있어도 동작하도록 기본값 채움
     function normalizeSave() {
-      const d = defaultSave();
-      save.shop = Object.assign(d.shop, save.shop);
-      save.skillShop = Object.assign(d.skillShop, save.skillShop);
-      save.equip = Object.assign(d.equip, save.equip);
-      if (!Array.isArray(save.owned)) save.owned = [];
+      // 예전 버전(계정 공통 상점)의 구매·강화 내역은 그때 고르고 있던 캐릭터에게 한 번만 옮겨 줌
+      if (save.shop || save.skillShop || save.owned || save.equip) {
+        let exists = false;
+        try { exists = localStorage.getItem(CHAR_SAVE_PREFIX + save.character) !== null; } catch (e) {}
+        if (!exists) charSaves[save.character] = normalizeCharSave(save);
+        delete save.shop; delete save.skillShop; delete save.owned; delete save.equip;
+        writeSave();
+      }
       save.selectedFloor = Math.min(save.selectedFloor || 1, save.unlockedFloor || 1);
     }
     normalizeSave();
@@ -1422,23 +1461,23 @@
     const SKILL_SHOP_ITEMS = [
       { id: "dmg", name: "💥 스킬 피해량", per: 5, unit: "%", sign: "+", max: 10, base: 400, growth: 1.32, desc: "모든 공격 스킬 피해 증가" },
       { id: "cd", name: "⏱️ 스킬 쿨타임", per: 3, unit: "%", sign: "-", max: 10, base: 450, growth: 1.34, desc: "주기적으로 발동하는 스킬의 재사용 대기시간 감소" },
-      { id: "area", name: "🎯 스킬 범위", per: 4, unit: "%", sign: "+", max: 10, base: 400, growth: 1.32, desc: "메테오·낙뢰·노바·블랙홀·칼날 범위, 구체·사슬·수리검 크기 증가" },
+      { id: "area", name: "🎯 스킬 범위", per: 4, unit: "%", sign: "+", max: 10, base: 400, growth: 1.32, desc: "메테오·낙뢰·노바·블랙홀·칼날 범위, 구체·사슬·수리검·부메랑 크기 증가" },
       { id: "dur", name: "🚀 투사체 속도·지속시간", per: 5, unit: "%", sign: "+", max: 8, base: 350, growth: 1.34, desc: "미사일·부메랑·수리검 속도, 메테오 화염·얼음 길·칼날 지속시간 증가" }
     ];
     // 판 시작 시 save.skillShop에서 계산되는 배율 (dmg·area·dur는 1 이상, cd는 1 이하)
     let skillUp = { dmg: 1, cd: 1, area: 1, dur: 1 };
     function computeSkillUp() {
-      const s = save.skillShop;
+      const s = cs().skillShop;
       return { dmg: 1 + s.dmg * 0.05, cd: 1 - s.cd * 0.03, area: 1 + s.area * 0.04, dur: 1 + s.dur * 0.05 };
     }
     function buySkillShopItem(id) {
       const item = SKILL_SHOP_ITEMS.find(s => s.id === id);
-      const lv = save.skillShop[id] || 0;
+      const lv = cs().skillShop[id] || 0;
       if (!item || lv >= item.max) return;
       const cost = shopCost(item, lv);
       if (save.gold < cost) return;
       save.gold -= cost;
-      save.skillShop[id] = lv + 1;
+      cs().skillShop[id] = lv + 1;
       writeSave();
       Sound.itemPickup();
       renderLobby();
@@ -1446,12 +1485,12 @@
     function shopCost(item, lv) { return Math.round(item.base * Math.pow(item.growth, lv) / 10) * 10; }
     function buyShopItem(id) {
       const item = SHOP_ITEMS.find(s => s.id === id);
-      const lv = save.shop[id] || 0;
+      const lv = cs().shop[id] || 0;
       if (!item || lv >= item.max) return;
       const cost = shopCost(item, lv);
       if (save.gold < cost) return;
       save.gold -= cost;
-      save.shop[id] = lv + 1;
+      cs().shop[id] = lv + 1;
       writeSave();
       Sound.itemPickup();
       renderLobby();
@@ -1485,23 +1524,23 @@
     };
     const COSMETIC_SLOTS = { hat: "모자", armor: "갑옷", weapon: "무기", aura: "오라" };
     function equippedCosmetic(slot) {
-      const id = save.equip && save.equip[slot];
+      const id = cs().equip && cs().equip[slot];
       return id ? COSMETICS[slot].find(c => c.id === id) : null;
     }
-    function cosmeticKey() { return `${save.equip.hat || "-"}_${save.equip.armor || "-"}_${save.equip.weapon || "-"}`; }
+    function cosmeticKey() { return `${cs().equip.hat || "-"}_${cs().equip.armor || "-"}_${cs().equip.weapon || "-"}`; }
     // 없으면 구매, 있으면 장착/해제
     function useCosmetic(slot, id) {
       const item = COSMETICS[slot].find(c => c.id === id);
       if (!item) return;
       const key = slot + ":" + id;
-      if (!save.owned.includes(key)) {
+      if (!cs().owned.includes(key)) {
         if (save.gold < item.price) return;
         save.gold -= item.price;
-        save.owned.push(key);
-        save.equip[slot] = id;
+        cs().owned.push(key);
+        cs().equip[slot] = id;
         Sound.itemPickup();
       } else {
-        save.equip[slot] = save.equip[slot] === id ? "" : id;
+        cs().equip[slot] = cs().equip[slot] === id ? "" : id;
       }
       writeSave();
       renderLobby();
@@ -1625,7 +1664,7 @@
       // 외형 상점의 갑옷 색은 캐릭터 기본 색을 덮어씀 (능력치와 무관)
       const armorCos = equippedCosmetic("armor");
       const p = armorCos ? Object.assign({}, HERO_SKINS[skin], { armor: armorCos.armor, helmet: armorCos.helmet, trim: armorCos.trim }) : HERO_SKINS[skin];
-      const weapon = save.equip.weapon;
+      const weapon = cs().equip.weapon;
       shadedBall(g, 6, -13, 5.5, 5.5, a, p.armor, "#020617");
       if (weapon === "rifle") {
         metalBar(g, 6, 6.5, 26, 5, ["#d6d3d1", "#57534e", "#1c1917"]);
@@ -1663,7 +1702,7 @@
       g.beginPath();
       g.arc(4, 0, 4.5, -Math.PI / 3.5, -Math.PI / 10);
       g.stroke();
-      drawHat(g, a, save.equip.hat);
+      drawHat(g, a, cs().equip.hat);
     }
 
     // 캐릭터 고유 무기 (기본 공격에 맞춘 모양). 외형 상점의 무기를 장착하면 그것이 우선
@@ -2830,9 +2869,9 @@
 
       if (player.vortexLevel < 5) {
         const nextLv = player.vortexLevel + 1;
-        let descText = nextLv === 1 ? "적이 가장 많이 모인 곳에 블랙홀을 열어 주변 적을 한곳으로 끌어당기며 지속 피해, 끝날 때 폭발합니다." :
-                       nextLv === 5 ? "★ 최종 진화: 거대 블랙홀 2개 동시 생성 + 흡입력·폭발 피해 대폭 증가!" :
-                       "흡입 범위·흡입력·지속 피해·마지막 폭발 피해 증가, 쿨타임 감소";
+        let descText = nextLv === 1 ? "적이 가장 많이 모인 곳에 작은 블랙홀 1개를 열어 주변 적을 끌어당기며 지속 피해, 끝날 때 폭발합니다." :
+                       nextLv === 5 ? "★ 최종 진화: 가장 큰 블랙홀 5개 동시 생성!" :
+                       `블랙홀 ${nextLv}개 동시 생성 + 크기·흡입력 증가, 쿨타임 감소`;
         allUpgrades.push({
           id: "vortex",
           isOwned: player.vortexLevel > 0,
@@ -3052,23 +3091,93 @@
     function handleEliteSpawns() {
       if (player.level < 4 || bossArena.active || finalBossDefeated) return;
       if (playTimeMs - lastEliteSpawn < ELITE_INTERVAL) return;
-      if (monsters.some(m => m.type === "elite")) return;
+      if (eliteSummons.length || monsters.some(m => m.type === "elite")) return;
       lastEliteSpawn = playTimeMs;
       spawnElite();
     }
+    // 중간 보스 등장: 글자 알림 없이, 화면 안쪽 바닥에 붉은·보라 마법진이 0.9초 동안 그려진 뒤
+    // 충격파 + 묵직한 "쿵" 소리와 함께 나타남 (메인 보스의 WARNING 연출과 구별)
+    const ELITE_SUMMON_MS = 900;
+    let eliteSummons = [];
     function spawnElite(posX, posY) {
       const a = Math.random() * Math.PI * 2;
-      const d = fastHypot(canvas.width, canvas.height) / currentViewScale / 2 + 60;
-      const hp = Math.floor((10 + (player.level - 1) * 1.6) * monsterHpScale() * 14);
-      monsters.push({
+      const d = 210 + Math.random() * 50;
+      eliteSummons.push({
         x: posX !== undefined ? posX : player.x + Math.cos(a) * d,
         y: posY !== undefined ? posY : player.y + Math.sin(a) * d,
-        type: "elite", radius: 34, speed: 1.15, baseSpeed: 1.15, walkCycle: 0,
-        hp: hp, maxHp: hp, slowTimer: 0, isBoss: false, isElite: true,
-        shootTimer: performance.now(), shootInterval: 3200,
-        dashTimer: performance.now(), dashState: "none", dashAngle: 0
+        t: playTimeMs
       });
-      showBossAlert("💀 중간 보스 등장! 처치하면 보석 대량 획득");
+      if (sfxReady("eliteSummon", 300)) {
+        sfxNoise({ filter: "lowpass", freq: 120, freqEnd: 420, dur: 0.9, vol: 0.22, attack: 0.4, wet: 0.4 }); // 땅이 울리는 소리
+        sfxTone({ freq: 48, freqEnd: 70, dur: 0.9, vol: 0.2, attack: 0.3 });
+      }
+    }
+    function updateEliteSummons() {
+      for (let i = eliteSummons.length - 1; i >= 0; i--) {
+        const s = eliteSummons[i];
+        if (playTimeMs - s.t < ELITE_SUMMON_MS) continue;
+        eliteSummons.splice(i, 1);
+        const hp = Math.floor((10 + (player.level - 1) * 1.6) * monsterHpScale() * 14);
+        monsters.push({
+          x: s.x, y: s.y,
+          type: "elite", radius: 36, speed: 1.15, baseSpeed: 1.15, walkCycle: 0,
+          hp: hp, maxHp: hp, slowTimer: 0, isBoss: false, isElite: true,
+          shootTimer: performance.now(), shootInterval: 3200,
+          dashTimer: performance.now(), dashState: "none", dashAngle: 0
+        });
+        // 충격파 + 쿵
+        explosions.push({ x: s.x, y: s.y, radius: 150, life: 24, maxLife: 24, lv: 0, color: "#c026d3" });
+        explosions.push({ x: s.x, y: s.y, radius: 90, life: 16, maxLife: 16, lv: 0, color: "#ef4444" });
+        spawnBurst(s.x, s.y, "#e879f9", 18, 8);
+        addShake(9);
+        if (sfxReady("eliteThud", 200)) {
+          sfxTone({ freq: 95, freqEnd: 28, dur: 0.55, vol: 0.6 });
+          sfxNoise({ filter: "lowpass", freq: 320, freqEnd: 60, dur: 0.4, vol: 0.4, wet: 0.3 });
+        }
+      }
+    }
+    // 소환 마법진: 바깥 고리와 안쪽 고리가 반대로 돌고, 별 모양 선과 룬 점이 점점 밝아짐
+    function drawEliteSummons(g, timestamp) {
+      for (const s of eliteSummons) {
+        const p = Math.min(1, (playTimeMs - s.t) / ELITE_SUMMON_MS);
+        const R = 60 + p * 30;
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.35 + p * 0.5;
+        drawGlow(g, "#a21caf", s.x, s.y, R * 1.8);
+        g.globalAlpha = 1;
+        g.save();
+        g.translate(s.x, s.y);
+        g.scale(1, 0.75); // 바닥에 눕힌 느낌
+        g.rotate(timestamp / 500);
+        g.strokeStyle = `rgba(239, 68, 68, ${0.5 + p * 0.5})`;
+        g.lineWidth = 3;
+        g.beginPath();
+        g.arc(0, 0, R, 0, Math.PI * 2 * p);
+        g.stroke();
+        g.strokeStyle = `rgba(232, 121, 249, ${0.4 + p * 0.6})`;
+        g.lineWidth = 2;
+        g.beginPath();
+        for (let k = 0; k <= 5; k++) {
+          const a = k * Math.PI * 4 / 5 - Math.PI / 2;
+          if (k === 0) g.moveTo(Math.cos(a) * R * 0.9, Math.sin(a) * R * 0.9);
+          else g.lineTo(Math.cos(a) * R * 0.9, Math.sin(a) * R * 0.9);
+        }
+        g.stroke();
+        g.rotate(-timestamp / 250);
+        g.beginPath();
+        g.arc(0, 0, R * 0.55, 0, Math.PI * 2);
+        g.stroke();
+        g.fillStyle = "#fbcfe8";
+        for (let k = 0; k < 8; k++) {
+          if (k / 8 > p) break;
+          const a = k * Math.PI / 4;
+          g.beginPath();
+          g.arc(Math.cos(a) * R * 1.12, Math.sin(a) * R * 1.12, 3.5, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.restore();
+        g.globalCompositeOperation = "source-over";
+      }
     }
     // 엘리트 전용 행동: 3.2초마다 8방향 탄막, 6초마다 짧은 돌진
     function updateElite(m, timestamp, angle) {
@@ -3773,7 +3882,8 @@
       const baseAngle = target ? Math.atan2(target.y - player.y, target.x - player.x) : player.angle;
       Sound.boomerang();
 
-      const bSize = 14 + player.boomerangLevel * 4;
+      // 기본 크기를 키움 (예전 Lv1 18 → 34, Lv5 34 → 58). 스킬 범위 강화도 적용
+      const bSize = (28 + player.boomerangLevel * 6) * skillUp.area;
       const bDamage = (16 + player.boomerangLevel * 9) * skillScale();
       const isMaxLevel = player.boomerangLevel >= 5;
 
@@ -4131,11 +4241,13 @@
 
     // 🕳️ 블랙홀: 적이 가장 많이 모인 곳에 2.5초간 중력장 → 주변 잡몹을 중심으로 끌어당기며 지속 피해 → 마지막에 폭발
     const VORTEX_LIFE = 150; // 프레임 (약 2.5초)
-    function findDensestSpot(range) {
+    function findDensestSpot(range, avoid, gap) {
       // 화면 안 적 중 최대 40마리만 표본으로 골라, 주변(150) 이웃 수가 가장 많은 적의 위치
+      // avoid: 이미 고른 위치들 (gap 거리 안의 적은 후보에서 제외 → 블랙홀 여러 개가 겹치지 않음)
       const near = monsters.filter(m => !m.isBoss && fastHypot(m.x - player.x, m.y - player.y) < range).slice(0, 40);
       let best = null, bestN = -1;
       for (const a of near) {
+        if (avoid && avoid.some(u => fastHypot(u.x - a.x, u.y - a.y) < gap)) continue;
         let n = 0;
         for (const b of near) {
           const dx = a.x - b.x, dy = a.y - b.y;
@@ -4149,27 +4261,37 @@
       const lv = player.vortexLevel;
       if (lv > 0 && timestamp - player.vortexTimer > (6500 - (lv - 1) * 500) * skillUp.cd) {
         const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
-        const count = lv >= 5 ? 2 : 1;
+        // 레벨 = 블랙홀 개수 (Lv1 1개 → Lv5 5개), 레벨이 오를수록 하나하나도 커짐 (반경 120 → 185)
+        // 개수가 늘어나는 만큼 블랙홀 1개당 피해는 조금 낮춤. 시너지(화염 중력장·역병 소용돌이)도 블랙홀마다 적용
+        const count = lv;
+        const radius = (105 + lv * 15 + (lv >= 5 ? 5 : 0)) * skillUp.area;
         const used = [];
         for (let k = 0; k < count; k++) {
-          let spot = findDensestSpot(viewR);
-          // 두 번째 블랙홀은 첫 번째와 겹치지 않는 곳으로
-          if (spot && used.some(u => fastHypot(u.x - spot.x, u.y - spot.y) < 200)) {
-            const a = Math.atan2(spot.y - player.y, spot.x - player.x) + Math.PI;
-            spot = { x: player.x + Math.cos(a) * 220, y: player.y + Math.sin(a) * 220 };
+          // 적이 많이 모인 곳부터 차례로, 이미 연 블랙홀과 겹치지 않게
+          let spot = findDensestSpot(viewR, used, radius * 1.2);
+          if (spot) spot = { x: spot.x, y: spot.y }; // 몬스터가 움직여도 고른 위치는 고정
+          if (!spot) {
+            // 몰린 곳이 없으면 내 주위에서 이미 연 블랙홀과 가장 멀리 떨어진 자리 (후보 12곳 중)
+            if (!monsters.length) continue;
+            let bestGap = -1;
+            for (let c = 0; c < 12; c++) {
+              const a = Math.random() * Math.PI * 2, d = 170 + Math.random() * 150;
+              const cand = { x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d };
+              const gapNow = used.reduce((mn, u) => Math.min(mn, fastHypot(u.x - cand.x, u.y - cand.y)), 1e9);
+              if (gapNow > bestGap) { bestGap = gapNow; spot = cand; }
+            }
           }
-          if (!spot) continue;
           player.vortexTimer = timestamp;
           used.push(spot);
           vortices.push({
-            x: spot.x, y: spot.y, life: VORTEX_LIFE, lv: lv, spin: 0,
-            radius: (170 + lv * 25 + (lv >= 5 ? 40 : 0)) * skillUp.area,
-            pull: 1.8 + lv * 0.35,
-            tick: player.damage * (0.3 + lv * 0.1) * skillPower,      // 10프레임마다
-            burst: player.damage * (2 + lv * 0.6) * skillPower        // 마지막 폭발
+            x: spot.x, y: spot.y, life: VORTEX_LIFE, lv: lv, spin: Math.random() * 6,
+            radius: radius,
+            pull: 1.8 + lv * 0.3,
+            tick: player.damage * (0.25 + lv * 0.06) * skillPower,    // 10프레임마다
+            burst: player.damage * (1.6 + lv * 0.35) * skillPower     // 마지막 폭발
           });
-          sfxReady("vortex", 0) && sfxTone({ freq: 70, freqEnd: 40, dur: 2.4, vol: 0.18, wet: 0.5, attack: 0.3 });
         }
+        if (used.length) sfxReady("vortex", 0) && sfxTone({ freq: 70, freqEnd: 40, dur: 2.4, vol: 0.18, wet: 0.5, attack: 0.3 });
       }
       for (let i = vortices.length - 1; i >= 0; i--) {
         const v = vortices[i];
@@ -4350,22 +4472,20 @@
       clearTimeout(synToastTimer);
       synToastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
     }
-    // 레벨업 카드 아래에 붙는 시너지 힌트
+    // 레벨업 카드 오른쪽 아래 구석에 은은하게 붙는 연계 스킬 아이콘 (최대 2개, 설명 문구 없음)
     function synergyHint(skillId) {
-      const lines = [];
+      const icons = [];
       for (const s of SYNERGIES) {
         const idx = s.needs.findIndex(n => needHas(n, skillId));
         if (idx < 0) continue;
-        const others = s.needs.filter((n, i) => i !== idx);
-        if (synOn(s.id)) {
-          lines.push(`✅ 시너지 발동 중: ${s.name}`);
-        } else if (others.every(needMet)) {
-          lines.push(`✨ 배우면 바로 발동! ${s.name} — ${s.desc}`);
-        } else {
-          lines.push(`🔗 시너지: ${others.map(needLabel).join(" + ")}와(과) 조합 시 ${s.name}`);
+        for (const n of s.needs.filter((x, i) => i !== idx)) {
+          for (const id of Array.isArray(n) ? n : [n]) {
+            const icon = skillLabel(id).split(" ")[0];
+            if (!icons.includes(icon)) icons.push(icon);
+          }
         }
       }
-      return lines.length ? `<em class="syn-hint">${lines.join("<br>")}</em>` : "";
+      return icons.length ? `<i class="syn-icons">🔗${icons.slice(0, 2).join("")}</i>` : "";
     }
     // ⚡ 전격 수리검: 수리검이 튕길 때 주변 적에게 연쇄 번개 (수리검마다 0.25초에 한 번)
     function shurikenShock(s, timestamp) {
@@ -4923,8 +5043,8 @@
       const st = getStartStats();
       document.getElementById("lobby-bonus").innerHTML =
         `클리어 보상: ⚔️ 공격력 +${b.damagePct}% · ❤️ 체력 +${b.hp}<br>` +
-        `상점 강화: ⚔️ +${save.shop.atk * 4}% · ❤️ +${save.shop.hp * 10} · 👟 +${save.shop.spd * 3}%<br>` +
-        `스킬 강화: 💥 +${save.skillShop.dmg * 5}% · ⏱️ -${save.skillShop.cd * 3}% · 🎯 +${save.skillShop.area * 4}% · 🚀 +${save.skillShop.dur * 5}%<br>` +
+        `상점 강화: ⚔️ +${cs().shop.atk * 4}% · ❤️ +${cs().shop.hp * 10} · 👟 +${cs().shop.spd * 3}%<br>` +
+        `스킬 강화: 💥 +${cs().skillShop.dmg * 5}% · ⏱️ -${cs().skillShop.cd * 3}% · 🎯 +${cs().skillShop.area * 4}% · 🚀 +${cs().skillShop.dur * 5}%<br>` +
         `<b>이번 캐릭터 시작 능력치</b>: 공격력 ${st.damage} · 체력 ${st.maxHp} · 이동속도 ${st.speed}`;
       renderCharacterPicker();
       renderFloorPicker();
@@ -4938,6 +5058,7 @@
       document.getElementById("menu-floor-sub").innerText = getStage(save.selectedFloor).name;
       document.getElementById("menu-shop-sub").innerText = `💰 ${save.gold.toLocaleString()}G`;
       document.getElementById("shop-gold").innerText = `💰 ${save.gold.toLocaleString()}G`;
+      document.getElementById("shop-char").innerHTML = `<b>${currentCharacter().name}</b> 전용 상점 · 강화와 외형은 캐릭터마다 따로 저장돼요 (골드는 공통)`;
       document.getElementById("lobby-dev").innerText = IS_DEV_MODE ? "⚙️ 개발자 모드 ON (무적·즉시 부활, 스킬 미리보기) — 배포 전 IS_DEV_MODE = false" : "";
       setupDevPanel();
     }
@@ -4963,13 +5084,13 @@
     }
 
     function drawLobbyPreview(timestamp) {
-      drawFrontStage(lobbyCanvas, getSkin(), save.equip, timestamp);
+      drawFrontStage(lobbyCanvas, getSkin(), cs().equip, timestamp);
       // 열려 있는 창의 미리보기도 함께 갱신
       if (document.getElementById("panel-char").style.display === "block") {
-        drawFrontStage(document.getElementById("char-preview"), getSkin(), save.equip, timestamp);
+        drawFrontStage(document.getElementById("char-preview"), getSkin(), cs().equip, timestamp);
       }
       if (document.getElementById("panel-shop").style.display === "block") {
-        drawFrontStage(document.getElementById("shop-preview"), getSkin(), Object.assign({}, save.equip, shopTryOn), timestamp);
+        drawFrontStage(document.getElementById("shop-preview"), getSkin(), Object.assign({}, cs().equip, shopTryOn), timestamp);
       }
       if (document.getElementById("panel-floor").style.display === "block") {
         drawTerrainPreview(document.getElementById("floor-preview"), getStage(save.selectedFloor), timestamp);
@@ -5047,16 +5168,16 @@
     function renderShop() {
       const tryNames = Object.keys(shopTryOn).map(slot => {
         const item = COSMETICS[slot].find(c => c.id === shopTryOn[slot]);
-        const owned = save.owned.includes(slot + ":" + item.id);
+        const owned = cs().owned.includes(slot + ":" + item.id);
         return item.name + (owned ? "" : " (미구매)");
       });
-      const equipped = Object.keys(save.equip).filter(sl => save.equip[sl]).map(sl => (COSMETICS[sl].find(c => c.id === save.equip[sl]) || {}).name).filter(Boolean);
+      const equipped = Object.keys(cs().equip).filter(sl => cs().equip[sl]).map(sl => (COSMETICS[sl].find(c => c.id === cs().equip[sl]) || {}).name).filter(Boolean);
       document.getElementById("tryon-label").innerText = (tryNames.length ? `👀 입어보는 중:\n${tryNames.join("\n")}` : "아이템 이름을 누르면\n여기서 바로 입어 볼 수 있어요") +
         `\n\n✔ 장착 중: ${equipped.length ? equipped.join(", ") : "기본 외형"}`;
       const list = document.getElementById("shop-list");
       list.innerHTML = "";
       for (const item of SHOP_ITEMS) {
-        const lv = save.shop[item.id] || 0;
+        const lv = cs().shop[item.id] || 0;
         const maxed = lv >= item.max;
         const cost = shopCost(item, lv);
         const row = document.createElement("div");
@@ -5076,7 +5197,7 @@
       const skillList = document.getElementById("skill-shop-list");
       skillList.innerHTML = "";
       for (const item of SKILL_SHOP_ITEMS) {
-        const lv = save.skillShop[item.id] || 0;
+        const lv = cs().skillShop[item.id] || 0;
         const maxed = lv >= item.max;
         const cost = shopCost(item, lv);
         const row = document.createElement("div");
@@ -5100,8 +5221,8 @@
         head.innerText = COSMETIC_SLOTS[slot];
         cos.appendChild(head);
         for (const item of COSMETICS[slot]) {
-          const owned = save.owned.includes(slot + ":" + item.id);
-          const equipped = save.equip[slot] === item.id;
+          const owned = cs().owned.includes(slot + ":" + item.id);
+          const equipped = cs().equip[slot] === item.id;
           const trying = shopTryOn[slot] === item.id;
           const row = document.createElement("div");
           row.className = "shop-row" + (trying ? " trying" : "");
@@ -5157,7 +5278,11 @@
       }
       btn.dataset.armed = "";
       btn.innerText = "🗑️ 저장 데이터 완전 초기화";
-      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      try {
+        localStorage.removeItem(SAVE_KEY);
+        for (const id of Object.keys(CHARACTERS)) localStorage.removeItem(CHAR_SAVE_PREFIX + id);
+      } catch (e) {}
+      for (const id in charSaves) delete charSaves[id];
       save = defaultSave();
       floorPage = -1;
       writeSave();
@@ -5449,7 +5574,7 @@
     function getStartStats() {
       const bonus = getBonusStats();
       const ch = currentCharacter();
-      const shop = save.shop;
+      const shop = cs().shop;
       return {
         maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult),
         damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100)),
@@ -5548,6 +5673,7 @@
       activeSynergies = [];
       vortices = [];
       lastEliteSpawn = 0;
+      eliteSummons = [];
       resetTraps();
       // 원소술사: 체인 라이트닝 Lv1로 시작 (미리보기 모드는 제외)
       if (ch.startSkill && gameState !== "preview") player[ch.startSkill + "Level"] = 1;
@@ -5580,6 +5706,7 @@
           handleItemSpawns(timestamp);
           handleShrineSpawns();
           handleEliteSpawns();
+          updateEliteSummons();
           refreshObstacles();
           updateObstacles();
           update(timestamp);
@@ -6977,6 +7104,7 @@
       }
 
       drawTrapsGround(ctx, timestamp, inView);
+      drawEliteSummons(ctx, timestamp);
 
       // ☄️ 메테오 화염 장판: 바닥의 그을음 + 일렁이는 불꽃 (끝날 때쯤 서서히 사그라듦)
       for (const fz of meteorFires) {
@@ -7242,7 +7370,8 @@
         }
         // Lv2+: 바깥에서 중심으로 빨려 드는 입자
         if (lv >= 2) {
-          const n = lv >= 4 ? 34 : (lv >= 3 ? 22 : 14);
+          // 블랙홀이 여러 개면 입자 수를 줄여 모바일에서도 버벅이지 않게
+          const n = Math.round((lv >= 4 ? 34 : (lv >= 3 ? 22 : 14)) / Math.sqrt(Math.max(1, vortices.length)));
           for (let k = 0; k < n; k++) {
             const ph = (timestamp / (900 - lv * 80) + k * 0.137) % 1;  // 0(바깥) → 1(중심)
             const a = k * 2.39996 - v.spin * (1 + ph * 2);
@@ -7294,7 +7423,7 @@
         ctx.fillStyle = cg;
         ctx.fill();
         // Lv4+: 지평선 주변으로 튀는 번개 스파크
-        if (lv >= 4 && Math.random() < 0.7) {
+        if (lv >= 4 && Math.random() < 0.7 / Math.max(1, vortices.length / 2)) {
           ctx.globalCompositeOperation = "lighter";
           for (let k = 0; k < 3; k++) {
             const a = Math.random() * Math.PI * 2;
@@ -7460,9 +7589,14 @@
         ctx.lineTo(-s, 0); ctx.lineTo(-s * 0.3, -s * 0.3);
         ctx.closePath();
         ctx.fill();
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.strokeStyle = "#fff";
         ctx.stroke();
+        // 가운데 회전축
+        ctx.beginPath();
+        ctx.arc(0, 0, s * 0.16, 0, Math.PI * 2);
+        ctx.fillStyle = "#e0f2fe";
+        ctx.fill();
 
         ctx.restore();
       }
