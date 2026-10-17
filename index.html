@@ -2459,6 +2459,7 @@
     let fireWaves = [];
     let lightningBolts = [];
     let meteors = [];
+    let meteorFires = []; // 메테오가 떨어진 자리의 화염 장판
     let explosions = [];
     let sniperTracers = []; // 저격 치명타 글자 표시용
     let sniperShots = [];
@@ -2615,9 +2616,9 @@
 
       if (player.meteorLevel < 5) {
         const nextLv = player.meteorLevel + 1;
-        let descText = nextLv === 1 ? "화면 안의 적에게 메테오를 떨어뜨려 폭발 피해를 줍니다." :
-                       nextLv === 5 ? "★ 최종 진화: 메테오 6개 동시 낙하 + 거대 폭발!" :
-                       `메테오 +1개 (${nextLv}개), 폭발 범위·피해량 증가`;
+        let descText = nextLv === 1 ? "화면 안의 적에게 메테오를 떨어뜨려 폭발 피해를 주고, 떨어진 자리에 화염이 남아 지속 피해를 줍니다." :
+                       nextLv === 5 ? "★ 최종 진화: 메테오 6개 동시 낙하 + 거대 폭발 + 오래 타는 황금 화염!" :
+                       `메테오 +1개 (${nextLv}개), 폭발 범위·피해량 증가, 화염 지속 피해·시간 증가`;
         allUpgrades.push({
           id: "meteor",
           isOwned: player.meteorLevel > 0,
@@ -3422,6 +3423,19 @@
       }
     }
 
+    // 스킬 투사체가 지나가며 일반 몹 탄환을 지움 (보스 탄은 회전 칼날과 마찬가지로 못 지움)
+    function blockEnemyBullets(x, y, r, color) {
+      for (let b = enemyBullets.length - 1; b >= 0; b--) {
+        const eb = enemyBullets[b];
+        if (!eb || eb.isBossBullet) continue;
+        const dx = eb.x - x, dy = eb.y - y, rr = r + eb.radius;
+        if (dx * dx + dy * dy < rr * rr) {
+          addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: color });
+          enemyBullets.splice(b, 1);
+        }
+      }
+    }
+
     // 도탄 대상: 맞은 적을 제외한 가장 가까운 적 (260 거리 이내)
     function findBounceTarget(from) {
       let best = null;
@@ -3571,6 +3585,7 @@
           s.x = ob.x + ux * (ob.r + size * 0.6 + 1);
           s.y = ob.y + uy * (ob.r + size * 0.6 + 1);
         }
+        blockEnemyBullets(s.x, s.y, size, lv >= 5 ? "#facc15" : "#e2e8f0");
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           const dx = m.x - s.x, dy = m.y - s.y, rr = m.radius + size;
@@ -4500,7 +4515,8 @@
           ["💨 대시 (오른쪽 아래 버튼 · PC는 스페이스)", "이동 방향으로 짧게 돌진하며 0.4초 무적. 쿨타임 5초"],
           ["🔰 에너지 방벽 (레벨업 선택지)", "탄환·돌진 같은 큰 피해 1회 막기. Lv1 14초 → Lv5 6초마다 재생성, Lv5는 깨질 때 주변 탄환도 지움"],
           ["⛰️ 장애물 엄폐", "장애물은 적 탄환과 내 탄환 모두 막고, 나와 적 모두 돌아서 지나가야 함. 탄환을 처음 막으면 금이 가서 8초 뒤 부서지고, 45초 뒤 다시 생김"],
-          ["⚔️ 회전 칼날 · 🔥 플레임 노바 · 🛡️ 보호막 아이템", "일반 몹 탄환 제거 / 피해 3회 막기"]
+          ["⚔️ 회전 칼날 · 🔥 플레임 노바 · ⛓️ 사슬 · 🌀 궤도 구체 · 🪃 부메랑 · ✴️ 수리검 · 🚀 유도 미사일", "닿거나 지나가는 경로의 일반 몹 탄환 제거 (보스 탄은 못 막음)"],
+          ["🛡️ 보호막 아이템", "피해 3회 막기"]
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
         sec("🧑 캐릭터 (기본 공격 · 특성)", Object.values(CHARACTERS).map(c => [c.name, `${ATTACK_TYPES[c.attack].name}: ${ATTACK_TYPES[c.attack].desc}<br>${c.passive}`])) +
@@ -4665,7 +4681,7 @@
       document.getElementById("dev-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       // 이전 스킬의 투사체·장판 정리 후 바로 발동되도록 타이머 초기화
       bullets = []; homingMissiles = []; boomerangs = []; trails = []; fireWaves = [];
-      meteors = []; lightningBolts = []; sniperShots = []; explosions = []; shurikens = []; thunderStrikes = []; vortices = [];
+      meteors = []; meteorFires = []; lightningBolts = []; sniperShots = []; explosions = []; shurikens = []; thunderStrikes = []; vortices = [];
       player.thunderTimer = 0;
       player.vortexTimer = 0;
       player.laserTarget = null;
@@ -4768,6 +4784,7 @@
       fireWaves = [];
       lightningBolts = [];
       meteors = [];
+      meteorFires = [];
       explosions = [];
       sniperTracers = [];
       sniperShots = [];
@@ -5001,7 +5018,27 @@
           }
         }
         explosions.push({ x: mt.x, y: mt.y, radius: mt.radius, life: 18, maxLife: 18, lv: mt.lv });
+        // 떨어진 자리에 화염 장판: 레벨이 오를수록 지속 피해·지속 시간 증가 (Lv1 2.5초 → Lv5 5.5초)
+        const fireLife = Math.round((2 + mt.lv * 0.6 + (mt.lv >= 5 ? 0.5 : 0)) * 60);
+        meteorFires.push({ x: mt.x, y: mt.y, radius: mt.radius * 0.8, life: fireLife, maxLife: fireLife,
+          dps: player.damage * (0.5 + mt.lv * 0.3) * skillPower, lv: mt.lv, seed: Math.random() * 100 });
         meteors.splice(i, 1);
+      }
+      // 화염 장판: 0.25초마다 안에 있는 적에게 피해
+      for (let i = meteorFires.length - 1; i >= 0; i--) {
+        const fz = meteorFires[i];
+        fz.life--;
+        if (fz.life % 15 === 0) {
+          for (let j = monsters.length - 1; j >= 0; j--) {
+            const m = monsters[j];
+            const dx = m.x - fz.x, dy = m.y - fz.y, rr = fz.radius + m.radius * 0.5;
+            if (dx * dx + dy * dy < rr * rr) {
+              m.hp -= fz.dps / 4;
+              if (m.hp <= 0) handleMonsterDeath(m, j);
+            }
+          }
+        }
+        if (fz.life <= 0) meteorFires.splice(i, 1);
       }
 
       // 🎯 저격 (보스 우선)
@@ -5096,6 +5133,7 @@
           player.orbitPos.push({ x: player.x + Math.cos(a) * orbitR, y: player.y + Math.sin(a) * orbitR, size: size });
         }
         hitWithOrbiters(player.orbitPos, orbitHits, 260, dmg, lv >= 5 ? "#fde047" : "#a78bfa", timestamp);
+        for (const p of player.orbitPos) blockEnemyBullets(p.x, p.y, p.size, "#a78bfa");
       }
 
       // ⛓️ 사슬 회전날: 쿨타임마다 멀리 뻗었다가 돌아옴 (레벨업마다 크기 증가, 왕복 시간·쿨타임 단축)
@@ -5132,6 +5170,7 @@
               player.chainPos.push({ x: player.x + Math.cos(a) * reach, y: player.y + Math.sin(a) * reach, size: size });
             }
             hitWithOrbiters(player.chainPos, chainHits, 200, player.damage * (1.0 + lv * 0.3) * skillPower, "#94a3b8", timestamp);
+            for (const p of player.chainPos) blockEnemyBullets(p.x, p.y, p.size, "#cbd5e1");
           }
         }
       }
@@ -5202,6 +5241,7 @@
           }
         }
 
+        blockEnemyBullets(bm.x, bm.y, bm.size, "#38bdf8");
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (fastHypot(m.x - bm.x, m.y - bm.y) < m.radius + bm.size) {
@@ -5304,6 +5344,7 @@
           }
         }
 
+        blockEnemyBullets(hm.x, hm.y, hm.radius + 4, "#ec4899");
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (fastHypot(m.x - hm.x, m.y - hm.y) < m.radius + hm.radius) {
@@ -5572,7 +5613,10 @@
       }
       const late = m.isLateBoss;
       const first = m.isFirstBoss;
-      const rage = m.enraged ? (first ? 0.85 : 0.7) : 1; // 분노 시 패턴 쿨타임 단축 (첫 보스는 15%만)
+      // 분노 강도: 1층은 약하게, 층이 오를수록 강해져 10층부터 최대 (0 ~ 1)
+      const rageTier = Math.min(1, (currentFloor - 1) / 9);
+      // 분노 시 패턴 쿨타임 단축: 최대치 기준 첫 보스 15%, 이후 보스 30%. 1층은 그 30%만
+      const rage = m.enraged ? 1 - (first ? 0.15 : 0.3) * (0.3 + 0.7 * rageTier) : 1;
 
       // 돌진 패턴: 0.65초 조준(경고선 표시) 후 고속 돌진
       if (m.dashState === "windup") {
@@ -5644,11 +5688,11 @@
       }
 
       if (m.enraged) {
-        // 회전 나선 탄막
-        if (timestamp - m.spiralTimer > (first ? 240 : 170)) {
+        // 회전 나선 탄막: 낮은 층은 발사 간격이 길고 갈래 수도 1개 적음
+        if (timestamp - m.spiralTimer > (first ? 240 : 170) * (1 + 1.3 * (1 - rageTier))) {
           m.spiralTimer = timestamp;
           m.spiralAngle += 0.35;
-          const arms = late ? 3 : (first ? 1 : 2);
+          const arms = Math.max(1, (late ? 3 : (first ? 1 : 2)) - (rageTier < 0.34 ? 1 : 0));
           for (let k = 0; k < arms; k++) {
             const sa = m.spiralAngle + k * Math.PI * 2 / arms;
             enemyBullets.push({
@@ -6142,6 +6186,31 @@
         ctx.strokeStyle = "#ef4444";
         ctx.lineWidth = 10;
         ctx.strokeRect(bossArena.x - half, bossArena.y - half, bossArena.size, bossArena.size);
+      }
+
+      // ☄️ 메테오 화염 장판: 바닥의 그을음 + 일렁이는 불꽃 (끝날 때쯤 서서히 사그라듦)
+      for (const fz of meteorFires) {
+        if (!inView(fz.x, fz.y)) continue;
+        const fade = Math.min(1, fz.life / 30);
+        ctx.globalAlpha = 0.45 * fade;
+        ctx.fillStyle = "#1c0a03";
+        ctx.beginPath();
+        ctx.arc(fz.x, fz.y, fz.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = (0.32 + Math.sin(timestamp / 90 + fz.seed) * 0.08) * fade;
+        drawGlow(ctx, fz.lv >= 5 ? "#facc15" : "#f97316", fz.x, fz.y, fz.radius * 1.15);
+        const flames = 6 + fz.lv * 2;
+        for (let k = 0; k < flames; k++) {
+          const a = fz.seed + k * 2.39996;
+          const d = fz.radius * (0.2 + ((k * 0.618 + fz.seed) % 1) * 0.65);
+          const fx = fz.x + Math.cos(a) * d, fy = fz.y + Math.sin(a) * d;
+          const flick = 0.6 + Math.sin(timestamp / 70 + k * 1.7 + fz.seed) * 0.4;
+          ctx.globalAlpha = 0.55 * fade * flick;
+          drawGlow(ctx, k % 3 === 0 ? "#fde047" : "#fb923c", fx, fy - flick * 6, 10 + fz.lv * 2 + flick * 8);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
       }
 
       // ☄️ 메테오 경고 원 + 낙하 중인 운석
