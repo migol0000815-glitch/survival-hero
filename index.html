@@ -203,6 +203,24 @@
     .dmg-kills, .dmg-val { color: #fde68a; font-weight: 800; }
     .dmg-row i { color: #94a3b8; font-style: normal; font-weight: 600; font-size: 10px; }
     .stat-empty { color: #64748b; font-size: 12px; }
+    /* 결과·게임오버 핵심 수치 (최종 레벨 · 생존 시간 · 처치) */
+    .result-key { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; }
+    .result-key div { padding: 8px 4px; border-radius: 12px; text-align: center; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(71, 85, 105, 0.6); }
+    .result-key b { display: block; font-size: 18px; color: #fde68a; }
+    .result-key span { font-size: 11px; color: #94a3b8; }
+    #gameover-modal { justify-content: safe center; overflow-y: auto; }
+    #gameover-modal, #gameover-modal * { touch-action: pan-y; }
+    /* 스킬 시너지: 레벨업 카드 힌트 · 일시정지 목록 · 발동 알림 */
+    .upgrade-btn .syn-hint { display: block; margin-top: 6px; padding: 5px 8px; border-radius: 8px; font-style: normal; font-size: 11px; line-height: 1.5;
+      color: #fde68a; background: rgba(250, 204, 21, 0.1); border: 1px dashed rgba(250, 204, 21, 0.45); }
+    .syn-row { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(250, 204, 21, 0.1); color: #fde68a; font-weight: 800; font-size: 13px; }
+    .syn-row small { display: block; color: #cbd5e1; font-weight: 600; font-size: 11px; }
+    #syn-toast { display: none; position: absolute; top: 200px; left: 50%; transform: translateX(-50%); z-index: 15; pointer-events: none;
+      padding: 10px 18px; border-radius: 14px; text-align: center; color: #fef3c7; font-size: 14px; font-weight: 800; white-space: nowrap;
+      background: rgba(66, 32, 6, 0.85); border: 1.5px solid #facc15; box-shadow: 0 0 22px rgba(250, 204, 21, 0.5); animation: synPop 0.35s ease-out; }
+    #syn-toast b { color: #facc15; font-size: 16px; }
+    #syn-toast small { display: block; margin-top: 3px; color: #e2e8f0; font-size: 11px; font-weight: 600; white-space: normal; max-width: 280px; }
+    @keyframes synPop { from { transform: translateX(-50%) scale(0.7); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
     .trap-tag { color: #fca5a5; font-size: 12px; margin-top: 4px; }
 
     .toggle-btn {
@@ -269,6 +287,13 @@
     .floor-preview { width: 100%; height: auto; aspect-ratio: 680 / 260; border-radius: 10px; border: 1px solid rgba(71, 85, 105, 0.6); display: block; margin-bottom: 6px; }
     .hero-preview { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1; display: block; margin: 0 auto; }
     .tryon-label { text-align: center; font-size: 12px; color: #fde68a; min-height: 16px; }
+    /* 외형 탭: 위쪽 미리보기는 고정(스크롤해도 화면 위에 붙어 있음), 아래 목록만 스크롤 */
+    #shop-look .look-viewer { position: sticky; top: 0; z-index: 3; margin: 0 -16px 10px; padding: 8px 16px 8px;
+      background: linear-gradient(180deg, #070b18 85%, rgba(7, 11, 24, 0)); }
+    #shop-look .look-viewer .info-box { display: flex; align-items: center; gap: 10px; padding: 8px 10px; }
+    #shop-look .look-viewer .hero-preview { width: 150px; max-width: 150px; margin: 0; flex-shrink: 0; }
+    #shop-look .look-viewer .tryon-label { flex: 1; text-align: left; font-size: 13px; line-height: 1.5; }
+    .gameover-box .info-box { text-align: left; }
     .shop-row.trying { background: rgba(250, 204, 21, 0.08); border-radius: 8px; }
     .shop-row .cos-name { flex: 1; cursor: pointer; padding: 4px 0; }
     .pick-desc { margin-top: 6px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
@@ -749,6 +774,7 @@
     </div>
 
     <div id="boss-alert">⚠️ WARNING! 극강의 탄막 보스 출현 ⚠️</div>
+    <div id="syn-toast"></div>
 
     <div id="banner-ad">
       <div class="ad-content">
@@ -775,7 +801,7 @@
         <div class="info-box">
           <div class="opt-row"><span>🗺️ 미니맵 표시</span><button id="pause-minimap" class="switch" onclick="toggleMinimap()" aria-label="미니맵 켜기/끄기"></button></div>
         </div>
-        <div class="info-box"><h4>📊 스킬별 전투 통계 (이번 판)</h4><div id="pause-dmg"></div></div>
+        <div id="pause-dmg-box" class="info-box"><h4>📊 [DEV] 스킬별 전투 통계 (이번 판)</h4><div id="pause-dmg"></div></div>
         <div class="info-box"><h4>보유 스킬</h4><div id="pause-skills"></div></div>
         <div class="info-box"><h4>능력치</h4><div id="pause-stats"></div></div>
         <div id="pause-dev" class="info-box dev-panel" style="display: none;">
@@ -796,6 +822,8 @@
     <div id="gameover-modal" class="game-modal">
       <h2 id="gameover-title" class="modal-title" style="color: #ef4444;">💀 게임 오버</h2>
       <div class="gameover-box">
+        <div id="gameover-key" class="result-key"></div>
+        <div id="gameover-dmg-box" class="info-box" style="display: none;"><h4>📊 스킬별 피해량 · 처치 수</h4><div id="gameover-dmg"></div></div>
         <button id="btn-revive" class="reward-ad-btn" onclick="watchRewardAd()">
           <span id="revive-label">📺 5초 광고 보고 부활하기 (1/2)</span>
           <span style="font-size: 12px; font-weight: normal; opacity: 0.9;">체력 100% 회복 + 주변 충격파 방출</span>
@@ -808,6 +836,7 @@
       <h2 id="result-title" class="modal-title">🎉 GAME CLEAR!</h2>
       <div class="result-box">
         <div id="result-summary"></div>
+        <div id="result-key" class="result-key"></div>
         <ul id="result-rewards"></ul>
         <div class="info-box"><h4>📊 스킬별 처치 수 · 피해 비중</h4><div id="result-dmg"></div></div>
         <button class="start-btn" onclick="goToLobby()">메인 화면으로</button>
@@ -885,7 +914,7 @@
             <h4>층 정보 · 맵 지형</h4>
             <canvas id="floor-preview" class="floor-preview" width="680" height="260"></canvas>
             <div id="floor-desc" class="pick-desc" style="font-size: 13px; color: #e2e8f0;"></div>
-            <div class="pick-desc">층이 올라갈수록 기본 몹 체력만 층당 +30%, 골드 보상은 층당 +50%. 맵 테마 5종(폐허·얼음·용암·늪·공허)이 층마다 순환합니다. 1~9층은 환경 함정 1종, 10층부터는 2종이 동시에 작동합니다.</div>
+            <div class="pick-desc">층이 올라갈수록 몹 체력과 원거리 몹의 탄막이 완만하게 강해지고, 골드 보상은 층당 +50%. 맵 테마 5종(폐허·얼음·용암·늪·공허)이 층마다 순환합니다. 높은 층일수록 맵 곳곳에 환경 함정이 숨어 있어요.</div>
           </div>
         </div>
       </div>
@@ -908,9 +937,11 @@
             <div id="skill-shop-list"></div>
           </div>
           <div id="shop-look" style="display: none;">
-            <div class="info-box" style="margin-bottom: 12px;">
-              <canvas id="shop-preview" class="hero-preview" width="360" height="360"></canvas>
-              <div id="tryon-label" class="tryon-label"></div>
+            <div class="look-viewer">
+              <div class="info-box">
+                <canvas id="shop-preview" class="hero-preview" width="300" height="300"></canvas>
+                <div id="tryon-label" class="tryon-label"></div>
+              </div>
             </div>
             <div class="info-box">
               <h4>능력치 변화 없음 · 이름을 누르면 입어보기 · 버튼으로 구매/장착</h4>
@@ -1315,21 +1346,36 @@
         tiles: ["#261a3d", "#120a22", "#21163a", "#0d061a"], bevel: "rgba(196, 181, 253, 0.16)",
         shooterSpread: 2, shotSpeed: 5, shooterInterval: 5500, shotColor: "#c084fc" }
     ];
-    // 층이 올라갈수록 기본 몹 체력만 완만하게 증가 (층당 +30%), 골드 보상은 층당 +50%
-    // 몹 공격력·속도·보스 체력은 층과 무관하게 동일
-    const FLOOR_HP_STEP = 0.3;
+    // 층 난이도는 계단식으로 튀지 않게 완만한 곡선으로 증가 (골드 보상은 층당 +50%)
+    //  - 몹 체력: 1 + 0.2×(층-1) + 0.005×(층-1)² → 2층 ×1.2, 5층 ×1.88, 10층 ×3.2, 20층 ×6.6
+    //  - 원거리 몹: 등장 비율·탄 갈래 수·탄속·연사 속도가 층에 따라 서서히 강해짐 (floorTier 0 → 1, 15층에서 최대)
+    //    맵 테마의 탄막 특징(3갈래·빠른 탄 등)은 낮은 층에서 약하게 시작해 높은 층에서 원래 세기가 됨
+    // 몹 공격력·보스 체력은 층과 무관하게 동일
     const FLOOR_REWARD_STEP = 0.5;
     const stageCache = {};
     function getStage(floor) {
       if (!stageCache[floor]) {
         const theme = STAGE_THEMES[(floor - 1) % STAGE_THEMES.length];
-        const hp = +(1 + (floor - 1) * FLOOR_HP_STEP).toFixed(2);
-        const reward = +(1 + (floor - 1) * FLOOR_REWARD_STEP).toFixed(1);
+        const f = floor - 1;
+        const tier = Math.min(1, f / 14);
+        const hp = +(1 + f * 0.2 + f * f * 0.005).toFixed(2);
+        const reward = +(1 + f * FLOOR_REWARD_STEP).toFixed(1);
+        // 여러 갈래 사격은 8층부터 2갈래, 13층부터 테마 원래 갈래 수. 갈래가 많을수록 발사 간격을 늘려 총 탄 수는 완만하게
+        const spread = floor < 8 ? 1 : (floor < 13 ? Math.min(2, theme.shooterSpread) : theme.shooterSpread);
+        const shotSpeed = +(theme.shotSpeed * (0.9 + 0.1 * tier)).toFixed(2);
+        const shooterInterval = Math.round(theme.shooterInterval * (1.1 - 0.1 * tier) * (1 + (spread - 1) * 0.4));
+        const attackDesc = `원거리 몹: ${spread > 1 ? spread + "갈래" : "단발"} 사격` +
+          (shotSpeed < 4.2 ? " (느린 탄)" : shotSpeed > 5.5 ? " (빠른 탄)" : "") + (theme.shotRadius ? " · 큰 독 구슬" : "");
         stageCache[floor] = Object.assign({}, theme, {
           floor: floor, theme: theme.id, obstacle: theme.id,
           name: `${floor}층 · ${theme.name}`,
-          desc: (floor === 1 ? "기본 난이도" : `몹 체력 ×${hp}`) + ` · 골드 보상 ×${reward} · ${theme.attackDesc}`,
-          hp: hp, dmg: 1, boss: 1, reward: reward, mobSpeed: 1, shooterLv: 10
+          desc: (floor === 1 ? "기본 난이도" : `몹 체력 ×${hp}`) + ` · 골드 보상 ×${reward} · ${attackDesc}`,
+          hp: hp, dmg: 1, boss: 1, reward: reward, mobSpeed: 1, shooterLv: 10,
+          shooterSpread: spread, shotSpeed: shotSpeed, shooterInterval: shooterInterval, attackDesc: attackDesc,
+          // 원거리 몹 등장 비율 (Lv10부터 등장, Lv10 절반 → Lv16에 최대): 1층 20% → 15층 25%
+          shooterChance: 0.2 + 0.05 * tier,
+          // 동시에 있을 수 있는 원거리 몹 최대 수 (1층 20 → 15층 35)
+          shooterCap: Math.round(20 + tier * 15)
         });
       }
       return stageCache[floor];
@@ -2482,6 +2528,10 @@
 
       vortexLevel: 0,
       vortexTimer: 0,
+      frostAuraLevel: 0,
+      frostAuraTick: 0,
+      poisonLevel: 0,
+      poisonTimer: 0,
 
       barrierLevel: 0,   // 에너지 방벽 레벨
       barrierReadyAt: 0, // 방벽 재생성 시각 (playTimeMs 기준)
@@ -2535,6 +2585,7 @@
     let shurikens = [];      // 바운드 수리검 (화면 안에서 계속 튕김)
     let thunderStrikes = []; // 낙뢰 연출 (하늘에서 떨어지는 번개)
     let vortices = [];       // 블랙홀 (적을 끌어모으는 중력장)
+    let poisonClouds = [];   // 독 안개
     let lastEliteSpawn = 0;  // 중간 보스 등장 시각 (playTimeMs 기준)
     let frameDtMs = 16.67;   // 직전 프레임 길이 (회전체를 프레임과 무관하게 일정 속도로 돌리기 위함)
     let bossAlertHideAt = 0; // 보스 경고 문구를 숨길 시각 (playTimeMs 기준)
@@ -2791,6 +2842,34 @@
         });
       }
 
+      if (player.frostAuraLevel < 5) {
+        const nextLv = player.frostAuraLevel + 1;
+        let descText = nextLv === 1 ? "내 주위에 냉기 오라를 둘러 안에 들어온 적을 둔화시키고 동상 피해를 줍니다." :
+                       nextLv === 5 ? "★ 최종 진화: 오라 범위 대폭 확장 + 오라 안의 일반 몹 탄환 속도 50% 감소!" :
+                       "오라 범위·둔화율·동상 피해 증가";
+        allUpgrades.push({
+          id: "frostAura",
+          isOwned: player.frostAuraLevel > 0,
+          title: `💠 빙결 오라 [Lv. ${player.frostAuraLevel} ➔ Lv. ${nextLv}]`,
+          desc: "[광역] " + descText,
+          apply: () => { player.frostAuraLevel++; }
+        });
+      }
+
+      if (player.poisonLevel < 5) {
+        const nextLv = player.poisonLevel + 1;
+        let descText = nextLv === 1 ? "적이 많이 모인 곳에 독 안개를 퍼뜨려 안에 있는 적에게 지속 피해를 줍니다." :
+                       nextLv === 5 ? "★ 최종 진화: 독 안개 2개 동시 생성 + 범위·지속시간 대폭 증가!" :
+                       "독 안개 범위·지속시간·피해 증가, 쿨타임 감소";
+        allUpgrades.push({
+          id: "poison",
+          isOwned: player.poisonLevel > 0,
+          title: `☠️ 독 안개 [Lv. ${player.poisonLevel} ➔ Lv. ${nextLv}]`,
+          desc: "[광역] " + descText,
+          apply: () => { player.poisonLevel++; }
+        });
+      }
+
       if (player.ricochetLevel < 5) {
         const nextLv = player.ricochetLevel + 1;
         let descText = nextLv === 1 ? "기본 탄환이 명중 후 근처의 적 3명에게 연속으로 튕깁니다." :
@@ -2923,7 +3002,10 @@
       let hp = Math.floor((10 + (player.level - 1) * 1.6) * monsterHpScale());
       let color = "#166534";
 
-      if (player.level >= stage.shooterLv && roll < 0.22) {
+      // 원거리 몹: 레벨 10부터 서서히 늘어나고 (Lv10 절반 → Lv16 최대), 동시에 있을 수 있는 수에 상한
+      const shooterRamp = Math.min(1, 0.5 + (player.level - stage.shooterLv) * 0.085);
+      const shooterOk = forcedRoll !== undefined || monsters.filter(mm => mm.type === "shooter").length < stage.shooterCap;
+      if (player.level >= stage.shooterLv && roll < stage.shooterChance * shooterRamp && shooterOk) {
         type = "shooter";
         radius = 21;
         speed = 1.1;
@@ -2947,8 +3029,8 @@
         x: x, y: y, type: type, radius: radius,
         speed: speed, baseSpeed: speed, walkCycle: Math.random() * 10,
         hp: hp, maxHp: hp, color: color, slowTimer: 0,
-        shootTimer: Math.random() * 1000,
-        shootInterval: stage.shooterInterval,
+        shootTimer: performance.now() + Math.random() * 1500, // 화면에 들어온 직후 바로 쏘지 않게
+        shootInterval: stage.shooterInterval * (0.85 + Math.random() * 0.3), // 몹마다 발사 간격이 달라 일제 사격 방지
         isBoss: false
       });
     }
@@ -3263,7 +3345,8 @@
     function updateTrapHud() {
       const el = document.getElementById("trap-display");
       let text = "";
-      if (activeTraps.length && gameState === "playing") {
+      // 함정 이름 표시는 개발자 모드에서만 (배포판은 화면 연출만 보고 직접 체감)
+      if (IS_DEV_MODE && activeTraps.length && gameState === "playing") {
         const arrows = ["➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️", "⬆️", "↗️"];
         text = "⚠️ " + activeTraps.map(id => {
           let s = trapName(id, currentFloor);
@@ -3733,6 +3816,8 @@
     }
     function statName(src) {
       if (STAT_NAMES[src]) return STAT_NAMES[src];
+      const syn = SYNERGIES.find(s => s.id === src);
+      if (syn) return "🔗 " + syn.name;
       const s = PREVIEW_SKILLS.find(p => p.id === src);
       return s ? s.name : src;
     }
@@ -3967,8 +4052,9 @@
         s.y += s.dy * step * skillUp.dur;
         s.spin += 0.35 * step;
         // 화면 밖으로 나가려 하면 안쪽으로 반사 (플레이어가 움직여 화면이 밀려도 다시 들어옴)
-        if ((s.x < left + size && s.dx < 0) || (s.x > right - size && s.dx > 0)) s.dx = -s.dx;
-        if ((s.y < top + size && s.dy < 0) || (s.y > bottom - size && s.dy > 0)) s.dy = -s.dy;
+        let bounced = false;
+        if ((s.x < left + size && s.dx < 0) || (s.x > right - size && s.dx > 0)) { s.dx = -s.dx; bounced = true; }
+        if ((s.y < top + size && s.dy < 0) || (s.y > bottom - size && s.dy > 0)) { s.dy = -s.dy; bounced = true; }
         // 장애물에 닿으면 표면에서 튕겨 나감 (장애물 뒤의 적은 바로 못 맞힘)
         const ob = obstacles.length ? obstacleAt(s.x, s.y, size * 0.6) : null;
         if (ob) {
@@ -3978,7 +4064,9 @@
           if (dot < 0) { s.dx -= 2 * dot * ux; s.dy -= 2 * dot * uy; }
           s.x = ob.x + ux * (ob.r + size * 0.6 + 1);
           s.y = ob.y + uy * (ob.r + size * 0.6 + 1);
+          bounced = true;
         }
+        if (bounced && synOn("shockShuriken")) shurikenShock(s, timestamp);
         blockEnemyBullets(s.x, s.y, size, lv >= 5 ? "#facc15" : "#e2e8f0");
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
@@ -4004,15 +4092,18 @@
         const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
         const pool = monsters.filter(m => fastHypot(m.x - player.x, m.y - player.y) < viewR);
         for (let i = 0; i < count; i++) {
-          let tx, ty;
+          let tx, ty, chilled = false;
           if (pool.length) {
             const t = pool.splice((Math.random() * pool.length) | 0, 1)[0];
             tx = t.x; ty = t.y;
+            chilled = (t.chilledUntil || 0) > playTimeMs;
           } else {
             const a = Math.random() * Math.PI * 2, d = 80 + Math.random() * viewR * 0.6;
             tx = player.x + Math.cos(a) * d; ty = player.y + Math.sin(a) * d;
           }
-          thunderStrikes.push({ x: tx, y: ty, delay: i * 4, life: 16, maxLife: 16, lv: lv, splash: splash, dmg: dmg, done: false });
+          // 🧊 초전도 시너지: 빙결 오라에 걸린 적에게 떨어지면 피해 1.6배·감전 범위 1.3배
+          const sup = chilled && synOn("superconduct");
+          thunderStrikes.push({ x: tx, y: ty, delay: i * 4, life: 16, maxLife: 16, lv: lv, splash: splash * (sup ? 1.3 : 1), dmg: dmg * (sup ? 1.6 : 1), done: false, sup: sup });
         }
       }
       for (let i = thunderStrikes.length - 1; i >= 0; i--) {
@@ -4026,7 +4117,7 @@
             const m = monsters[j];
             const d = fastHypot(m.x - st.x, m.y - st.y);
             if (d > st.splash + m.radius) continue;
-            m.hp -= hurt(m, d < m.radius + 10 ? st.dmg : st.dmg * 0.6, "thunder");
+            m.hp -= hurt(m, d < m.radius + 10 ? st.dmg : st.dmg * 0.6, st.sup ? "superconduct" : "thunder");
             if (m.hp <= 0) handleMonsterDeath(m, j);
           }
           addShake(3 + st.lv * 0.6);
@@ -4083,8 +4174,16 @@
       for (let i = vortices.length - 1; i >= 0; i--) {
         const v = vortices[i];
         v.life--;
-        v.spin += 0.12 * frameDtMs / 16.67;
+        v.spin += (0.08 + v.lv * 0.025) * frameDtMs / 16.67; // 레벨이 높을수록 빠르게 회전
         const tickNow = v.life % 10 === 0;
+        // 🔥 화염 중력장 시너지: 중심부(반경 35%)에 0.33초마다 화염 폭발
+        const flame = synOn("flameGravity");
+        const flameNow = flame && v.life % 20 === 0 && v.life < VORTEX_LIFE - 12;
+        const coreR = v.radius * 0.35;
+        if (flameNow) {
+          if (explosions.length < 14) explosions.push({ x: v.x + (Math.random() - 0.5) * coreR, y: v.y + (Math.random() - 0.5) * coreR, radius: coreR * 0.7, life: 12, maxLife: 12, lv: 0, small: true, color: "#f97316" });
+          if (Math.random() < 0.5) Sound.blast();
+        }
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           const dx = v.x - m.x, dy = v.y - m.y, d = fastHypot(dx, dy);
@@ -4099,6 +4198,10 @@
             m.hp -= hurt(m, v.tick, "vortex");
             if (m.hp <= 0) { handleMonsterDeath(m, j); continue; }
           }
+          if (flameNow && d < coreR + m.radius) {
+            m.hp -= hurt(m, player.damage * (0.7 + v.lv * 0.2) * skillPower, "flameGravity");
+            if (m.hp <= 0) { handleMonsterDeath(m, j); continue; }
+          }
         }
         if (v.life <= 0) {
           // 붕괴 폭발: 중심 근처(반경 60%)에 큰 피해
@@ -4107,9 +4210,11 @@
             const m = monsters[j];
             if (fastHypot(m.x - v.x, m.y - v.y) < br + m.radius) {
               m.hp -= hurt(m, v.burst, "vortex");
+              if (m.hp > 0 && flame) m.hp -= hurt(m, v.burst * 0.5, "flameGravity"); // 화염 중력장: 붕괴 폭발 1.5배
               if (m.hp <= 0) handleMonsterDeath(m, j);
             }
           }
+          if (flame) explosions.push({ x: v.x, y: v.y, radius: br * 1.5, life: 22, maxLife: 22, lv: 0, color: "#f97316" });
           explosions.push({ x: v.x, y: v.y, radius: br * 1.2, life: 20, maxLife: 20, lv: v.lv >= 5 ? 5 : 1, color: "#a855f7" });
           spawnBurst(v.x, v.y, "#c084fc", 16, 8);
           addShake(6);
@@ -4117,6 +4222,159 @@
           vortices.splice(i, 1);
         }
       }
+    }
+
+    // 💠 빙결 오라: 내 주위 원 안의 적 둔화 + 0.5초마다 동상 피해. Lv5는 오라 안 일반 몹 탄환 감속
+    function frostAuraRadius() {
+      const lv = player.frostAuraLevel;
+      return (110 + lv * 18 + (lv >= 5 ? 40 : 0)) * skillUp.area;
+    }
+    function updateFrostAura() {
+      const lv = player.frostAuraLevel;
+      if (!lv) return;
+      const R = frostAuraRadius();
+      player.frostAuraTick += frameDtMs;
+      const tickNow = player.frostAuraTick >= 500;
+      if (tickNow) player.frostAuraTick -= 500;
+      const dmg = player.damage * (0.25 + lv * 0.12) * skillPower;
+      for (let j = monsters.length - 1; j >= 0; j--) {
+        const m = monsters[j];
+        const dx = m.x - player.x, dy = m.y - player.y, rr = R + m.radius * 0.5;
+        if (dx * dx + dy * dy > rr * rr) continue;
+        const slow = m.isBoss ? 0.85 : 0.75 - lv * 0.05; // Lv1 30% → Lv5 50% 둔화 (보스는 15%)
+        m.speed = Math.min(m.speed, m.baseSpeed * slow);
+        m.slowTimer = Math.max(m.slowTimer || 0, 6);
+        m.chilledUntil = playTimeMs + 250; // 초전도 시너지 판정용
+        if (tickNow) {
+          m.hp -= hurt(m, dmg, "frostAura");
+          if (m.hp <= 0) handleMonsterDeath(m, j);
+        }
+      }
+      if (lv >= 5) {
+        for (const eb of enemyBullets) {
+          if (!eb || eb.isBossBullet || eb.chilled) continue;
+          const dx = eb.x - player.x, dy = eb.y - player.y;
+          if (dx * dx + dy * dy < R * R) { eb.dx *= 0.5; eb.dy *= 0.5; eb.chilled = true; }
+        }
+      }
+    }
+
+    // ☠️ 독 안개: 적이 가장 많이 모인 곳에 독 구름 → 0.5초마다 안의 적에게 피해
+    function updatePoison(timestamp) {
+      const lv = player.poisonLevel;
+      if (lv > 0 && timestamp - player.poisonTimer > (5200 - (lv - 1) * 400) * skillUp.cd) {
+        const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
+        const count = lv >= 5 ? 2 : 1;
+        for (let k = 0; k < count; k++) {
+          let spot = findDensestSpot(viewR);
+          if (!spot) break;
+          if (k > 0) spot = { x: spot.x + (Math.random() - 0.5) * 260, y: spot.y + (Math.random() - 0.5) * 260 };
+          player.poisonTimer = timestamp;
+          const life = Math.round((4 + lv * 0.6 + (lv >= 5 ? 1 : 0)) * 60 * skillUp.dur);
+          poisonClouds.push({
+            x: spot.x, y: spot.y, r: (85 + lv * 14 + (lv >= 5 ? 25 : 0)) * skillUp.area,
+            life: life, maxLife: life, lv: lv, seed: Math.random() * 10,
+            tick: player.damage * (0.35 + lv * 0.15) * skillPower
+          });
+        }
+      }
+      for (let i = poisonClouds.length - 1; i >= 0; i--) {
+        const c = poisonClouds[i];
+        c.life--;
+        // ☠️ 역병 소용돌이 시너지: 블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독은 피해 1.5배
+        let boosted = false;
+        if (synOn("plagueVortex")) {
+          for (const v of vortices) {
+            const dx = v.x - c.x, dy = v.y - c.y, d = fastHypot(dx, dy);
+            if (d < v.radius) {
+              boosted = true;
+              if (d > 4) { c.x += dx / d * 2.2; c.y += dy / d * 2.2; }
+            }
+          }
+        }
+        if (c.life % 30 === 0) {
+          const dmg = c.tick * (boosted ? 1.5 : 1);
+          for (let j = monsters.length - 1; j >= 0; j--) {
+            const m = monsters[j];
+            const dx = m.x - c.x, dy = m.y - c.y, rr = c.r + m.radius * 0.5;
+            if (dx * dx + dy * dy > rr * rr) continue;
+            m.hp -= hurt(m, dmg, boosted ? "plagueVortex" : "poison");
+            if (m.hp <= 0) handleMonsterDeath(m, j);
+          }
+        }
+        if (c.life <= 0) poisonClouds.splice(i, 1);
+      }
+    }
+
+    // ===== 스킬 조합(시너지): 조건 스킬을 모두 보유하면 자동 발동 =====
+    // needs: 필요한 스킬 id 목록. 배열 안의 배열은 "그중 하나만 있으면 됨"
+    const SYNERGIES = [
+      { id: "shockShuriken", name: "⚡ 전격 수리검", needs: ["lightning", "shuriken"],
+        desc: "수리검이 화면 끝·장애물에 튕길 때마다 주변 적에게 번개 방출" },
+      { id: "flameGravity", name: "🔥 화염 중력장", needs: ["vortex", ["fireNova", "meteor"]],
+        desc: "블랙홀 중심부로 빨려 든 적이 계속 화염 폭발 피해, 붕괴 폭발 1.5배" },
+      { id: "superconduct", name: "🧊 초전도", needs: ["frostAura", "thunder"],
+        desc: "빙결 오라 안의 적에게 떨어지는 낙뢰 피해 1.6배 · 감전 범위 1.3배" },
+      { id: "toxicBlaze", name: "☣️ 독가스 폭발", needs: ["poison", "fireNova"],
+        desc: "플레임 노바 불길이 독 안개에 닿으면 안개가 대폭발" },
+      { id: "plagueVortex", name: "🌀 역병 소용돌이", needs: ["poison", "vortex"],
+        desc: "블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독 피해 1.5배" }
+    ];
+    let activeSynergies = [];
+    const synOn = id => activeSynergies.includes(id);
+    function hasSkill(id) {
+      const s = PREVIEW_SKILLS.find(p => p.id === id);
+      return !!s && player[s.key] > 0;
+    }
+    function skillLabel(id) {
+      const s = PREVIEW_SKILLS.find(p => p.id === id);
+      return s ? s.name : id;
+    }
+    const needLabel = n => Array.isArray(n) ? n.map(skillLabel).join(" 또는 ") : skillLabel(n);
+    const needMet = n => Array.isArray(n) ? n.some(hasSkill) : hasSkill(n);
+    const needHas = (n, id) => Array.isArray(n) ? n.includes(id) : n === id;
+    // 보유 스킬이 바뀔 때마다 호출. 새로 발동된 시너지는 화면에 알림
+    function updateSynergies() {
+      const now = SYNERGIES.filter(s => s.needs.every(needMet)).map(s => s.id);
+      const fresh = now.filter(id => !activeSynergies.includes(id));
+      activeSynergies = now;
+      if (gameState === "playing") for (const id of fresh) showSynergyToast(SYNERGIES.find(s => s.id === id));
+    }
+    let synToastTimer = null;
+    function showSynergyToast(s) {
+      const el = document.getElementById("syn-toast");
+      el.innerHTML = `🔗 시너지 발동! <b>${s.name}</b><small>${s.desc}</small>`;
+      el.style.display = "block";
+      Sound.levelUp();
+      spawnBurst(player.x, player.y, "#facc15", 24, 7);
+      clearTimeout(synToastTimer);
+      synToastTimer = setTimeout(() => { el.style.display = "none"; }, 3200);
+    }
+    // 레벨업 카드 아래에 붙는 시너지 힌트
+    function synergyHint(skillId) {
+      const lines = [];
+      for (const s of SYNERGIES) {
+        const idx = s.needs.findIndex(n => needHas(n, skillId));
+        if (idx < 0) continue;
+        const others = s.needs.filter((n, i) => i !== idx);
+        if (synOn(s.id)) {
+          lines.push(`✅ 시너지 발동 중: ${s.name}`);
+        } else if (others.every(needMet)) {
+          lines.push(`✨ 배우면 바로 발동! ${s.name} — ${s.desc}`);
+        } else {
+          lines.push(`🔗 시너지: ${others.map(needLabel).join(" + ")}와(과) 조합 시 ${s.name}`);
+        }
+      }
+      return lines.length ? `<em class="syn-hint">${lines.join("<br>")}</em>` : "";
+    }
+    // ⚡ 전격 수리검: 수리검이 튕길 때 주변 적에게 연쇄 번개 (수리검마다 0.25초에 한 번)
+    function shurikenShock(s, timestamp) {
+      if (timestamp - (s.shockAt || 0) < 250) return;
+      s.shockAt = timestamp;
+      const lv = player.lightningLevel;
+      pendingBlasts.push({ chain: true, x: s.x, y: s.y, exclude: null, jumps: lv >= 5 ? 3 : 2,
+        damage: player.damage * (0.9 + lv * 0.25) * skillPower, src: "shockShuriken", color: "#67e8f9" });
+      addHitEffect({ x: s.x, y: s.y, radius: 18, life: 8, maxLife: 8, color: "#67e8f9" });
     }
 
     // ===== 탄환 방어 수단: 대시(무적 회피) · 에너지 방벽(1회 막기) · 장애물 엄폐(적 탄환이 막힘) =====
@@ -4319,10 +4577,11 @@
       updateRerollButton();
       updateSwapButton();
       currentChoices.forEach(item => {
-        addChoiceButton(item.title, item.desc, () => {
+        addChoiceButton(item.title, item.desc + synergyHint(item.id), () => {
           item.apply();
           levelupModal.style.display = "none";
           isPaused = false;
+          updateSynergies();
           updateUI();
         });
       });
@@ -4390,6 +4649,8 @@
       if (oldDef.id === "blade") player.bladeActive = false;
       player[newDef.key] = lv;
       if (newDef.after) newDef.after(lv);
+      if (oldDef.id === "poison") poisonClouds = [];
+      updateSynergies();
       Sound.levelUp();
       spawnBurst(player.x, player.y, "#34d399", 20, 6);
       // 보유 스킬이 바뀌었으므로 이번 레벨업 선택지는 새로 뽑음 (새로고침 횟수는 차감하지 않음)
@@ -4462,15 +4723,18 @@
       if (player.armorLevel > 0) rows.push({ name: "🦾 나노 강화 장갑", lv: player.armorLevel });
       if (player.barrierLevel > 0) rows.push({ name: "🔰 에너지 방벽", lv: player.barrierLevel });
       document.getElementById("pause-skills").innerHTML = rows.length
-        ? rows.map(r => `<div class="skill-row"><span>${r.name}</span><span class="stars">${stars(r.lv)} Lv.${r.lv}</span></div>`).join("")
+        ? rows.map(r => `<div class="skill-row"><span>${r.name}</span><span class="stars">${stars(r.lv)} Lv.${r.lv}</span></div>`).join("") +
+          activeSynergies.map(id => { const s = SYNERGIES.find(x => x.id === id); return `<div class="syn-row">🔗 ${s.name}<small>${s.desc}</small></div>`; }).join("")
         : "아직 배운 스킬이 없어요";
       document.getElementById("pause-summary").innerText =
         `${currentStage().name} · ${currentCharacter().name}\nLv.${player.level} / ${CLEAR_LEVEL} · ⏱️ ${formatPlayTime(playTimeMs)}\n처치 ${kills} · 체력 ${Math.ceil(player.hp)} / ${player.maxHp} · 사망 ${deathCount}회` +
-        (activeTraps.length ? `\n⚠️ 환경 함정: ${activeTraps.map(id => trapName(id, currentFloor)).join(" · ")}` : "");
+        (IS_DEV_MODE && activeTraps.length ? `\n⚠️ 환경 함정: ${activeTraps.map(id => trapName(id, currentFloor)).join(" · ")}` : "");
       document.getElementById("pause-dev").style.display = IS_DEV_MODE ? "block" : "none";
       updateGodButtons();
       updateMinimapSwitch();
-      document.getElementById("pause-dmg").innerHTML = renderStatsHtml();
+      // 일시정지 중 딜미터기는 개발자 모드에서만. 배포판은 게임이 끝난 뒤 결과 화면에서만 공개
+      document.getElementById("pause-dmg-box").style.display = IS_DEV_MODE ? "block" : "none";
+      if (IS_DEV_MODE) document.getElementById("pause-dmg").innerHTML = renderStatsHtml();
       document.getElementById("pause-stats").innerHTML = [
         `⚔️ 공격력 ${Math.round(player.damage)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
         `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초`,
@@ -4509,10 +4773,18 @@
       document.getElementById("pause-minimap").className = "switch" + (save.minimap ? " on" : "");
     }
 
+    // 최종 레벨 · 생존 시간 · 처치 수 타일 (게임오버 창·결과 창 공용)
+    function renderKeyStats() {
+      return `<div><b>Lv.${player.level}</b><span>최종 레벨</span></div>` +
+        `<div><b>${formatPlayTime(playTimeMs)}</b><span>생존 시간</span></div>` +
+        `<div><b>${kills.toLocaleString()}</b><span>처치</span></div>`;
+    }
+
     function triggerGameOver() {
       isPaused = true;
       joystick.active = false;
-      if (reviveCount < 2) {
+      const final = reviveCount >= 2;
+      if (!final) {
         gameoverTitle.innerText = "💀 쓰러졌습니다!";
         reviveLabel.innerText = `📺 5초 광고 보고 부활하기 (${reviveCount + 1}/2)`;
         btnRevive.style.display = "flex";
@@ -4520,6 +4792,11 @@
         gameoverTitle.innerText = "☠️ 최종 게임 오버";
         btnRevive.style.display = "none";
       }
+      document.getElementById("gameover-key").innerHTML = renderKeyStats();
+      // 스킬별 통계: 더 이상 부활할 수 없는 최종 게임오버(= 게임이 완전히 끝남)에서는 항상 공개, 부활 대기 중에는 개발자 모드만
+      const showDmg = final || IS_DEV_MODE;
+      document.getElementById("gameover-dmg-box").style.display = showDmg ? "block" : "none";
+      if (showDmg) document.getElementById("gameover-dmg").innerHTML = renderStatsHtml();
       gameoverModal.style.display = "flex";
     }
 
@@ -4625,6 +4902,7 @@
       document.getElementById("result-summary").innerText = `${stage.name} · ${currentCharacter().name}\n⏱️ 플레이 시간 ${formatPlayTime(playTimeMs)}\nLv.${player.level} · 처치 ${kills} · 사망 ${deathCount}회 · 💰 +${gold}`;
       document.getElementById("result-rewards").innerHTML = rewards.map(r => `<li>${r}</li>`).join("");
       document.getElementById("result-dmg").innerHTML = renderStatsHtml();
+      document.getElementById("result-key").innerHTML = renderKeyStats();
       resultModal.style.display = "flex";
       if (cleared) {
         Sound.clear();
@@ -4751,9 +5029,11 @@
       nav("다음 ▶", floorPage + 1, floorPage < maxPage);
       const sel = getStage(save.selectedFloor);
       const traps = floorTraps(save.selectedFloor);
-      document.getElementById("floor-desc").innerHTML = `${sel.name} — ${sel.desc}` +
-        `<div class="trap-tag">⚠️ 환경 함정${traps.length > 1 ? " 2종 동시" : ""}: ` +
-        traps.map(id => `<b>${trapName(id, save.selectedFloor)}</b> ${TRAP_TYPES[id].desc}`).join("<br>") + "</div>";
+      // 함정 정보는 개발자 모드에서만 공개 (배포판은 직접 플레이하며 체감)
+      document.getElementById("floor-desc").innerHTML = `${sel.name} — ${sel.desc}` + (IS_DEV_MODE
+        ? `<div class="trap-tag">🛠️ [DEV] 환경 함정${traps.length > 1 ? " 2종 동시" : ""}: ` +
+          traps.map(id => `<b>${trapName(id, save.selectedFloor)}</b> ${TRAP_TYPES[id].desc}`).join("<br>") + "</div>"
+        : "");
     }
 
     // 외형 입어보기: 구매 전에도 미리보기에 착용한 모습을 보여 줌 (상점을 닫으면 원래대로)
@@ -4770,7 +5050,9 @@
         const owned = save.owned.includes(slot + ":" + item.id);
         return item.name + (owned ? "" : " (미구매)");
       });
-      document.getElementById("tryon-label").innerText = tryNames.length ? `👀 입어보는 중: ${tryNames.join(", ")}` : "아이템 이름을 누르면 입어 볼 수 있어요";
+      const equipped = Object.keys(save.equip).filter(sl => save.equip[sl]).map(sl => (COSMETICS[sl].find(c => c.id === save.equip[sl]) || {}).name).filter(Boolean);
+      document.getElementById("tryon-label").innerText = (tryNames.length ? `👀 입어보는 중:\n${tryNames.join("\n")}` : "아이템 이름을 누르면\n여기서 바로 입어 볼 수 있어요") +
+        `\n\n✔ 장착 중: ${equipped.length ? equipped.join(", ") : "기본 외형"}`;
       const list = document.getElementById("shop-list");
       list.innerHTML = "";
       for (const item of SHOP_ITEMS) {
@@ -4898,6 +5180,7 @@
       }
       targetViewScale = Math.max(0.45, 0.68 - (player.level - 1) * 0.022);
       if (player.level >= CLEAR_LEVEL) finalBossPending = true;
+      updateSynergies();
       Sound.levelUp();
       updateUI();
     }
@@ -4935,6 +5218,7 @@
 
       document.getElementById("codex-body").innerHTML =
         sec("⛩️ 신단 (22초마다 등장 · 30초 후 사라짐)", Object.values(SHRINE_TYPES).map(d => [`${d.icon} ${d.name}`, d.desc])) +
+        sec("🔗 스킬 시너지 (조합 스킬을 모두 배우면 자동 발동)", SYNERGIES.map(s => [s.name, `${s.needs.map(needLabel).join(" + ")}<br>${s.desc}`])) +
         sec("⚠️ 환경 함정 (1~9층 1종 · 10층부터 2종 동시)", Object.keys(TRAP_TYPES).map(id =>
           [TRAP_TYPES[id].name + (TRAP_TYPES[id].lavaName ? ` / ${TRAP_TYPES[id].lavaName}(용암 층)` : ""), TRAP_TYPES[id].desc])) +
         sec("💎 경험치 보석", [
@@ -4953,6 +5237,7 @@
           ["🔰 에너지 방벽 (레벨업 선택지)", "탄환·돌진 같은 큰 피해 1회 막기. Lv1 14초 → Lv5 6초마다 재생성, Lv5는 깨질 때 주변 탄환도 지움"],
           ["⛰️ 장애물 엄폐", "장애물은 적 탄환과 내 탄환 모두 막고, 나와 적 모두 돌아서 지나가야 함. 탄환을 처음 막으면 금이 가서 8초 뒤 부서지고, 45초 뒤 다시 생김"],
           ["⚔️ 회전 칼날 · 🔥 플레임 노바 · ⛓️ 사슬 · 🌀 궤도 구체 · 🪃 부메랑 · ✴️ 수리검 · 🚀 유도 미사일", "닿거나 지나가는 경로의 일반 몹 탄환 제거 (보스 탄은 못 막음)"],
+          ["💠 빙결 오라 Lv5", "오라 안 일반 몹 탄환 속도 50% 감소"],
           ["🛡️ 보호막 아이템", "피해 3회 막기"]
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
@@ -5019,7 +5304,9 @@
       { id: "frost", name: "❄️ 프로스트 트레일", key: "frostLevel", walk: true },
       { id: "shuriken", name: "✴️ 바운드 수리검", key: "shurikenLevel" },
       { id: "thunder", name: "⚡ 낙뢰", key: "thunderLevel" },
-      { id: "vortex", name: "🕳️ 블랙홀", key: "vortexLevel" }
+      { id: "vortex", name: "🕳️ 블랙홀", key: "vortexLevel" },
+      { id: "frostAura", name: "💠 빙결 오라", key: "frostAuraLevel" },
+      { id: "poison", name: "☠️ 독 안개", key: "poisonLevel" }
     ];
     let previewDef = PREVIEW_SKILLS[0];
 
@@ -5057,6 +5344,11 @@
         for (const s of PREVIEW_SKILLS) {
           devSkill.add(new Option(s.name, s.id));
           pvSkill.add(new Option(s.name, s.id));
+        }
+        // 시너지 미리보기: 조합 스킬을 함께 켬
+        for (const s of SYNERGIES) {
+          devSkill.add(new Option(`🔗 ${s.name} (시너지)`, "syn:" + s.id));
+          pvSkill.add(new Option(`🔗 ${s.name} (시너지)`, "syn:" + s.id));
         }
         // 미리보기 중에는 스킬을 바꾸는 즉시 반영
         pvSkill.onchange = () => applyPreviewSkill();
@@ -5110,10 +5402,18 @@
     function applyPreviewSkill() {
       const id = document.getElementById("pv-skill").value;
       const lv = +document.getElementById("pv-level").value;
-      previewDef = PREVIEW_SKILLS.find(s => s.id === id) || PREVIEW_SKILLS[0];
+      // "syn:아이디" 는 시너지 미리보기: 조합에 필요한 스킬을 모두 같은 레벨로 켬
+      const syn = id.startsWith("syn:") ? SYNERGIES.find(s => "syn:" + s.id === id) : null;
+      const defs = syn ? syn.needs.map(n => PREVIEW_SKILLS.find(s => s.id === (Array.isArray(n) ? n[0] : n))) : [PREVIEW_SKILLS.find(s => s.id === id) || PREVIEW_SKILLS[0]];
+      previewDef = defs[0];
       for (const s of PREVIEW_SKILLS) player[s.key] = 0;
-      player[previewDef.key] = lv;
-      if (previewDef.after) previewDef.after(lv);
+      for (const d of defs) {
+        player[d.key] = lv;
+        if (d.after) d.after(lv);
+      }
+      poisonClouds = [];
+      player.poisonTimer = 0;
+      updateSynergies();
       document.getElementById("pv-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       document.getElementById("dev-skill").value = id;
       document.getElementById("dev-level").value = lv;
@@ -5240,6 +5540,12 @@
       player.thunderLevel = 0;
       thunderStrikes = [];
       player.vortexLevel = 0;
+      player.frostAuraLevel = 0;
+      player.frostAuraTick = 0;
+      player.poisonLevel = 0;
+      player.poisonTimer = 0;
+      poisonClouds = [];
+      activeSynergies = [];
       vortices = [];
       lastEliteSpawn = 0;
       resetTraps();
@@ -5432,6 +5738,28 @@
           }
         }
 
+        // ☣️ 독가스 폭발 시너지: 불길이 독 안개 중심을 지나면 안개가 대폭발
+        if (synOn("toxicBlaze")) {
+          for (let c = poisonClouds.length - 1; c >= 0; c--) {
+            const cl = poisonClouds[c];
+            if (Math.abs(fastHypot(cl.x - wave.x, cl.y - wave.y) - wave.currentRadius) > 30) continue;
+            const br = cl.r * 1.3;
+            const dmg = player.damage * (2.5 + player.poisonLevel * 0.8) * skillPower;
+            for (let j = monsters.length - 1; j >= 0; j--) {
+              const m = monsters[j];
+              if (fastHypot(m.x - cl.x, m.y - cl.y) > br + m.radius) continue;
+              m.hp -= hurt(m, dmg, "toxicBlaze");
+              if (m.hp <= 0) handleMonsterDeath(m, j);
+            }
+            explosions.push({ x: cl.x, y: cl.y, radius: br, life: 24, maxLife: 24, lv: 0, color: "#84cc16" });
+            explosions.push({ x: cl.x, y: cl.y, radius: br * 0.7, life: 18, maxLife: 18, lv: 0, color: "#f97316" });
+            spawnBurst(cl.x, cl.y, "#a3e635", 18, 8);
+            addShake(7);
+            Sound.explosion();
+            poisonClouds.splice(c, 1);
+          }
+        }
+
         if (wave.currentRadius >= wave.maxRadius) fireWaves.splice(i, 1);
       }
 
@@ -5621,6 +5949,8 @@
       updateShurikens(timestamp);
       updateThunder(timestamp);
       updateVortex(timestamp);
+      updateFrostAura();
+      updatePoison(timestamp);
 
       if (player.bladeLevel > 0 && player.bladeActive) {
         const bladeRadius = (80 + player.bladeLevel * 15) * skillUp.area;
@@ -5946,10 +6276,10 @@
               hit.add(best);
               from = { x: best.x, y: best.y };
               nodes.push(from);
-              damageMonster(best, bl.damage, "#c4b5fd", bl.src || "basic");
+              damageMonster(best, bl.damage, bl.color || "#c4b5fd", bl.src || "basic");
             }
             if (nodes.length > 1 && lightningBolts.length < 16) {
-              lightningBolts.push({ nodes: nodes, points: jaggedPath(nodes, 10), life: 8, maxLife: 8, width: 1.6, lv: 0, color: "#a78bfa" });
+              lightningBolts.push({ nodes: nodes, points: jaggedPath(nodes, 10), life: 8, maxLife: 8, width: bl.color ? 2.4 : 1.6, lv: 0, color: bl.color || "#a78bfa" });
             }
             continue;
           }
@@ -6811,50 +7141,182 @@
         drawObelisk(ctx, s.x, s.y, SHRINE_TYPES[s.type], left / SHRINE_LIFE, timestamp);
       }
 
-      // 🕳️ 블랙홀: 보라빛 강착원 + 안으로 말려드는 나선 팔 + 검은 중심 (끝날수록 작아지며 붕괴)
+      // ☠️ 독 안개: 겹쳐 흐르는 연두빛 구름 덩어리 (사라질 때 옅어짐)
+      for (const c of poisonClouds) {
+        if (!inView(c.x, c.y)) continue;
+        const fade = Math.min(1, c.life / 40, (c.maxLife - c.life + 1) / 15);
+        for (let k = 0; k < 7; k++) {
+          const a = c.seed + k * 0.9 + timestamp / (1800 + k * 200);
+          const d = c.r * (0.15 + (k % 3) * 0.22);
+          ctx.globalAlpha = 0.22 * fade;
+          drawGlow(ctx, k % 2 ? "#65a30d" : "#84cc16", c.x + Math.cos(a) * d, c.y + Math.sin(a) * d * 0.8, c.r * (0.55 + (k % 3) * 0.12));
+        }
+        ctx.globalAlpha = 0.5 * fade;
+        ctx.strokeStyle = "#a3e635";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 8]);
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // 떠오르는 독 거품
+        ctx.fillStyle = "#d9f99d";
+        for (let k = 0; k < 6; k++) {
+          const ph = ((timestamp / 1200 + k / 6 + c.seed) % 1);
+          const a = c.seed * 3 + k * 1.7;
+          ctx.globalAlpha = 0.6 * fade * (1 - ph);
+          ctx.beginPath();
+          ctx.arc(c.x + Math.cos(a) * c.r * 0.6, c.y + Math.sin(a) * c.r * 0.5 - ph * 30, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // 💠 빙결 오라: 내 주위 차가운 원 + 천천히 도는 눈송이
+      if (player.frostAuraLevel > 0) {
+        const lv = player.frostAuraLevel, R = frostAuraRadius();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.18 + lv * 0.03;
+        drawGlow(ctx, "#38bdf8", player.x, player.y, R * 1.05);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, R, 0, Math.PI * 2);
+        ctx.strokeStyle = lv >= 5 ? "rgba(224, 242, 254, 0.75)" : "rgba(125, 211, 252, 0.55)";
+        ctx.lineWidth = 2 + lv * 0.4;
+        ctx.setLineDash([16, 10]);
+        ctx.lineDashOffset = -timestamp / 60;
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.lineDashOffset = 0;
+        ctx.strokeStyle = "rgba(240, 249, 255, 0.85)";
+        ctx.lineWidth = 1.5;
+        const flakes = 6 + lv * 2;
+        for (let k = 0; k < flakes; k++) {
+          const a = timestamp / 2400 + k * Math.PI * 2 / flakes;
+          const fx = player.x + Math.cos(a) * R * 0.86, fy = player.y + Math.sin(a) * R * 0.86;
+          ctx.beginPath();
+          for (let s = 0; s < 3; s++) {
+            const sa = s * Math.PI / 3 + a;
+            ctx.moveTo(fx - Math.cos(sa) * 5, fy - Math.sin(sa) * 5);
+            ctx.lineTo(fx + Math.cos(sa) * 5, fy + Math.sin(sa) * 5);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // 🕳️ 블랙홀: 레벨이 오를수록 커지고 화려해짐
+      //   Lv1 작고 어두운 소용돌이 · Lv2 빠른 회전 + 빨려 드는 입자 · Lv3 공간 왜곡 펄스 링 + 짙은 암자색
+      //   Lv4~5 사건의 지평선(빛나는 강착원) + 강한 글로우 + 번개 스파크 (Lv5는 마젠타·황금빛)
       for (const v of vortices) {
+        const lv = v.lv;
         const t = v.life / VORTEX_LIFE;                 // 1 → 0
         const grow = Math.min(1, (VORTEX_LIFE - v.life) / 12); // 처음 0.2초 동안 열림
         const R = v.radius * grow;
+        const deep = lv >= 3;
+        const glowCol = lv >= 5 ? "#d946ef" : (deep ? "#581c87" : "#7c3aed");
+        const armCol = lv >= 5 ? [244, 114, 182] : (deep ? [167, 139, 250] : [216, 180, 254]);
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.5;
-        drawGlow(ctx, v.lv >= 5 ? "#d946ef" : "#7c3aed", v.x, v.y, R * 1.1);
+        ctx.globalAlpha = lv >= 4 ? 0.85 : (lv >= 2 ? 0.5 : 0.32);
+        drawGlow(ctx, glowCol, v.x, v.y, R * (lv >= 4 ? 1.45 : 1.1));
+        if (lv >= 4) {
+          ctx.globalAlpha = 0.45 + Math.sin(timestamp / 90) * 0.15;
+          drawGlow(ctx, lv >= 5 ? "#fbbf24" : "#c084fc", v.x, v.y, R * 0.55);
+        }
         ctx.globalAlpha = 1;
-        // 나선 팔 4개
+        // 나선 팔: Lv1 3개 → Lv2+ 4개 → Lv4+ 6개
+        const arms = lv >= 4 ? 6 : (lv >= 2 ? 4 : 3);
         ctx.lineCap = "round";
-        for (let k = 0; k < 4; k++) {
+        for (let k = 0; k < arms; k++) {
           ctx.beginPath();
           for (let s = 0; s <= 14; s++) {
             const f = s / 14;
-            const ang = v.spin * -1 + k * Math.PI / 2 + f * 2.6;
+            const ang = -v.spin + k * Math.PI * 2 / arms + f * (2.6 + lv * 0.25);
             const rr = R * (1 - f * 0.85);
             const px = v.x + Math.cos(ang) * rr, py = v.y + Math.sin(ang) * rr;
             if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
           }
-          ctx.strokeStyle = `rgba(216, 180, 254, ${0.35 + t * 0.3})`;
-          ctx.lineWidth = 4 + v.lv;
+          ctx.strokeStyle = `rgba(${armCol[0]}, ${armCol[1]}, ${armCol[2]}, ${(lv >= 2 ? 0.35 : 0.22) + t * 0.3})`;
+          ctx.lineWidth = 3 + lv * 1.3;
           ctx.stroke();
+        }
+        // Lv2+: 바깥에서 중심으로 빨려 드는 입자
+        if (lv >= 2) {
+          const n = lv >= 4 ? 34 : (lv >= 3 ? 22 : 14);
+          for (let k = 0; k < n; k++) {
+            const ph = (timestamp / (900 - lv * 80) + k * 0.137) % 1;  // 0(바깥) → 1(중심)
+            const a = k * 2.39996 - v.spin * (1 + ph * 2);
+            const rr = R * (1 - ph) * 0.95 + 8;
+            ctx.globalAlpha = 0.9 * Math.min(1, ph * 3) * (1 - ph * 0.4);
+            drawGlow(ctx, lv >= 5 ? "#fde68a" : "#e9d5ff", v.x + Math.cos(a) * rr, v.y + Math.sin(a) * rr, 5 + lv);
+          }
+          ctx.globalAlpha = 1;
         }
         ctx.lineCap = "butt";
         ctx.globalCompositeOperation = "source-over";
-        // 바깥 경계 + 검은 사건의 지평선
+        // Lv3+: 공간 왜곡 펄스 링 (안쪽으로 수축하는 파동)
+        if (lv >= 3) {
+          for (let k = 0; k < (lv >= 4 ? 3 : 2); k++) {
+            const ph = (timestamp / 700 + k / 3) % 1;
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, R * (1.15 - ph * 0.8), 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(${lv >= 5 ? "244, 114, 182" : "139, 92, 246"}, ${0.45 * ph * grow})`;
+            ctx.lineWidth = 2 + (1 - ph) * 6;
+            ctx.stroke();
+          }
+        }
+        // 바깥 경계
         ctx.beginPath();
         ctx.arc(v.x, v.y, R, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(192, 132, 252, ${0.25 + t * 0.3})`;
+        ctx.strokeStyle = `rgba(192, 132, 252, ${0.2 + t * 0.3})`;
         ctx.lineWidth = 2;
         ctx.setLineDash([12, 10]);
         ctx.stroke();
         ctx.setLineDash([]);
-        const coreR = (18 + v.lv * 3) * (0.6 + t * 0.4) * grow;
+        // 검은 중심: Lv4+는 거대한 사건의 지평선 + 빛나는 강착원
+        const coreR = (lv >= 4 ? 30 + lv * 6 : 14 + lv * 4) * (0.6 + t * 0.4) * grow;
+        if (lv >= 4) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.beginPath();
+          ctx.ellipse(v.x, v.y, coreR * 2.1, coreR * 0.75, -v.spin * 0.3, 0, Math.PI * 2);
+          ctx.strokeStyle = lv >= 5 ? "rgba(253, 224, 71, 0.75)" : "rgba(233, 213, 255, 0.7)";
+          ctx.lineWidth = 6;
+          ctx.stroke();
+          ctx.globalCompositeOperation = "source-over";
+        }
         const cg = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, coreR * 1.6);
         cg.addColorStop(0, "#000000");
         cg.addColorStop(0.6, "#05000f");
-        cg.addColorStop(0.75, "#e9d5ff");
-        cg.addColorStop(1, "rgba(168, 85, 247, 0)");
+        cg.addColorStop(0.75, lv >= 5 ? "#fef3c7" : (deep ? "#c4b5fd" : "#e9d5ff"));
+        cg.addColorStop(1, "rgba(88, 28, 135, 0)");
         ctx.beginPath();
         ctx.arc(v.x, v.y, coreR * 1.6, 0, Math.PI * 2);
         ctx.fillStyle = cg;
         ctx.fill();
+        // Lv4+: 지평선 주변으로 튀는 번개 스파크
+        if (lv >= 4 && Math.random() < 0.7) {
+          ctx.globalCompositeOperation = "lighter";
+          for (let k = 0; k < 3; k++) {
+            const a = Math.random() * Math.PI * 2;
+            const r1 = coreR * 1.3, r2 = coreR * 1.3 + 30 + Math.random() * R * 0.4;
+            const pts = jaggedPath([{ x: v.x + Math.cos(a) * r1, y: v.y + Math.sin(a) * r1 }, { x: v.x + Math.cos(a + 0.3) * r2, y: v.y + Math.sin(a + 0.3) * r2 }], 14);
+            ctx.beginPath();
+            ctx.moveTo(pts[0].x, pts[0].y);
+            for (let p = 1; p < pts.length; p++) ctx.lineTo(pts[p].x, pts[p].y);
+            ctx.strokeStyle = lv >= 5 ? "rgba(253, 230, 138, 0.9)" : "rgba(216, 180, 254, 0.9)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
+          ctx.globalCompositeOperation = "source-over";
+        }
+        // 🔥 화염 중력장 시너지: 중심부가 주황빛으로 타오름
+        if (synOn("flameGravity")) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.55 + Math.sin(timestamp / 70) * 0.2;
+          drawGlow(ctx, "#f97316", v.x, v.y, v.radius * 0.45 * grow);
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+        }
       }
 
       // ✴️ 바운드 수리검: 회전하는 4갈래 표창 + 빛 잔상
@@ -7141,7 +7603,7 @@
       for (const st of thunderStrikes) {
         if (!st.points) continue;
         const alpha = st.life / st.maxLife;
-        const neon = st.lv >= 5 ? "#facc15" : "#60a5fa";
+        const neon = st.sup ? "#a5f3fc" : (st.lv >= 5 ? "#facc15" : "#60a5fa"); // 초전도는 얼음빛
         const w = 3 + st.lv * 1.6;
         if (st.life % 3 === 0) st.points = jaggedPath([st.points[0], st.points[st.points.length - 1]], 22 + st.lv * 4);
         ctx.beginPath();
