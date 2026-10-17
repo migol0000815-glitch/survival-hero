@@ -28,12 +28,13 @@
       height: 100%;
     }
 
+    /* 상단 정보 바: 화면을 넓게 쓰도록 위쪽에 바짝 붙임 (오른쪽은 일시정지 버튼 자리) */
     #ui-layer {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
-      padding: 16px 20px;
+      padding: calc(4px + env(safe-area-inset-top, 0px)) 52px 0 10px;
       pointer-events: none;
       z-index: 5;
     }
@@ -41,19 +42,20 @@
       display: flex;
       justify-content: space-between;
       font-weight: 900;
-      font-size: 16px;
+      font-size: 13px;
+      line-height: 1.2;
       text-shadow: 0 2px 6px rgba(0,0,0,0.9);
       letter-spacing: 0.5px;
     }
     .bars-wrap {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      margin-top: 6px;
+      gap: 3px;
+      margin-top: 3px;
     }
     .hp-bar-bg {
       width: 100%;
-      height: 12px;
+      height: 9px;
       background: rgba(17, 24, 39, 0.85);
       border: 1px solid #4b5563;
       border-radius: 5px;
@@ -69,7 +71,7 @@
     }
     .exp-bar-bg {
       width: 100%;
-      height: 12px;
+      height: 7px;
       background: rgba(17, 24, 39, 0.85);
       border: 1.5px solid #374151;
       border-radius: 6px;
@@ -86,11 +88,11 @@
     #boss-alert {
       display: none;
       position: absolute;
-      top: 90px;
+      top: 160px; /* 상단 정보·미니맵 아래 */
       left: 50%;
       transform: translateX(-50%);
       width: max-content;
-      max-width: calc(100% - 150px); /* 오른쪽 일시정지 버튼·미니맵과 겹치지 않게 */
+      max-width: calc(100% - 32px);
       text-align: center;
       background: rgba(220, 38, 38, 0.95);
       color: #fff;
@@ -107,8 +109,8 @@
     /* 보스전 표시: 경고 문구가 사라진 뒤에도 상단에 작게 남는 보스 체력바 */
     #boss-hud {
       display: none;
-      margin-top: 6px;
-      width: calc(100% - 64px);
+      margin-top: 3px;
+      width: calc(100% - 60px);
     }
     #boss-hud .boss-label {
       font-size: 11px;
@@ -134,10 +136,10 @@
     #btn-pause {
       display: none;
       position: absolute;
-      top: 80px;
-      right: 14px;
-      width: 44px;
-      height: 44px;
+      top: calc(4px + env(safe-area-inset-top, 0px));
+      right: 8px;
+      width: 38px;
+      height: 38px;
       border-radius: 12px;
       border: 1.5px solid rgba(148, 163, 184, 0.6);
       background: rgba(15, 23, 42, 0.75);
@@ -170,6 +172,30 @@
     }
     #btn-dash span { display: block; font-size: 11px; margin-top: 2px; }
     #btn-dash.cooldown { border-color: #475569; background: rgba(15, 23, 42, 0.8); box-shadow: none; color: #94a3b8; }
+    #btn-dash.editing { z-index: 31; border: 2px dashed #fde047; box-shadow: 0 0 22px rgba(253, 224, 71, 0.7); animation: pulseAlert 0.6s infinite alternate; }
+    #dash-edit {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 30;
+      background: rgba(2, 6, 23, 0.55);
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 120px;
+    }
+    .dash-edit-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(253, 224, 71, 0.6);
+      text-align: center;
+    }
+    .dash-edit-box span { font-size: 12px; color: #94a3b8; }
+    .dash-edit-row { display: flex; gap: 8px; margin-top: 4px; }
 
     #pause-modal { justify-content: safe center; overflow-y: auto; }
     #pause-modal, #pause-modal * { touch-action: pan-y; }
@@ -190,6 +216,37 @@
       cursor: pointer;
     }
     .toggle-btn.on { border-color: #34d399; color: #d1fae5; background: rgba(6, 78, 59, 0.55); }
+
+    /* ===== 로비 메인 메뉴 버튼 + 메뉴별 창 ===== */
+    .menu-grid { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .menu-btn {
+      width: 100%;
+      padding: 12px 6px 10px;
+      border-radius: 16px;
+      border: 1.5px solid rgba(56, 189, 248, 0.45);
+      background: linear-gradient(180deg, rgba(30, 58, 95, 0.9), rgba(15, 23, 42, 0.95));
+      color: #f1f5f9;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+    .menu-btn small { display: block; margin-top: 3px; font-size: 11px; font-weight: 700; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .menu-btn:active { transform: scale(0.96); }
+    .menu-btn.dev { border-color: rgba(234, 179, 8, 0.7); background: linear-gradient(180deg, rgba(66, 50, 6, 0.9), rgba(28, 25, 23, 0.95)); color: #fde68a; padding: 10px; font-size: 14px; }
+    .lobby-panel {
+      display: none;
+      position: absolute;
+      inset: 0;
+      z-index: 41;
+      overflow-y: auto;
+      background: linear-gradient(180deg, #070b18, #05070f);
+    }
+    .panel-inner { max-width: 380px; margin: 0 auto; padding: 18px 16px 28px; display: flex; flex-direction: column; gap: 12px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; }
+    .panel-head h3 { font-size: 20px; font-weight: 900; }
+    .gold-tag { font-size: 13px; color: #fde68a; margin-left: 6px; }
+    .tab-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 
     /* ===== 로비: 캐릭터·층 선택, 상점 ===== */
     .pick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
@@ -415,8 +472,12 @@
     }
 
     .death-info {
-      margin-top: 6px;
-      font-size: 12px;
+      margin-top: 2px;
+      max-width: calc(100% - 60px); /* 오른쪽 미니맵과 겹치지 않게 */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 11px;
       font-weight: 800;
       color: #34d399;
       text-shadow: 0 2px 6px rgba(0,0,0,0.9);
@@ -449,11 +510,11 @@
       min-height: 100%;
       max-width: 380px;
       margin: 0 auto;
-      padding: 28px 18px 32px;
+      padding: 20px 18px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 11px;
     }
     .lobby-title {
       font-size: 34px;
@@ -484,7 +545,7 @@
       flex-direction: column;
       align-items: center;
     }
-    #lobby-preview { width: 220px; height: 220px; }
+    #lobby-preview { width: 190px; height: 190px; }
     .hero-name { font-size: 17px; font-weight: 900; margin-top: 2px; }
     .hero-sub { font-size: 12px; color: #94a3b8; margin-top: 4px; text-align: center; }
     .stat-grid {
@@ -659,6 +720,16 @@
 
     <button id="btn-pause" onclick="openPause()">II</button>
     <button id="btn-dash">💨<span id="dash-label">대시</span></button>
+    <div id="dash-edit">
+      <div class="dash-edit-box">
+        <b>💨 대시 버튼 위치 조정</b>
+        <span>버튼을 끌어서 원하는 곳에 놓으세요</span>
+        <div class="dash-edit-row">
+          <button class="pv-close" onclick="resetDashPos()">기본 위치</button>
+          <button class="dev-btn" style="width: auto; padding: 8px 18px;" onclick="endDashEdit()">✔ 완료</button>
+        </div>
+      </div>
+    </div>
 
     <div id="boss-alert">⚠️ WARNING! 극강의 탄막 보스 출현 ⚠️</div>
 
@@ -693,6 +764,7 @@
           </div>
           <button id="pause-god" class="dev-btn" onclick="toggleGodMode()">🛡️ 무적 ON</button>
         </div>
+        <button class="restart-btn" onclick="startDashEdit()">💨 대시 버튼 위치 옮기기</button>
         <button class="start-btn" onclick="resumeGame()">▶ 계속하기</button>
         <button id="btn-quit" class="restart-btn" onclick="quitRun()">포기하고 결과 보기</button>
       </div>
@@ -742,53 +814,98 @@
           <div class="stat"><b id="st-nodeath">0</b><span>무사망</span></div>
           <div class="stat"><b id="st-gold">0</b><span>골드</span></div>
         </div>
-        <div class="info-box">
-          <h4>🧑 캐릭터 선택</h4>
-          <div id="char-list" class="pick-grid"></div>
-          <div id="char-desc" class="pick-desc"></div>
+        <!-- 메인 메뉴: 누르면 해당 창이 열림 (메인 화면은 스크롤 없이 한 화면) -->
+        <div class="menu-grid">
+          <button class="menu-btn" onclick="openLobbyPanel('char')">🧑 캐릭터<small id="menu-char-sub"></small></button>
+          <button class="menu-btn" onclick="openLobbyPanel('floor')">🏯 층 선택<small id="menu-floor-sub"></small></button>
+          <button class="menu-btn" onclick="openLobbyPanel('shop')">🛒 상점<small id="menu-shop-sub"></small></button>
+          <button id="btn-minimap" class="menu-btn" onclick="toggleMinimap()">🗺️ 미니맵<small id="menu-map-sub"></small></button>
         </div>
-        <div class="info-box">
-          <h4>🏯 층 선택 (클리어하면 다음 층 개방)</h4>
-          <div id="floor-list" class="pick-grid three"></div>
-          <div id="floor-desc" class="pick-desc"></div>
-        </div>
-        <button id="btn-minimap" class="toggle-btn" onclick="toggleMinimap()">🗺️ 미니맵 켜짐</button>
+        <button id="btn-dev-menu" class="menu-btn dev" style="display: none;" onclick="openLobbyPanel('dev')">🛠️ 개발자 옵션</button>
         <button class="start-btn" onclick="startGame()">게임 시작</button>
-        <div class="lobby-hint">Lv.25에 등장하는 최종 보스를 처치하면 클리어 · 한 번도 죽지 않고 클리어하면 특별 보상</div>
-        <div class="info-box">
-          <h4>🛒 상점 · 영구 강화</h4>
-          <div id="shop-list"></div>
-        </div>
-        <div class="info-box">
-          <h4>🎨 상점 · 외형 (능력치 변화 없음 · 누르면 구매/장착/해제)</h4>
-          <div id="cosmetic-list"></div>
-        </div>
-        <div class="info-box">
-          <h4>영구 보너스 스탯 (클리어 보상 + 상점)</h4>
-          <div id="lobby-bonus">없음</div>
-        </div>
-        <div class="info-box">
-          <h4>보유 칭호</h4>
-          <div id="lobby-titles">아직 칭호가 없습니다</div>
-        </div>
-        <div id="dev-panel" class="info-box dev-panel" style="display: none;">
-          <h4>🧪 스킬 미리보기 (개발자 모드 전용)</h4>
-          <div class="dev-row">
-            <select id="dev-skill"></select>
-            <b id="dev-lv-label">Lv.1</b>
+        <div class="lobby-hint">Lv.25 최종 보스를 처치하면 클리어 · 무사망 클리어 시 특별 보상</div>
+      </div>
+
+      <!-- 캐릭터 창 -->
+      <div id="panel-char" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🧑 캐릭터</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div class="info-box">
+            <h4>캐릭터 선택</h4>
+            <div id="char-list" class="pick-grid"></div>
+            <div id="char-desc" class="pick-desc"></div>
           </div>
-          <input type="range" id="dev-level" min="1" max="5" value="1">
-          <button class="dev-btn" onclick="startPreview()">▶ 미리보기 실행</button>
-          <h4 style="margin-top: 12px;">🛠️ 테스트 도구</h4>
-          <div class="dev-grid">
-            <button class="dev-btn" onclick="openCodex()">📖 도감 보기</button>
-            <button class="dev-btn" onclick="devAddGold()">💰 +10,000G</button>
-            <button class="dev-btn" onclick="devUnlockAll()">🔓 층 +10 해금</button>
-            <button id="dev-god" class="dev-btn" onclick="toggleGodMode()">🛡️ 무적 ON</button>
+          <div class="info-box">
+            <h4>시작 능력치 (클리어 보상 + 상점 강화 반영)</h4>
+            <div id="lobby-bonus">없음</div>
           </div>
-          <button id="dev-reset" class="dev-btn danger" onclick="devResetData()">🗑️ 저장 데이터 완전 초기화</button>
+          <div class="info-box">
+            <h4>보유 칭호</h4>
+            <div id="lobby-titles">아직 칭호가 없습니다</div>
+          </div>
         </div>
-        <div id="lobby-dev" class="lobby-hint"></div>
+      </div>
+
+      <!-- 층 선택 창 -->
+      <div id="panel-floor" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🏯 층 선택</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div class="info-box">
+            <h4>층을 고르세요 (클리어하면 다음 층 개방)</h4>
+            <div id="floor-list" class="pick-grid three"></div>
+          </div>
+          <div class="info-box">
+            <h4>층 정보</h4>
+            <div id="floor-desc" class="pick-desc" style="font-size: 13px; color: #e2e8f0;"></div>
+            <div class="pick-desc">층이 올라갈수록 기본 몹 체력만 층당 +30%, 골드 보상은 층당 +50%. 맵 테마 5종(폐허·얼음·용암·늪·공허)이 층마다 순환합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 상점 창 -->
+      <div id="panel-shop" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🛒 상점 <span id="shop-gold" class="gold-tag"></span></h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div class="tab-row">
+            <button id="tab-stat" class="pick-btn on" onclick="setShopTab('stat')">💪 능력치 강화</button>
+            <button id="tab-look" class="pick-btn" onclick="setShopTab('look')">🎨 외형</button>
+          </div>
+          <div id="shop-stat" class="info-box">
+            <h4>골드로 기본 능력치 영구 강화</h4>
+            <div id="shop-list"></div>
+          </div>
+          <div id="shop-look" class="info-box" style="display: none;">
+            <h4>능력치 변화 없음 · 누르면 구매 / 장착 / 해제</h4>
+            <div id="cosmetic-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 개발자 옵션 창 (IS_DEV_MODE = true 일 때만) -->
+      <div id="panel-dev" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🛠️ 개발자 옵션</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div id="dev-panel" class="info-box dev-panel">
+            <h4>🧪 스킬 미리보기</h4>
+            <div class="dev-row">
+              <select id="dev-skill"></select>
+              <b id="dev-lv-label">Lv.1</b>
+            </div>
+            <input type="range" id="dev-level" min="1" max="5" value="1">
+            <button class="dev-btn" onclick="startPreview()">▶ 미리보기 실행</button>
+          </div>
+          <div class="info-box dev-panel">
+            <h4>🛠️ 테스트 도구</h4>
+            <div class="dev-grid">
+              <button class="dev-btn" onclick="openCodex()">📖 도감 보기</button>
+              <button class="dev-btn" onclick="devAddGold()">💰 +10,000G</button>
+              <button class="dev-btn" onclick="devUnlockAll()">🔓 층 +10 해금</button>
+              <button id="dev-god" class="dev-btn" onclick="toggleGodMode()">🛡️ 무적 ON</button>
+            </div>
+            <button id="dev-reset" class="dev-btn danger" onclick="devResetData()">🗑️ 저장 데이터 완전 초기화</button>
+            <div id="lobby-dev" class="lobby-hint" style="margin-top: 8px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1412,9 +1529,7 @@
         g.fillStyle = "#fde047";
         g.fillRect(26, 7.5, 4, 4);
       } else {
-        metalBar(g, 8, 6.5, 19, 6, p.gun);
-        g.fillStyle = p.trim;
-        g.fillRect(25, 8, 4, 3);
+        drawSignatureWeapon(g, a, skin, p);
       }
       shadedBall(g, 11, 10, 5.5, 5.5, a, p.armor, "#020617");
       shadedBall(g, -1, 0, 12, 16, a, p.armor, "#020617");
@@ -1437,6 +1552,68 @@
       g.arc(4, 0, 4.5, -Math.PI / 3.5, -Math.PI / 10);
       g.stroke();
       drawHat(g, a, save.equip.hat);
+    }
+
+    // 캐릭터 고유 무기 (기본 공격에 맞춘 모양). 외형 상점의 무기를 장착하면 그것이 우선
+    function drawSignatureWeapon(g, a, skin, p) {
+      if (skin === "assassin") {
+        // 저격 소총: 길고 가는 총열 + 조준경 + 소염기
+        metalBar(g, 3, 7.5, 30, 3.5, ["#e2e8f0", "#334155", "#020617"]);
+        metalBar(g, 6, 6, 10, 6.5, ["#94a3b8", "#1e293b", "#020617"]);   // 몸체
+        metalBar(g, 9, 2.5, 9, 3, ["#cbd5e1", "#0f172a", "#000000"]);    // 조준경
+        glowDot(g, 18.5, 4, 1.1, "#5eead4");                              // 조준경 렌즈
+        metalBar(g, 31, 6.8, 3, 5, ["#f1f5f9", "#475569", "#0f172a"]);   // 소염기
+        g.fillStyle = p.trim;
+        g.fillRect(21, 7.8, 2, 3);
+      } else if (skin === "warrior") {
+        // 화염 방사포: 굵고 짧은 청동 포신 + 연료통 + 달아오른 포구
+        shadedBall(g, 5, 15.5, 4.5, 3.5, a, ["#fecaca", "#b91c1c", "#2a0606"], "#000"); // 연료통
+        metalBar(g, 7, 5, 18, 10, ["#fde68a", "#92400e", "#1c0a02"]);
+        metalBar(g, 24, 4, 5, 12, ["#d6d3d1", "#44403c", "#0c0a09"]);   // 포구 테
+        g.fillStyle = "#1c0a02";
+        g.fillRect(12, 5, 1.5, 10);
+        g.fillRect(17, 5, 1.5, 10);
+        glowDot(g, 29.5, 10, 2.6, "#f97316");
+        glowDot(g, 29.5, 10, 1.2, "#fde047");
+      } else if (skin === "mage") {
+        // 마법 지팡이: 가는 손잡이 + 끝의 보라 수정 (번개 기운)
+        g.strokeStyle = "#3b0764";
+        g.lineWidth = 3.4;
+        g.beginPath();
+        g.moveTo(-1, 10);
+        g.lineTo(26, 9);
+        g.stroke();
+        g.strokeStyle = "#a78bfa";
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.moveTo(0, 9.2);
+        g.lineTo(26, 8.2);
+        g.stroke();
+        g.strokeStyle = "#facc15"; // 금장 고리
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.moveTo(23, 6.5);
+        g.lineTo(23, 11.5);
+        g.stroke();
+        glowDot(g, 30, 9, 3.2, "#a78bfa");
+        g.beginPath(); // 수정 (마름모)
+        g.moveTo(26, 9); g.lineTo(30, 4.5); g.lineTo(34, 9); g.lineTo(30, 13.5);
+        g.closePath();
+        const cg = g.createLinearGradient(26, 4.5, 34, 13.5);
+        cg.addColorStop(0, "#f5f3ff");
+        cg.addColorStop(0.5, "#a78bfa");
+        cg.addColorStop(1, "#4c1d95");
+        g.fillStyle = cg;
+        g.fill();
+        g.strokeStyle = "#1e0b4b";
+        g.lineWidth = 0.8;
+        g.stroke();
+      } else {
+        // 생존자: 기본 에너지 소총
+        metalBar(g, 8, 6.5, 19, 6, p.gun);
+        g.fillStyle = p.trim;
+        g.fillRect(25, 8, 4, 3);
+      }
     }
 
     // 모자 (위에서 내려다본 모양, 머리 중심은 (1, 0))
@@ -1770,9 +1947,71 @@
     const bossLabel = document.getElementById("boss-label");
     const btnPause = document.getElementById("btn-pause");
     const btnDash = document.getElementById("btn-dash");
-    // 대시 버튼: 조이스틱을 누른 채 다른 손가락으로 눌러도 바로 반응하도록 touchstart 에서 처리
-    btnDash.addEventListener("touchstart", e => { e.preventDefault(); e.stopPropagation(); tryDash(); }, { passive: false });
-    btnDash.addEventListener("click", () => tryDash());
+    // 대시 버튼: 조이스틱을 누른 채 다른 손가락으로 눌러도 바로 반응하도록 touchstart 에서 처리.
+    // 위치 조정 모드(dashEditing)에서는 누르는 대신 끌어서 옮김
+    let dashEditing = false;
+    let dashDrag = null; // { dx, dy } 손가락과 버튼 왼쪽 위 모서리의 거리
+    function dashDragStart(x, y) {
+      const r = btnDash.getBoundingClientRect();
+      dashDrag = { dx: x - r.left, dy: y - r.top };
+    }
+    function dashDragMove(x, y) {
+      if (!dashDrag) return;
+      const w = btnDash.offsetWidth || 68, h = btnDash.offsetHeight || 68;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const left = Math.max(4, Math.min(vw - w - 4, x - dashDrag.dx));
+      const top = Math.max(4, Math.min(vh - h - 4, y - dashDrag.dy));
+      save.dashPos = { x: left / vw, y: top / vh }; // 화면 크기가 달라도 같은 비율 위치에 놓이도록 비율로 저장
+      applyDashPos();
+    }
+    btnDash.addEventListener("touchstart", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dashEditing) dashDragStart(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      else tryDash();
+    }, { passive: false });
+    btnDash.addEventListener("touchmove", e => {
+      if (!dashEditing) return;
+      e.preventDefault();
+      dashDragMove(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }, { passive: false });
+    btnDash.addEventListener("touchend", () => { dashDrag = null; });
+    // PC(마우스)
+    btnDash.addEventListener("mousedown", e => { if (dashEditing) dashDragStart(e.clientX, e.clientY); });
+    window.addEventListener("mousemove", e => { if (dashEditing) dashDragMove(e.clientX, e.clientY); });
+    window.addEventListener("mouseup", () => { dashDrag = null; });
+    btnDash.addEventListener("click", () => { if (!dashEditing) tryDash(); });
+
+    // 저장된 위치 적용 (없으면 CSS 기본 위치: 오른쪽 아래)
+    function applyDashPos() {
+      if (save.dashPos) {
+        btnDash.style.left = (save.dashPos.x * 100) + "%";
+        btnDash.style.top = (save.dashPos.y * 100) + "%";
+        btnDash.style.right = "auto";
+        btnDash.style.bottom = "auto";
+      } else {
+        btnDash.style.left = btnDash.style.top = btnDash.style.right = btnDash.style.bottom = "";
+      }
+    }
+    function startDashEdit() {
+      pauseModal.style.display = "none";
+      dashEditing = true;
+      btnDash.classList.add("editing");
+      document.getElementById("dash-edit").style.display = "flex";
+    }
+    function endDashEdit() {
+      dashEditing = false;
+      dashDrag = null;
+      btnDash.classList.remove("editing");
+      document.getElementById("dash-edit").style.display = "none";
+      writeSave();
+      pauseModal.style.display = "flex"; // 일시정지 창으로 돌아감
+    }
+    function resetDashPos() {
+      delete save.dashPos;
+      applyDashPos();
+    }
+    applyDashPos();
     const pauseModal = document.getElementById("pause-modal");
     const levelupTitle = document.getElementById("levelup-title");
     const lobbyEl = document.getElementById("lobby");
@@ -1881,6 +2120,9 @@
       thunderLevel: 0,
       thunderTimer: 0,
 
+      vortexLevel: 0,
+      vortexTimer: 0,
+
       barrierLevel: 0,   // 에너지 방벽 레벨
       barrierReadyAt: 0, // 방벽 재생성 시각 (playTimeMs 기준)
       dashReadyAt: 0,    // 대시 쿨타임이 끝나는 시각
@@ -1931,6 +2173,7 @@
     let lastShrineSpawn = 0; // playTimeMs 기준
     let shurikens = [];      // 바운드 수리검 (화면 안에서 계속 튕김)
     let thunderStrikes = []; // 낙뢰 연출 (하늘에서 떨어지는 번개)
+    let vortices = [];       // 블랙홀 (적을 끌어모으는 중력장)
     let lastEliteSpawn = 0;  // 중간 보스 등장 시각 (playTimeMs 기준)
     let frameDtMs = 16.67;   // 직전 프레임 길이 (회전체를 프레임과 무관하게 일정 속도로 돌리기 위함)
     let bossAlertHideAt = 0; // 보스 경고 문구를 숨길 시각 (playTimeMs 기준)
@@ -2170,6 +2413,20 @@
           title: `⚡ 낙뢰 [Lv. ${player.thunderLevel} ➔ Lv. ${nextLv}]`,
           desc: "[광역] " + descText,
           apply: () => { player.thunderLevel++; }
+        });
+      }
+
+      if (player.vortexLevel < 5) {
+        const nextLv = player.vortexLevel + 1;
+        let descText = nextLv === 1 ? "적이 가장 많이 모인 곳에 블랙홀을 열어 주변 적을 한곳으로 끌어당기며 지속 피해, 끝날 때 폭발합니다." :
+                       nextLv === 5 ? "★ 최종 진화: 거대 블랙홀 2개 동시 생성 + 흡입력·폭발 피해 대폭 증가!" :
+                       "흡입 범위·흡입력·지속 피해·마지막 폭발 피해 증가, 쿨타임 감소";
+        allUpgrades.push({
+          id: "vortex",
+          isOwned: player.vortexLevel > 0,
+          title: `🕳️ 블랙홀 [Lv. ${player.vortexLevel} ➔ Lv. ${nextLv}]`,
+          desc: "[광역] " + descText,
+          apply: () => { player.vortexLevel++; }
         });
       }
 
@@ -3076,6 +3333,87 @@
       }
     }
 
+    // 🕳️ 블랙홀: 적이 가장 많이 모인 곳에 2.5초간 중력장 → 주변 잡몹을 중심으로 끌어당기며 지속 피해 → 마지막에 폭발
+    const VORTEX_LIFE = 150; // 프레임 (약 2.5초)
+    function findDensestSpot(range) {
+      // 화면 안 적 중 최대 40마리만 표본으로 골라, 주변(150) 이웃 수가 가장 많은 적의 위치
+      const near = monsters.filter(m => !m.isBoss && fastHypot(m.x - player.x, m.y - player.y) < range).slice(0, 40);
+      let best = null, bestN = -1;
+      for (const a of near) {
+        let n = 0;
+        for (const b of near) {
+          const dx = a.x - b.x, dy = a.y - b.y;
+          if (dx * dx + dy * dy < 150 * 150) n++;
+        }
+        if (n > bestN) { bestN = n; best = a; }
+      }
+      return best;
+    }
+    function updateVortex(timestamp) {
+      const lv = player.vortexLevel;
+      if (lv > 0 && timestamp - player.vortexTimer > 6500 - (lv - 1) * 500) {
+        const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
+        const count = lv >= 5 ? 2 : 1;
+        const used = [];
+        for (let k = 0; k < count; k++) {
+          let spot = findDensestSpot(viewR);
+          // 두 번째 블랙홀은 첫 번째와 겹치지 않는 곳으로
+          if (spot && used.some(u => fastHypot(u.x - spot.x, u.y - spot.y) < 200)) {
+            const a = Math.atan2(spot.y - player.y, spot.x - player.x) + Math.PI;
+            spot = { x: player.x + Math.cos(a) * 220, y: player.y + Math.sin(a) * 220 };
+          }
+          if (!spot) continue;
+          player.vortexTimer = timestamp;
+          used.push(spot);
+          vortices.push({
+            x: spot.x, y: spot.y, life: VORTEX_LIFE, lv: lv, spin: 0,
+            radius: 170 + lv * 25 + (lv >= 5 ? 40 : 0),
+            pull: 1.8 + lv * 0.35,
+            tick: player.damage * (0.3 + lv * 0.1) * skillPower,      // 10프레임마다
+            burst: player.damage * (2 + lv * 0.6) * skillPower        // 마지막 폭발
+          });
+          sfxReady("vortex", 0) && sfxTone({ freq: 70, freqEnd: 40, dur: 2.4, vol: 0.18, wet: 0.5, attack: 0.3 });
+        }
+      }
+      for (let i = vortices.length - 1; i >= 0; i--) {
+        const v = vortices[i];
+        v.life--;
+        v.spin += 0.12 * frameDtMs / 16.67;
+        const tickNow = v.life % 10 === 0;
+        for (let j = monsters.length - 1; j >= 0; j--) {
+          const m = monsters[j];
+          const dx = v.x - m.x, dy = v.y - m.y, d = fastHypot(dx, dy);
+          if (d > v.radius + m.radius) continue;
+          // 보스·중간 보스는 끌려오지 않고 피해만 받음
+          if (!m.isBoss && !m.isElite && d > 12) {
+            const f = v.pull * (0.4 + (1 - d / v.radius) * 0.8);
+            m.x += dx / d * f;
+            m.y += dy / d * f;
+          }
+          if (tickNow) {
+            m.hp -= v.tick;
+            if (m.hp <= 0) { handleMonsterDeath(m, j); continue; }
+          }
+        }
+        if (v.life <= 0) {
+          // 붕괴 폭발: 중심 근처(반경 60%)에 큰 피해
+          const br = v.radius * 0.6;
+          for (let j = monsters.length - 1; j >= 0; j--) {
+            const m = monsters[j];
+            if (fastHypot(m.x - v.x, m.y - v.y) < br + m.radius) {
+              m.hp -= v.burst;
+              if (m.hp <= 0) handleMonsterDeath(m, j);
+            }
+          }
+          explosions.push({ x: v.x, y: v.y, radius: br * 1.2, life: 20, maxLife: 20, lv: v.lv >= 5 ? 5 : 1, color: "#a855f7" });
+          spawnBurst(v.x, v.y, "#c084fc", 16, 8);
+          addShake(6);
+          Sound.explosion();
+          vortices.splice(i, 1);
+        }
+      }
+    }
+
     // ===== 탄환 방어 수단: 대시(무적 회피) · 에너지 방벽(1회 막기) · 장애물 엄폐(적 탄환이 막힘) =====
     const DASH_COOLDOWN = 5000;  // 대시 쿨타임 (ms, 플레이 시간 기준)
     const DASH_TIME = 220;       // 대시 이동 시간
@@ -3379,10 +3717,10 @@
       levelDisplay.innerText = player.level >= CLEAR_LEVEL ? `Lv. ${player.level} · 👑 최종 보스전` : `Lv. ${player.level} / ${CLEAR_LEVEL}`;
       killDisplay.innerText = `처치: ${kills}`;
       if (deathCount === 0) {
-        deathDisplay.innerHTML = `🛡️ 무사망 도전 중 · ${currentStage().name}` + (godMode ? '<span class="dev-badge">DEV 무적</span>' : "");
+        deathDisplay.innerHTML = `🛡️ 무사망 · ${currentStage().name}` + (godMode ? '<span class="dev-badge">DEV</span>' : "");
         deathDisplay.classList.remove("dead");
       } else {
-        deathDisplay.innerHTML = `💀 사망 ${deathCount}회 · ${currentStage().name}` + (godMode ? '<span class="dev-badge">DEV 무적</span>' : "");
+        deathDisplay.innerHTML = `💀 사망 ${deathCount}회 · ${currentStage().name}` + (godMode ? '<span class="dev-badge">DEV</span>' : "");
         deathDisplay.classList.add("dead");
       }
       const expPct = Math.min(100, (player.exp / player.nextExp) * 100);
@@ -3616,9 +3954,12 @@
       document.getElementById("lobby-titles").innerHTML = save.titles.length
         ? save.titles.map(t => `<span class="chip">${t}</span>`).join("")
         : "아직 칭호가 없습니다";
-      const mmBtn = document.getElementById("btn-minimap");
-      mmBtn.innerText = save.minimap ? "🗺️ 미니맵 켜짐 (누르면 끄기)" : "🗺️ 미니맵 꺼짐 (누르면 켜기)";
-      mmBtn.className = save.minimap ? "toggle-btn on" : "toggle-btn";
+      // 메인 메뉴 버튼 아래 작은 글씨: 현재 선택 상태
+      document.getElementById("menu-char-sub").innerText = currentCharacter().name.replace(/^\S+\s/, "");
+      document.getElementById("menu-floor-sub").innerText = getStage(save.selectedFloor).name;
+      document.getElementById("menu-shop-sub").innerText = `💰 ${save.gold.toLocaleString()}G`;
+      document.getElementById("menu-map-sub").innerText = save.minimap ? "켜짐 (누르면 끄기)" : "꺼짐 (누르면 켜기)";
+      document.getElementById("shop-gold").innerText = `💰 ${save.gold.toLocaleString()}G`;
       document.getElementById("lobby-dev").innerText = IS_DEV_MODE ? "⚙️ 개발자 모드 ON (무적·즉시 부활, 스킬 미리보기) — 배포 전 IS_DEV_MODE = false" : "";
       setupDevPanel();
     }
@@ -3745,7 +4086,7 @@
     function updateGodButtons() {
       for (const id of ["dev-god", "pause-god"]) {
         const btn = document.getElementById(id);
-        btn.innerText = godMode ? "🛡️ 무적 ON (누르면 끄기)" : "💀 무적 OFF (누르면 켜기)";
+        btn.innerText = godMode ? "🛡️ 무적 ON" : "💀 무적 OFF";
       }
     }
     function toggleGodMode() {
@@ -3869,6 +4210,7 @@
       restartGame();
       lobbyEl.style.display = "none";
       btnPause.style.display = "block"; btnDash.style.display = "block";
+      applyDashPos();
       gameState = "playing";
     }
 
@@ -3905,17 +4247,34 @@
       { id: "fireNova", name: "🔥 플레임 노바", key: "fireNovaLevel" },
       { id: "frost", name: "❄️ 프로스트 트레일", key: "frostLevel", walk: true },
       { id: "shuriken", name: "✴️ 바운드 수리검", key: "shurikenLevel" },
-      { id: "thunder", name: "⚡ 낙뢰", key: "thunderLevel" }
+      { id: "thunder", name: "⚡ 낙뢰", key: "thunderLevel" },
+      { id: "vortex", name: "🕳️ 블랙홀", key: "vortexLevel" }
     ];
     let previewDef = PREVIEW_SKILLS[0];
 
+    // ===== 로비 메뉴 창 열기/닫기 =====
+    const LOBBY_PANELS = ["char", "floor", "shop", "dev"];
+    function openLobbyPanel(name) {
+      if (name === "dev" && !IS_DEV_MODE) return;
+      for (const p of LOBBY_PANELS) document.getElementById("panel-" + p).style.display = p === name ? "block" : "none";
+      if (name === "floor") floorPage = -1;
+      renderLobby();
+    }
+    function closeLobbyPanel() {
+      for (const p of LOBBY_PANELS) document.getElementById("panel-" + p).style.display = "none";
+      renderLobby();
+    }
+    function setShopTab(tab) {
+      document.getElementById("shop-stat").style.display = tab === "stat" ? "block" : "none";
+      document.getElementById("shop-look").style.display = tab === "look" ? "block" : "none";
+      document.getElementById("tab-stat").className = "pick-btn" + (tab === "stat" ? " on" : "");
+      document.getElementById("tab-look").className = "pick-btn" + (tab === "look" ? " on" : "");
+    }
+
     function setupDevPanel() {
-      const devPanel = document.getElementById("dev-panel");
-      if (!IS_DEV_MODE) {
-        devPanel.style.display = "none";
-        return;
-      }
-      devPanel.style.display = "block";
+      // 개발자 모드일 때만 메인 화면에 '개발자 옵션' 버튼 표시
+      document.getElementById("btn-dev-menu").style.display = IS_DEV_MODE ? "block" : "none";
+      if (!IS_DEV_MODE) return;
       const devSkill = document.getElementById("dev-skill");
       const pvSkill = document.getElementById("pv-skill");
       if (!devSkill.options.length) {
@@ -3960,8 +4319,9 @@
       document.getElementById("dev-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       // 이전 스킬의 투사체·장판 정리 후 바로 발동되도록 타이머 초기화
       bullets = []; homingMissiles = []; boomerangs = []; trails = []; fireWaves = [];
-      meteors = []; lightningBolts = []; sniperShots = []; explosions = []; shurikens = []; thunderStrikes = [];
+      meteors = []; lightningBolts = []; sniperShots = []; explosions = []; shurikens = []; thunderStrikes = []; vortices = [];
       player.thunderTimer = 0;
+      player.vortexTimer = 0;
       player.laserTarget = null;
       player.laserRamp = 0;
       player.chainActive = false;
@@ -4074,6 +4434,8 @@
       shurikens = [];
       player.thunderLevel = 0;
       thunderStrikes = [];
+      player.vortexLevel = 0;
+      vortices = [];
       lastEliteSpawn = 0;
       // 원소술사: 체인 라이트닝 Lv1로 시작 (미리보기 모드는 제외)
       if (ch.startSkill && gameState !== "preview") player[ch.startSkill + "Level"] = 1;
@@ -4432,6 +4794,7 @@
 
       updateShurikens(timestamp);
       updateThunder(timestamp);
+      updateVortex(timestamp);
 
       if (player.bladeLevel > 0 && player.bladeActive) {
         const bladeRadius = 80 + player.bladeLevel * 15;
@@ -5278,17 +5641,52 @@
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
 
-      // 얼음 장판
-      ctx.lineWidth = 2;
-      for (let t of trails) {
-        if (!inView(t.x, t.y)) continue;
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
-        const alpha = t.life / t.maxLife;
-        ctx.fillStyle = `rgba(56, 189, 248, ${alpha * 0.45})`;
-        ctx.strokeStyle = `rgba(186, 230, 253, ${alpha * 0.8})`;
-        ctx.stroke();
-        ctx.fill();
+      // ❄️ 프로스트 트레일: 지나간 자리를 잇는 얼음 길 (바깥 서리 → 얼음 판 → 반짝이는 결정)
+      // 장판 점들은 생긴 순서대로 쌓이므로, 가까운 이웃끼리 굵은 선으로 이어 하나의 길처럼 그림
+      if (trails.length) {
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        const layers = [
+          { w: 2.0, color: "125, 211, 252", a: 0.32 }, // 바깥 서리
+          { w: 1.45, color: "186, 230, 253", a: 0.42 }, // 얼음 판
+          { w: 0.55, color: "240, 249, 255", a: 0.5 }   // 가운데 반들반들한 면
+        ];
+        for (const L of layers) {
+          for (let i = 0; i < trails.length; i++) {
+            const t = trails[i];
+            if (!inView(t.x, t.y)) continue;
+            const prev = trails[i - 1];
+            const alpha = t.life / t.maxLife;
+            ctx.strokeStyle = `rgba(${L.color}, ${alpha * L.a})`;
+            ctx.lineWidth = t.radius * L.w;
+            ctx.beginPath();
+            if (prev && fastHypot(t.x - prev.x, t.y - prev.y) < t.radius * 3) {
+              ctx.moveTo(prev.x, prev.y);
+            } else {
+              ctx.moveTo(t.x - 0.1, t.y);
+            }
+            ctx.lineTo(t.x, t.y);
+            ctx.stroke();
+          }
+        }
+        // 얼음 결정 반짝임 (점 위치로 정해지는 고정 무늬라 깜빡이지 않음)
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < trails.length; i += 3) {
+          const t = trails[i];
+          if (!inView(t.x, t.y)) continue;
+          const alpha = t.life / t.maxLife;
+          const ox = ((t.x * 7.3) % 1 - 0.5) * t.radius, oy = ((t.y * 5.1) % 1 - 0.5) * t.radius;
+          const s = 3 + (i % 4);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.8})`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(t.x + ox - s, t.y + oy); ctx.lineTo(t.x + ox + s, t.y + oy);
+          ctx.moveTo(t.x + ox, t.y + oy - s); ctx.lineTo(t.x + ox, t.y + oy + s);
+          ctx.stroke();
+        }
+        ctx.globalCompositeOperation = "source-over";
+        ctx.lineCap = "butt";
+        ctx.lineJoin = "miter";
       }
 
       // 플레임 노바 (shadowBlur 대신 두꺼운 반투명 선으로 빛번짐 표현)
@@ -5358,7 +5756,7 @@
       for (let ex of explosions) {
         const t = 1 - ex.life / ex.maxLife;
         const alpha = ex.life / ex.maxLife;
-        const color = ex.small ? "#fb923c" : (ex.lv >= 5 ? "#facc15" : "#f97316");
+        const color = ex.color || (ex.small ? "#fb923c" : (ex.lv >= 5 ? "#facc15" : "#f97316"));
         ctx.globalAlpha = alpha;
         drawGlow(ctx, color, ex.x, ex.y, ex.radius * (0.9 + t * 0.7));
         ctx.globalAlpha = 1;
@@ -5523,6 +5921,52 @@
         const left = s.expire - playTimeMs;
         if (left < 5000 && Math.floor(timestamp / 150) % 2 === 0) continue;
         drawObelisk(ctx, s.x, s.y, SHRINE_TYPES[s.type], left / SHRINE_LIFE, timestamp);
+      }
+
+      // 🕳️ 블랙홀: 보라빛 강착원 + 안으로 말려드는 나선 팔 + 검은 중심 (끝날수록 작아지며 붕괴)
+      for (const v of vortices) {
+        const t = v.life / VORTEX_LIFE;                 // 1 → 0
+        const grow = Math.min(1, (VORTEX_LIFE - v.life) / 12); // 처음 0.2초 동안 열림
+        const R = v.radius * grow;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.5;
+        drawGlow(ctx, v.lv >= 5 ? "#d946ef" : "#7c3aed", v.x, v.y, R * 1.1);
+        ctx.globalAlpha = 1;
+        // 나선 팔 4개
+        ctx.lineCap = "round";
+        for (let k = 0; k < 4; k++) {
+          ctx.beginPath();
+          for (let s = 0; s <= 14; s++) {
+            const f = s / 14;
+            const ang = v.spin * -1 + k * Math.PI / 2 + f * 2.6;
+            const rr = R * (1 - f * 0.85);
+            const px = v.x + Math.cos(ang) * rr, py = v.y + Math.sin(ang) * rr;
+            if (s === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.strokeStyle = `rgba(216, 180, 254, ${0.35 + t * 0.3})`;
+          ctx.lineWidth = 4 + v.lv;
+          ctx.stroke();
+        }
+        ctx.lineCap = "butt";
+        ctx.globalCompositeOperation = "source-over";
+        // 바깥 경계 + 검은 사건의 지평선
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, R, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(192, 132, 252, ${0.25 + t * 0.3})`;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([12, 10]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const coreR = (18 + v.lv * 3) * (0.6 + t * 0.4) * grow;
+        const cg = ctx.createRadialGradient(v.x, v.y, 0, v.x, v.y, coreR * 1.6);
+        cg.addColorStop(0, "#000000");
+        cg.addColorStop(0.6, "#05000f");
+        cg.addColorStop(0.75, "#e9d5ff");
+        cg.addColorStop(1, "rgba(168, 85, 247, 0)");
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, coreR * 1.6, 0, Math.PI * 2);
+        ctx.fillStyle = cg;
+        ctx.fill();
       }
 
       // ✴️ 바운드 수리검: 회전하는 4갈래 표창 + 빛 잔상
@@ -6016,12 +6460,12 @@
     }
 
     // 🗺️ 미니맵 (오른쪽 위, 일시정지 버튼 아래). 로비에서 켜고 끌 수 있음
-    const MINIMAP_SIZE = 116;
+    const MINIMAP_SIZE = 100;
     const MINIMAP_RANGE = 1500; // 미니맵 반지름이 나타내는 실제 거리
     function drawMinimap() {
       if (!save.minimap || gameState !== "playing") return;
       const R = MINIMAP_SIZE / 2;
-      const cx = canvas.width - R - 12, cy = 132 + R;
+      const cx = canvas.width - R - 8, cy = 48 + R; // 일시정지 버튼 바로 아래
       const k = R / MINIMAP_RANGE;
       const toX = wx => cx + (wx - player.x) * k, toY = wy => cy + (wy - player.y) * k;
       ctx.save();
