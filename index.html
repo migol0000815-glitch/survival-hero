@@ -106,32 +106,6 @@
       z-index: 10;
       pointer-events: none;
     }
-    /* 보스전 표시: 경고 문구가 사라진 뒤에도 상단에 작게 남는 보스 체력바 */
-    #boss-hud {
-      display: none;
-      margin-top: 3px;
-      width: calc(100% - 60px);
-    }
-    #boss-hud .boss-label {
-      font-size: 11px;
-      font-weight: 900;
-      color: #fca5a5;
-      text-shadow: 0 2px 6px rgba(0,0,0,0.9);
-      margin-bottom: 3px;
-    }
-    #boss-hud .boss-bar-bg {
-      height: 9px;
-      background: rgba(17, 24, 39, 0.85);
-      border: 1px solid #7f1d1d;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-    #boss-hp-fill {
-      height: 100%;
-      width: 100%;
-      background: linear-gradient(90deg, #b91c1c, #ff3b3b);
-      box-shadow: 0 0 8px rgba(255, 59, 59, 0.7);
-    }
 
     #btn-pause {
       display: none;
@@ -172,7 +146,12 @@
     }
     #btn-dash span { display: block; font-size: 11px; margin-top: 2px; }
     #btn-dash.cooldown { border-color: #475569; background: rgba(15, 23, 42, 0.8); box-shadow: none; color: #94a3b8; }
-    #btn-dash.editing { z-index: 31; border: 2px dashed #fde047; box-shadow: 0 0 22px rgba(253, 224, 71, 0.7); animation: pulseAlert 0.6s infinite alternate; }
+    /* 위치 조정 중: 크기는 그대로 두고 빛만 깜빡임 (움직이는 애니메이션이 있으면 끌 때 위치가 어긋남) */
+    #btn-dash.editing { z-index: 31; border: 2px dashed #fde047; animation: dashEditGlow 0.6s infinite alternate; }
+    @keyframes dashEditGlow {
+      from { box-shadow: 0 0 8px rgba(253, 224, 71, 0.4); }
+      to { box-shadow: 0 0 26px rgba(253, 224, 71, 0.9); }
+    }
     #dash-edit {
       display: none;
       position: absolute;
@@ -242,6 +221,7 @@
       overflow-y: auto;
       background: linear-gradient(180deg, #070b18, #05070f);
     }
+    .lobby-panel, .lobby-panel * { touch-action: pan-y; }
     .panel-inner { max-width: 380px; margin: 0 auto; padding: 18px 16px 28px; display: flex; flex-direction: column; gap: 12px; }
     .panel-head { display: flex; align-items: center; justify-content: space-between; }
     .panel-head h3 { font-size: 20px; font-weight: 900; }
@@ -263,6 +243,12 @@
     }
     .pick-btn.on { border-color: #38bdf8; color: #fff; background: rgba(14, 116, 144, 0.55); box-shadow: 0 0 12px rgba(56, 189, 248, 0.35); }
     .pick-btn:disabled { opacity: 0.45; cursor: default; }
+    .pick-btn.floor { height: 54px; background-size: cover; background-position: center; text-shadow: 0 1px 4px #000, 0 0 2px #000; font-size: 15px; }
+    .floor-preview { width: 100%; height: auto; aspect-ratio: 680 / 260; border-radius: 10px; border: 1px solid rgba(71, 85, 105, 0.6); display: block; margin-bottom: 6px; }
+    .hero-preview { width: 100%; max-width: 240px; height: auto; aspect-ratio: 1; display: block; margin: 0 auto; }
+    .tryon-label { text-align: center; font-size: 12px; color: #fde68a; min-height: 16px; }
+    .shop-row.trying { background: rgba(250, 204, 21, 0.08); border-radius: 8px; }
+    .shop-row .cos-name { flex: 1; cursor: pointer; padding: 4px 0; }
     .pick-desc { margin-top: 6px; font-size: 12px; color: #94a3b8; line-height: 1.5; }
     .shop-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(71, 85, 105, 0.35); }
     .shop-row:last-child { border-bottom: none; }
@@ -670,6 +656,18 @@
       cursor: pointer;
     }
     .pv-hint { font-size: 11px; color: #94a3b8; text-align: center; }
+    .lv-buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 8px; }
+    .lv-buttons button {
+      padding: 9px 0;
+      border-radius: 10px;
+      border: 1.5px solid #475569;
+      background: #1e293b;
+      color: #e2e8f0;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .lv-buttons button.on { border-color: #f59e0b; background: linear-gradient(180deg, #fbbf24, #d97706); color: #1c1917; }
 
     /* ===== 결과 팝업 ===== */
     .result-box {
@@ -712,10 +710,6 @@
       </div>
       <div id="death-display" class="death-info">🛡️ 무사망 도전 중</div>
       <div id="buff-display" class="death-info" style="color: #fb923c; display: none;"></div>
-      <div id="boss-hud">
-        <div id="boss-label" class="boss-label">👹 BOSS</div>
-        <div class="boss-bar-bg"><div id="boss-hp-fill"></div></div>
-      </div>
     </div>
 
     <button id="btn-pause" onclick="openPause()">II</button>
@@ -796,8 +790,9 @@
         <b id="pv-lv-label">Lv.1</b>
         <button class="pv-close" onclick="goToLobby()">✕ 닫기</button>
       </div>
-      <input type="range" id="pv-level" min="1" max="5" value="1">
-      <div class="pv-hint">레벨을 바꾸면 즉시 반영됩니다 · 화면을 드래그하면 이동</div>
+      <input type="hidden" id="pv-level" value="1">
+      <div id="pv-lv-buttons" class="lv-buttons"></div>
+      <div class="pv-hint">레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동</div>
     </div>
 
     <div id="lobby">
@@ -825,6 +820,8 @@
         <button class="start-btn" onclick="startGame()">게임 시작</button>
         <div class="lobby-hint">Lv.25 최종 보스를 처치하면 클리어 · 무사망 클리어 시 특별 보상</div>
       </div>
+    </div>
+    <!-- 로비 메뉴 창들: 메인 화면 위를 통째로 덮음 (게임 시작 버튼은 메인 화면에만) -->
 
       <!-- 캐릭터 창 -->
       <div id="panel-char" class="lobby-panel">
@@ -832,6 +829,7 @@
           <div class="panel-head"><h3>🧑 캐릭터</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
           <div class="info-box">
             <h4>캐릭터 선택</h4>
+            <canvas id="char-preview" class="hero-preview" width="360" height="360"></canvas>
             <div id="char-list" class="pick-grid"></div>
             <div id="char-desc" class="pick-desc"></div>
           </div>
@@ -855,7 +853,8 @@
             <div id="floor-list" class="pick-grid three"></div>
           </div>
           <div class="info-box">
-            <h4>층 정보</h4>
+            <h4>층 정보 · 맵 지형</h4>
+            <canvas id="floor-preview" class="floor-preview" width="680" height="260"></canvas>
             <div id="floor-desc" class="pick-desc" style="font-size: 13px; color: #e2e8f0;"></div>
             <div class="pick-desc">층이 올라갈수록 기본 몹 체력만 층당 +30%, 골드 보상은 층당 +50%. 맵 테마 5종(폐허·얼음·용암·늪·공허)이 층마다 순환합니다.</div>
           </div>
@@ -874,9 +873,15 @@
             <h4>골드로 기본 능력치 영구 강화</h4>
             <div id="shop-list"></div>
           </div>
-          <div id="shop-look" class="info-box" style="display: none;">
-            <h4>능력치 변화 없음 · 누르면 구매 / 장착 / 해제</h4>
-            <div id="cosmetic-list"></div>
+          <div id="shop-look" style="display: none;">
+            <div class="info-box" style="margin-bottom: 12px;">
+              <canvas id="shop-preview" class="hero-preview" width="360" height="360"></canvas>
+              <div id="tryon-label" class="tryon-label"></div>
+            </div>
+            <div class="info-box">
+              <h4>능력치 변화 없음 · 이름을 누르면 입어보기 · 버튼으로 구매/장착</h4>
+              <div id="cosmetic-list"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -891,7 +896,8 @@
               <select id="dev-skill"></select>
               <b id="dev-lv-label">Lv.1</b>
             </div>
-            <input type="range" id="dev-level" min="1" max="5" value="1">
+            <input type="hidden" id="dev-level" value="1">
+            <div id="dev-lv-buttons" class="lv-buttons"></div>
             <button class="dev-btn" onclick="startPreview()">▶ 미리보기 실행</button>
           </div>
           <div class="info-box dev-panel">
@@ -907,7 +913,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <div id="codex-modal" class="game-modal">
       <h2 class="modal-title" style="color: #fde68a; margin-bottom: 12px;">📖 도감</h2>
@@ -1685,20 +1690,265 @@
     }
 
     // 장착한 오라 (캐릭터 발밑에 맥동하는 빛). rainbow 는 색이 계속 바뀜
-    function drawAura(g, x, y, timestamp) {
-      const aura = equippedCosmetic("aura");
+    function drawAura(g, x, y, timestamp, auraItem, size) {
+      const aura = auraItem !== undefined ? auraItem : equippedCosmetic("aura");
       if (!aura) return;
+      const s = size || 1;
       const color = aura.color === "rainbow" ? ["#ef4444", "#f97316", "#facc15", "#22c55e", "#38bdf8", "#a855f7"][Math.floor(timestamp / 160) % 6] : aura.color;
       g.globalCompositeOperation = "lighter";
       g.globalAlpha = 0.4 + Math.sin(timestamp / 260) * 0.12;
-      drawGlow(g, color, x, y, 44);
+      drawGlow(g, color, x, y, 44 * s);
       g.globalAlpha = 0.25;
       for (let i = 0; i < 3; i++) {
         const ang = timestamp / 500 + i * Math.PI * 2 / 3;
-        drawGlow(g, color, x + Math.cos(ang) * 24, y + Math.sin(ang) * 24, 10);
+        drawGlow(g, color, x + Math.cos(ang) * 24 * s, y + Math.sin(ang) * 24 * s, 10 * s);
       }
       g.globalAlpha = 1;
       g.globalCompositeOperation = "source-over";
+    }
+
+    // ===== 정면 모습 캐릭터 (로비·캐릭터 창·외형 상점 미리보기용) =====
+    // (0, 0)이 몸 중심, 키는 약 110. equip 을 따로 받아서 '입어보기'도 그릴 수 있음
+    function roundRect(g, x, y, w, h, r) {
+      g.beginPath();
+      g.moveTo(x + r, y);
+      g.arcTo(x + w, y, x + w, y + h, r);
+      g.arcTo(x + w, y + h, x, y + h, r);
+      g.arcTo(x, y + h, x, y, r);
+      g.arcTo(x, y, x + w, y, r);
+      g.closePath();
+    }
+    // 왼쪽 위에서 빛을 받는 입체 면 (밝은 왼쪽 → 어두운 오른쪽)
+    function frontShade(g, x0, x1, pal) {
+      const grad = g.createLinearGradient(x0, 0, x1, 0);
+      grad.addColorStop(0, pal[0]);
+      grad.addColorStop(0.45, pal[1]);
+      grad.addColorStop(1, pal[2]);
+      return grad;
+    }
+    function drawHeroFront(g, x, y, scale, skin, equip, t) {
+      const findCos = slot => equip[slot] ? COSMETICS[slot].find(c => c.id === equip[slot]) : null;
+      const armorCos = findCos("armor");
+      const p = armorCos ? Object.assign({}, HERO_SKINS[skin], { armor: armorCos.armor, helmet: armorCos.helmet, trim: armorCos.trim }) : HERO_SKINS[skin];
+      const bob = Math.sin(t / 420) * 1.6; // 숨쉬듯 살짝 위아래
+      g.save();
+      g.translate(x, y);
+      g.scale(scale, scale);
+      // 오라·황금 갑옷 빛
+      drawAura(g, 0, 10, t, findCos("aura"), 1.4);
+      if (skin === "gold") {
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.35 + Math.sin(t / 300) * 0.12;
+        drawGlow(g, "#f59e0b", 0, 0, 70);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      }
+      // 그림자
+      g.fillStyle = "rgba(0, 0, 0, 0.45)";
+      g.beginPath();
+      g.ellipse(0, 50, 30, 7, 0, 0, Math.PI * 2);
+      g.fill();
+      // 다리 + 부츠
+      for (const side of [-1, 1]) {
+        g.fillStyle = frontShade(g, side * 11 - 6, side * 11 + 6, p.armor);
+        roundRect(g, side * 11 - 6, 14, 12, 30, 4);
+        g.fill();
+        g.fillStyle = "#0b1220";
+        roundRect(g, side * 11 - 7.5, 40, 15, 10, 4);
+        g.fill();
+      }
+      g.translate(0, bob);
+      // 원소술사: 다리를 덮는 로브 자락
+      if (skin === "mage") {
+        g.beginPath();
+        g.moveTo(-17, 10); g.lineTo(17, 10); g.lineTo(24, 42); g.lineTo(-24, 42);
+        g.closePath();
+        g.fillStyle = frontShade(g, -24, 24, p.armor);
+        g.fill();
+        g.fillStyle = p.trim;
+        g.fillRect(-24, 39, 48, 3);
+      }
+      // 몸통
+      g.fillStyle = frontShade(g, -18, 18, p.armor);
+      roundRect(g, -18, -16, 36, 34, 10);
+      g.fill();
+      g.strokeStyle = "#020617";
+      g.lineWidth = 1.2;
+      g.stroke();
+      // 가슴 문양 + 허리띠
+      g.fillStyle = p.trim;
+      g.beginPath();
+      g.moveTo(0, -10); g.lineTo(7, -2); g.lineTo(0, 6); g.lineTo(-7, -2);
+      g.closePath();
+      g.fill();
+      glowDot(g, 0, -2, 2, p.visor);
+      g.fillStyle = "#0f172a";
+      g.fillRect(-18, 12, 36, 5);
+      g.fillStyle = p.trim;
+      g.fillRect(-3, 12, 6, 5);
+      // 암살자: 목에 두른 스카프 (옆으로 휘날림)
+      if (skin === "assassin") {
+        g.fillStyle = p.trim;
+        roundRect(g, -14, -18, 28, 6, 3);
+        g.fill();
+        g.beginPath();
+        g.moveTo(10, -14);
+        g.quadraticCurveTo(26, -10 + Math.sin(t / 200) * 3, 32, -2 + Math.sin(t / 200) * 4);
+        g.lineTo(28, 2);
+        g.quadraticCurveTo(22, -6, 8, -10);
+        g.closePath();
+        g.fill();
+      }
+      // 어깨 보호대 (전사는 크게)
+      const padR = skin === "warrior" ? 11 : 8;
+      shadedBall(g, -20, -11, padR, padR * 0.8, 0, p.armor, "#020617");
+      shadedBall(g, 20, -11, padR, padR * 0.8, 0, p.armor, "#020617");
+      // 왼팔(늘어뜨림)
+      g.fillStyle = frontShade(g, -27, -17, p.armor);
+      roundRect(g, -27, -6, 10, 24, 5);
+      g.fill();
+      shadedBall(g, -22, 20, 5, 5, 0, p.armor, "#020617");
+      // 무기 (오른손)
+      drawFrontWeapon(g, equip.weapon || null, skin, p, t);
+      // 머리(헬멧) + 바이저
+      shadedBall(g, 0, -34, 17, 16, 0, p.helmet, "#020617");
+      g.fillStyle = p.visor;
+      roundRect(g, -12, -39, 24, 9, 4.5);
+      g.fill();
+      g.globalCompositeOperation = "lighter";
+      g.globalAlpha = 0.6;
+      drawGlow(g, p.visor, 0, -34.5, 16);
+      g.globalAlpha = 1;
+      g.globalCompositeOperation = "source-over";
+      g.fillStyle = "rgba(255, 255, 255, 0.75)";
+      roundRect(g, -9, -38, 8, 2.5, 1.2);
+      g.fill();
+      drawFrontHat(g, equip.hat || null, t);
+      g.restore();
+    }
+
+    // 정면 무기: 외형 상점 무기가 있으면 그것, 없으면 캐릭터 고유 무기 (평타와 같은 모양)
+    function drawFrontWeapon(g, cosWeapon, skin, p, t) {
+      const kind = cosWeapon || ({ assassin: "sniper", warrior: "flame", mage: "staff" })[skin] || "energy";
+      g.save();
+      if (kind === "staff") {
+        // 지팡이: 오른손에 세워 든 모양 + 위쪽 보라 수정
+        g.fillStyle = "#3b0764";
+        roundRect(g, 25, -44, 4, 84, 2);
+        g.fill();
+        g.fillStyle = "#facc15";
+        g.fillRect(24, -36, 6, 3);
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.6 + Math.sin(t / 180) * 0.2;
+        drawGlow(g, "#a78bfa", 27, -52, 18);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        g.beginPath();
+        g.moveTo(27, -64); g.lineTo(33, -52); g.lineTo(27, -40); g.lineTo(21, -52);
+        g.closePath();
+        g.fillStyle = frontShade(g, 21, 33, ["#f5f3ff", "#a78bfa", "#4c1d95"]);
+        g.fill();
+        g.strokeStyle = "#1e0b4b";
+        g.lineWidth = 1;
+        g.stroke();
+      } else {
+        // 총류: 몸 앞에서 비스듬히 위로 든 모양
+        g.translate(18, 8);
+        g.rotate(-0.55);
+        if (kind === "sniper") {
+          metalBar(g, -6, -2, 52, 4, ["#e2e8f0", "#334155", "#020617"]);
+          metalBar(g, -4, -4, 16, 8, ["#94a3b8", "#1e293b", "#020617"]);
+          metalBar(g, 2, -10, 14, 4, ["#cbd5e1", "#0f172a", "#000000"]);
+          glowDot(g, 17, -8, 1.5, "#5eead4");
+          metalBar(g, 44, -3.5, 5, 7, ["#f1f5f9", "#475569", "#0f172a"]);
+        } else if (kind === "flame") {
+          shadedBall(g, -2, 10, 7, 6, 0, ["#fecaca", "#b91c1c", "#2a0606"], "#000");
+          metalBar(g, -4, -7, 30, 14, ["#fde68a", "#92400e", "#1c0a02"]);
+          metalBar(g, 25, -9, 7, 18, ["#d6d3d1", "#44403c", "#0c0a09"]);
+          g.globalCompositeOperation = "lighter";
+          drawGlow(g, "#f97316", 34, 0, 12 + Math.sin(t / 120) * 2);
+          g.globalCompositeOperation = "source-over";
+        } else if (kind === "rifle") {
+          metalBar(g, -8, -3, 50, 6, ["#d6d3d1", "#57534e", "#1c1917"]);
+          metalBar(g, 6, -8, 12, 4, METAL);
+          g.fillStyle = "#78350f";
+          g.fillRect(-12, -4, 8, 9);
+        } else if (kind === "plasma") {
+          metalBar(g, -4, -6, 32, 12, ["#ede9fe", "#7c3aed", "#1e0b4b"]);
+          for (let i = 0; i < 3; i++) glowDot(g, 4 + i * 7, 0, 2, "#e879f9");
+          glowDot(g, 31, 0, 4, "#f0abfc");
+        } else if (kind === "golden") {
+          metalBar(g, -4, -5, 34, 10, ["#fef9c3", "#eab308", "#713f12"]);
+          g.fillStyle = "#fde047";
+          g.fillRect(29, -3, 6, 6);
+        } else {
+          metalBar(g, -4, -4, 34, 8, p.gun);
+          g.fillStyle = p.trim;
+          g.fillRect(28, -2, 5, 4);
+        }
+      }
+      g.restore();
+      // 오른팔 + 손 (무기를 쥔 모양)
+      g.fillStyle = frontShade(g, 17, 27, p.armor);
+      roundRect(g, 17, -6, 10, 20, 5);
+      g.fill();
+      shadedBall(g, 23, 13, 5.5, 5.5, 0, p.armor, "#020617");
+    }
+
+    // 정면 모자
+    function drawFrontHat(g, hat, t) {
+      if (hat === "plume") {
+        g.beginPath();
+        g.moveTo(-3, -48);
+        g.quadraticCurveTo(-2, -68, 14, -66);
+        g.quadraticCurveTo(6, -60, 4, -48);
+        g.closePath();
+        g.fillStyle = "#dc2626";
+        g.fill();
+        g.strokeStyle = "#7f1d1d";
+        g.lineWidth = 1;
+        g.stroke();
+      } else if (hat === "horns") {
+        for (const side of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(side * 9, -45);
+          g.quadraticCurveTo(side * 26, -50, side * 24, -66);
+          g.quadraticCurveTo(side * 18, -54, side * 4, -49);
+          g.closePath();
+          const grad = g.createLinearGradient(0, -45, 0, -66);
+          grad.addColorStop(0, "#1c1917");
+          grad.addColorStop(1, "#ef4444");
+          g.fillStyle = grad;
+          g.fill();
+          g.strokeStyle = "#000";
+          g.lineWidth = 0.8;
+          g.stroke();
+        }
+      } else if (hat === "crown") {
+        g.beginPath();
+        g.moveTo(-14, -46); g.lineTo(-14, -58); g.lineTo(-7, -51); g.lineTo(0, -62);
+        g.lineTo(7, -51); g.lineTo(14, -58); g.lineTo(14, -46);
+        g.closePath();
+        g.fillStyle = frontShade(g, -14, 14, ["#fef9c3", "#facc15", "#a16207"]);
+        g.fill();
+        g.strokeStyle = "#713f12";
+        g.lineWidth = 1;
+        g.stroke();
+        glowDot(g, 0, -50, 1.6, "#ef4444");
+        glowDot(g, -9, -49, 1.2, "#3b82f6");
+        glowDot(g, 9, -49, 1.2, "#3b82f6");
+      } else if (hat === "halo") {
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.7;
+        drawGlow(g, "#fde047", 0, -60, 22);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        g.beginPath();
+        g.ellipse(0, -60 + Math.sin(t / 300) * 1.5, 15, 4.5, 0, 0, Math.PI * 2);
+        g.strokeStyle = "#fef9c3";
+        g.lineWidth = 2.4;
+        g.stroke();
+      }
     }
 
     function drawMonsterShape(g, a, type, r) {
@@ -1830,6 +2080,7 @@
 
     // 바닥: 베벨(돌출 테두리)과 표면 질감이 있는 석재 타일. 층마다 색이 다름 (층별로 한 번만 만들어 둠)
     const tilePatterns = {};
+    const tileCanvases = {}; // 로비의 층 미리보기에서 같은 바닥 그림을 쓰기 위해 보관
     function tilePatternFor(stage) {
       if (!tilePatterns[stage.theme]) tilePatterns[stage.theme] = makeTilePattern(stage);
       return tilePatterns[stage.theme];
@@ -1891,7 +2142,57 @@
           g.fillRect(x + 97, y, 3, 100);
         }
       }
+      tileCanvases[stage.theme] = c;
       return ctx.createPattern(c, "repeat");
+    }
+
+    // 층 미리보기: 해당 테마의 바닥 + 장애물 몇 개 + 원거리 몹 탄환 색 (로비 층 선택 창)
+    function drawTerrainPreview(canvasEl, stage, t) {
+      const g = canvasEl.getContext("2d");
+      const w = canvasEl.width, h = canvasEl.height;
+      tilePatternFor(stage);
+      g.save();
+      g.fillStyle = g.createPattern(tileCanvases[stage.theme], "repeat");
+      g.fillRect(0, 0, w, h);
+      const k = h / 160; // 미리보기 크기에 맞춘 축척
+      g.scale(k, k);
+      const W = w / k;
+      const obs = [
+        { x: W * 0.18, y: 60, r: 34, kind: "rock" },
+        { x: W * 0.55, y: 105, r: 44, kind: "pillar" },
+        { x: W * 0.86, y: 52, r: 28, kind: "rock" }
+      ];
+      for (const ob of obs) drawObstacle(g, ob, stage.obstacle, t);
+      // 원거리 몹 탄환 예시
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < stage.shooterSpread; i++) {
+        drawGlow(g, stage.shotColor, W * 0.33 + i * 16, 130 - i * 6, (stage.shotRadius || 6) * 2.4);
+      }
+      g.globalCompositeOperation = "source-over";
+      g.restore();
+      // 가장자리 어둡게
+      const v = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.65);
+      v.addColorStop(0, "rgba(0, 0, 0, 0)");
+      v.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+      g.fillStyle = v;
+      g.fillRect(0, 0, w, h);
+    }
+
+    // 층 버튼 배경용 작은 썸네일 (테마별로 한 번만 만들어 둠)
+    const floorThumbs = {};
+    function floorThumb(stage) {
+      if (floorThumbs[stage.theme] === undefined) {
+        try {
+          const c = document.createElement("canvas");
+          c.width = 160;
+          c.height = 90;
+          drawTerrainPreview(c, stage, 0);
+          floorThumbs[stage.theme] = c.toDataURL();
+        } catch (e) {
+          floorThumbs[stage.theme] = "";
+        }
+      }
+      return floorThumbs[stage.theme];
     }
 
     // 화면 가장자리를 어둡게 하는 조명(비네팅). 화면 크기가 바뀔 때만 다시 만듦
@@ -1942,9 +2243,6 @@
     const deathDisplay = document.getElementById("death-display");
     const resultModal = document.getElementById("result-modal");
     const buffDisplay = document.getElementById("buff-display");
-    const bossHud = document.getElementById("boss-hud");
-    const bossHpFill = document.getElementById("boss-hp-fill");
-    const bossLabel = document.getElementById("boss-label");
     const btnPause = document.getElementById("btn-pause");
     const btnDash = document.getElementById("btn-dash");
     // 대시 버튼: 조이스틱을 누른 채 다른 손가락으로 눌러도 바로 반응하도록 touchstart 에서 처리.
@@ -1952,8 +2250,8 @@
     let dashEditing = false;
     let dashDrag = null; // { dx, dy } 손가락과 버튼 왼쪽 위 모서리의 거리
     function dashDragStart(x, y) {
-      const r = btnDash.getBoundingClientRect();
-      dashDrag = { dx: x - r.left, dy: y - r.top };
+      // offsetLeft/Top 은 화면 효과(transform)의 영향을 받지 않는 실제 배치 위치
+      dashDrag = { dx: x - btnDash.offsetLeft, dy: y - btnDash.offsetTop };
     }
     function dashDragMove(x, y) {
       if (!dashDrag) return;
@@ -2657,8 +2955,6 @@
       bossArena.y = player.y;
 
       showBossAlert(isFinal ? "👑 FINAL BOSS! 최종 보스를 처치하면 클리어 👑" : "⚠️ WARNING! 극강의 탄막 보스 출현 ⚠️");
-      bossLabel.innerText = isFinal ? "👑 FINAL BOSS" : `👹 BOSS · Lv.${player.level}`;
-      bossHud.style.display = "block";
 
       // 기존 잡몹은 경험치 없이 사라짐 (보스전 직후 연속 레벨업 방지)
       for (let i = monsters.length - 1; i >= 0; i--) {
@@ -3741,24 +4037,6 @@
       }
     }
 
-    // 보스 체력바 (상단). 보스 체력은 매 프레임 바뀌므로 0.5% 이상 변했을 때만 화면에 반영
-    let bossHudPct = -1;
-    function updateBossHud() {
-      const boss = bossArena.active ? monsters.find(m => m.isBoss) : null;
-      if (!boss) {
-        if (bossHudPct !== -1) {
-          bossHud.style.display = "none";
-          bossHudPct = -1;
-        }
-        return;
-      }
-      const pct = Math.max(0, boss.hp / boss.maxHp * 100);
-      if (Math.abs(pct - bossHudPct) >= 0.5 || bossHudPct === -1) {
-        bossHud.style.display = "block";
-        bossHpFill.style.width = `${pct}%`;
-        bossHudPct = pct;
-      }
-    }
 
     // ===== 일시정지: 현재 레벨·스킬 목록·능력치 표시 =====
     function openPause() {
@@ -3964,26 +4242,38 @@
       setupDevPanel();
     }
 
-    function drawLobbyPreview(timestamp) {
-      const w = lobbyCanvas.width, h = lobbyCanvas.height;
-      lctx.clearRect(0, 0, w, h);
-      lctx.save();
-      lctx.translate(w / 2, h / 2 + 30);
-      lctx.scale(4.4, 4.4);
-      // 받침대
-      const ped = lctx.createRadialGradient(-6, 18, 2, 0, 22, 34);
+    // 받침대 위에 정면 캐릭터를 그림 (메인 화면·캐릭터 창·외형 상점 공용)
+    function drawFrontStage(canvasEl, skin, equip, timestamp) {
+      const g = canvasEl.getContext("2d");
+      const w = canvasEl.width, h = canvasEl.height;
+      const s = Math.min(w, h) / 150;
+      g.clearRect(0, 0, w, h);
+      const cx = w / 2, footY = h / 2 + 52 * s;
+      const ped = g.createRadialGradient(cx - 10 * s, footY - 4 * s, 2, cx, footY, 48 * s);
       ped.addColorStop(0, "#475569");
       ped.addColorStop(1, "#0f172a");
-      lctx.fillStyle = ped;
-      lctx.beginPath();
-      lctx.ellipse(0, 22, 32, 10, 0, 0, Math.PI * 2);
-      lctx.fill();
-      lctx.strokeStyle = "rgba(56, 189, 248, 0.6)";
-      lctx.lineWidth = 0.8;
-      lctx.stroke();
-      const angle = timestamp / 1600;
-      drawHero(lctx, 0, 0, angle, timestamp / 140, true, getSkin(), timestamp);
-      lctx.restore();
+      g.fillStyle = ped;
+      g.beginPath();
+      g.ellipse(cx, footY, 46 * s, 12 * s, 0, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(56, 189, 248, 0.6)";
+      g.lineWidth = 1.5;
+      g.stroke();
+      drawHeroFront(g, cx, footY - 50 * s, s, skin, equip, timestamp);
+    }
+
+    function drawLobbyPreview(timestamp) {
+      drawFrontStage(lobbyCanvas, getSkin(), save.equip, timestamp);
+      // 열려 있는 창의 미리보기도 함께 갱신
+      if (document.getElementById("panel-char").style.display === "block") {
+        drawFrontStage(document.getElementById("char-preview"), getSkin(), save.equip, timestamp);
+      }
+      if (document.getElementById("panel-shop").style.display === "block") {
+        drawFrontStage(document.getElementById("shop-preview"), getSkin(), Object.assign({}, save.equip, shopTryOn), timestamp);
+      }
+      if (document.getElementById("panel-floor").style.display === "block") {
+        drawTerrainPreview(document.getElementById("floor-preview"), getStage(save.selectedFloor), timestamp);
+      }
     }
 
     // ===== 로비 UI: 캐릭터·층 선택, 상점 =====
@@ -4013,9 +4303,12 @@
       for (let f = floorPage * PER + 1; f <= floorPage * PER + PER; f++) {
         const locked = f > save.unlockedFloor;
         const btn = document.createElement("button");
-        btn.className = "pick-btn" + (save.selectedFloor === f ? " on" : "");
+        btn.className = "pick-btn floor" + (save.selectedFloor === f ? " on" : "");
         btn.innerText = locked ? `🔒 ${f}층` : `${f}층`;
         btn.disabled = locked;
+        // 버튼 배경에 그 층의 맵 지형 썸네일
+        const thumb = floorThumb(getStage(f));
+        if (thumb) btn.style.backgroundImage = `linear-gradient(rgba(2, 6, 23, 0.35), rgba(2, 6, 23, 0.55)), url(${thumb})`;
         btn.onclick = () => { save.selectedFloor = f; writeSave(); renderLobby(); };
         list.appendChild(btn);
       }
@@ -4038,7 +4331,21 @@
       document.getElementById("floor-desc").innerText = `${sel.name} — ${sel.desc}`;
     }
 
+    // 외형 입어보기: 구매 전에도 미리보기에 착용한 모습을 보여 줌 (상점을 닫으면 원래대로)
+    let shopTryOn = {};
+    function tryOnCosmetic(slot, id) {
+      if (shopTryOn[slot] === id) delete shopTryOn[slot];
+      else shopTryOn[slot] = id;
+      renderShop();
+    }
+
     function renderShop() {
+      const tryNames = Object.keys(shopTryOn).map(slot => {
+        const item = COSMETICS[slot].find(c => c.id === shopTryOn[slot]);
+        const owned = save.owned.includes(slot + ":" + item.id);
+        return item.name + (owned ? "" : " (미구매)");
+      });
+      document.getElementById("tryon-label").innerText = tryNames.length ? `👀 입어보는 중: ${tryNames.join(", ")}` : "아이템 이름을 누르면 입어 볼 수 있어요";
       const list = document.getElementById("shop-list");
       list.innerHTML = "";
       for (const item of SHOP_ITEMS) {
@@ -4068,14 +4375,20 @@
         for (const item of COSMETICS[slot]) {
           const owned = save.owned.includes(slot + ":" + item.id);
           const equipped = save.equip[slot] === item.id;
+          const trying = shopTryOn[slot] === item.id;
           const row = document.createElement("div");
-          row.className = "shop-row";
-          row.innerHTML = `<div>${item.name}</div>`;
+          row.className = "shop-row" + (trying ? " trying" : "");
+          // 이름을 누르면 구매하지 않아도 위 미리보기에 입혀 봄 (한 번 더 누르면 취소)
+          const name = document.createElement("div");
+          name.className = "cos-name";
+          name.innerText = (trying ? "👀 " : "") + item.name;
+          name.onclick = () => tryOnCosmetic(slot, item.id);
+          row.appendChild(name);
           const btn = document.createElement("button");
           btn.className = "buy-btn" + (equipped ? " equipped" : (owned ? " owned" : ""));
           btn.innerText = equipped ? "✔ 장착 중" : (owned ? "장착하기" : `💰 ${item.price.toLocaleString()}`);
           btn.disabled = !owned && save.gold < item.price;
-          btn.onclick = () => useCosmetic(slot, item.id);
+          btn.onclick = () => { delete shopTryOn[slot]; useCosmetic(slot, item.id); };
           row.appendChild(btn);
           cos.appendChild(row);
         }
@@ -4208,6 +4521,7 @@
       initAudio();
       currentFloor = Math.min(save.selectedFloor, save.unlockedFloor);
       restartGame();
+      hideLobbyPanels();
       lobbyEl.style.display = "none";
       btnPause.style.display = "block"; btnDash.style.display = "block";
       applyDashPos();
@@ -4226,6 +4540,10 @@
       gameState = "lobby";
       renderLobby();
       lobbyEl.style.display = "block";
+      if (lobbyReturnPanel) {
+        openLobbyPanel(lobbyReturnPanel);
+        lobbyReturnPanel = null;
+      }
     }
 
     // ===== 개발자 모드: 스킬 미리보기 =====
@@ -4260,8 +4578,13 @@
       if (name === "floor") floorPage = -1;
       renderLobby();
     }
-    function closeLobbyPanel() {
+    let lobbyReturnPanel = null;
+    function hideLobbyPanels() {
       for (const p of LOBBY_PANELS) document.getElementById("panel-" + p).style.display = "none";
+    }
+    function closeLobbyPanel() {
+      hideLobbyPanels();
+      shopTryOn = {}; // 입어보기는 상점을 닫으면 해제
       renderLobby();
     }
     function setShopTab(tab) {
@@ -4282,14 +4605,35 @@
           devSkill.add(new Option(s.name, s.id));
           pvSkill.add(new Option(s.name, s.id));
         }
-        const devLevel = document.getElementById("dev-level");
-        const pvLevel = document.getElementById("pv-level");
-        const lvText = lv => `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
-        devLevel.oninput = () => { document.getElementById("dev-lv-label").innerText = lvText(+devLevel.value); };
-        // 미리보기 중에는 바꾸는 즉시 반영
+        // 미리보기 중에는 스킬을 바꾸는 즉시 반영
         pvSkill.onchange = () => applyPreviewSkill();
-        pvLevel.oninput = () => applyPreviewSkill();
       }
+      renderLevelButtons();
+    }
+
+    // 스킬 레벨 선택 버튼 (Lv1 ~ Lv5): 로비의 개발자 옵션과 미리보기 화면 공용
+    function renderLevelButtons() {
+      const cur = +document.getElementById("pv-level").value || +document.getElementById("dev-level").value || 1;
+      for (const boxId of ["dev-lv-buttons", "pv-lv-buttons"]) {
+        const box = document.getElementById(boxId);
+        box.innerHTML = "";
+        for (let lv = 1; lv <= 5; lv++) {
+          const btn = document.createElement("button");
+          btn.className = lv === cur ? "on" : "";
+          btn.innerText = lv >= 5 ? "MAX" : `Lv${lv}`;
+          btn.onclick = () => setPreviewLevel(lv);
+          box.appendChild(btn);
+        }
+      }
+    }
+    function setPreviewLevel(lv) {
+      document.getElementById("pv-level").value = lv;
+      document.getElementById("dev-level").value = lv;
+      const text = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
+      document.getElementById("pv-lv-label").innerText = text;
+      document.getElementById("dev-lv-label").innerText = text;
+      if (gameState === "preview") applyPreviewSkill(); // 미리보기 중이면 즉시 반영
+      renderLevelButtons();
     }
 
     function startPreview() {
@@ -4299,6 +4643,8 @@
       restartGame();
       document.getElementById("pv-skill").value = document.getElementById("dev-skill").value;
       document.getElementById("pv-level").value = document.getElementById("dev-level").value;
+      hideLobbyPanels();
+      lobbyReturnPanel = "dev"; // 미리보기를 닫으면 개발자 옵션 창으로 돌아감
       lobbyEl.style.display = "none";
       uiLayer.style.display = "none";
       previewPanel.style.display = "block";
@@ -4328,6 +4674,7 @@
       player.bladeActive = false;
       player.sniperTimer = player.lightningTimer = player.meteorTimer = player.homingTimer = 0;
       player.boomerangTimer = player.fireNovaTimer = player.bladeTimer = player.chainTimer = 0;
+      renderLevelButtons();
     }
 
     // 미리보기용 더미 몬스터를 일정 수 유지 (느리게 다가오고, 처치 연출을 볼 수 있도록 적당한 체력)
@@ -4447,8 +4794,6 @@
       bossArena.active = false;
       bossAlert.style.display = "none";
       bossAlertHideAt = 0;
-      bossHud.style.display = "none";
-      bossHudPct = -1;
       joystick.active = false;
       currentViewScale = 0.68;
       targetViewScale = 0.68;
@@ -4484,7 +4829,6 @@
           previewTick();
           update(timestamp);
         }
-        if (gameState === "playing") updateBossHud();
         draw(timestamp);
         if (uiDirty) renderUI();
       }
@@ -5224,7 +5568,6 @@
         m.baseSpeed *= 1.15;
         m.speed = m.baseSpeed;
         showBossAlert("🔥 보스 분노! 탄막이 강화됩니다 🔥");
-        bossLabel.innerText += " · 🔥분노";
         addHitEffect({ x: m.x, y: m.y, radius: 90, life: 20, maxLife: 20, color: "#ef4444" });
       }
       const late = m.isLateBoss;
@@ -5592,17 +5935,101 @@
         ctx.fillStyle = "rgba(0,0,0,0.75)";
         ctx.fillRect(-barW / 2, barY, barW, barH);
         const hpPct = Math.max(0, m.hp / m.maxHp);
-        ctx.fillStyle = m.isBoss ? "#ff2d2d" : (m.isElite ? "#f472b6" : "#22c55e");
+        // 광란(분노) 상태의 보스는 체력바가 주황↔빨강으로 맥동
+        const ragePulse = m.isBoss && m.enraged && Math.floor(timestamp / 180) % 2 === 0;
+        ctx.fillStyle = m.isBoss ? (ragePulse ? "#ff8a1f" : "#ff2d2d") : (m.isElite ? "#f472b6" : "#22c55e");
         ctx.fillRect(-barW / 2, barY, barW * hpPct, barH);
         if (m.isBoss) {
-          // 밝은 윗줄 + 흰 테두리로 어떤 배경에서도 잘 보이게
+          // 밝은 윗줄 + 흰 테두리로 어떤 배경에서도 잘 보이게 (광란이면 주황 테두리)
           ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
           ctx.fillRect(-barW / 2, barY, barW * hpPct, barH * 0.35);
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = m.enraged ? "#fb923c" : "#ffffff";
+          ctx.lineWidth = m.enraged ? 3 : 2;
           ctx.strokeRect(-barW / 2, barY, barW, barH);
+          if (m.enraged) {
+            ctx.font = "bold 15px sans-serif";
+            ctx.textAlign = "center";
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "#000";
+            ctx.strokeText("🔥 광란", 0, barY - 6);
+            ctx.fillStyle = "#fdba74";
+            ctx.fillText("🔥 광란", 0, barY - 6);
+          }
         }
         ctx.restore();
+      }
+    }
+
+    // 장애물 한 개 그리기 (게임 화면과 로비의 층 미리보기 공용). style: 맵 테마
+    function drawObstacle(g, ob, obStyle, timestamp) {
+      drawShadow(g, ob.x, ob.y + ob.r * 0.35, ob.r * 1.05);
+      if (obStyle === "swamp") {
+        // 독안개 늪: 이끼 낀 바위 + 녹색 독기
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.25 + Math.sin(timestamp / 500 + ob.y) * 0.08;
+        drawGlow(g, "#4ade80", ob.x, ob.y, ob.r * 1.7);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, ob.x, ob.y, ob.r, ob.r * 0.8, 0, ["#86efac", "#3f6212", "#0a1505"], "#020a02");
+        shadedBall(g, ob.x - ob.r * 0.3, ob.y - ob.r * 0.25, ob.r * 0.35, ob.r * 0.25, 0, ["#bbf7d0", "#15803d", "#052e16"]);
+      } else if (obStyle === "ice" || obStyle === "void") {
+        // 얼음 수정(하늘색) / 공허 수정(보라색): 육각 결정 + 안쪽 빛
+        const isVoid = obStyle === "void";
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.35;
+        drawGlow(g, isVoid ? "#a855f7" : "#38bdf8", ob.x, ob.y, ob.r * 1.6);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        const ig = g.createLinearGradient(ob.x - ob.r, ob.y - ob.r, ob.x + ob.r, ob.y + ob.r);
+        ig.addColorStop(0, isVoid ? "#f5d0fe" : "#f0f9ff");
+        ig.addColorStop(0.45, isVoid ? "#7e22ce" : "#7dd3fc");
+        ig.addColorStop(1, isVoid ? "#1e0838" : "#0c4a6e");
+        g.beginPath();
+        for (let k = 0; k < 6; k++) {
+          const a = k * Math.PI / 3 + (ob.kind === "rock" ? 0.3 : 0);
+          const rr = ob.r * (k % 2 ? 0.85 : 1);
+          if (k === 0) g.moveTo(ob.x + Math.cos(a) * rr, ob.y + Math.sin(a) * rr);
+          else g.lineTo(ob.x + Math.cos(a) * rr, ob.y + Math.sin(a) * rr);
+        }
+        g.closePath();
+        g.fillStyle = ig;
+        g.fill();
+        g.strokeStyle = "rgba(224, 242, 254, 0.9)";
+        g.lineWidth = 2;
+        g.stroke();
+        g.beginPath();
+        g.moveTo(ob.x - ob.r * 0.5, ob.y - ob.r * 0.2);
+        g.lineTo(ob.x + ob.r * 0.3, ob.y + ob.r * 0.4);
+        g.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        g.stroke();
+      } else if (obStyle === "lava") {
+        // 3층: 검은 화산암 + 주황빛 용암 균열
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.3 + Math.sin(timestamp / 400 + ob.x) * 0.1;
+        drawGlow(g, "#f97316", ob.x, ob.y, ob.r * 1.7);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, ob.x, ob.y, ob.r, ob.r * 0.85, 0, ["#57534e", "#1c1917", "#000000"], "#000");
+        g.beginPath();
+        g.moveTo(ob.x - ob.r * 0.6, ob.y - ob.r * 0.1);
+        g.lineTo(ob.x - ob.r * 0.1, ob.y + ob.r * 0.15);
+        g.lineTo(ob.x + ob.r * 0.2, ob.y - ob.r * 0.3);
+        g.lineTo(ob.x + ob.r * 0.6, ob.y + ob.r * 0.1);
+        g.strokeStyle = "#fb923c";
+        g.lineWidth = 3;
+        g.stroke();
+        g.strokeStyle = "#fde68a";
+        g.lineWidth = 1;
+        g.stroke();
+      } else if (ob.kind === "rock") {
+        shadedBall(g, ob.x, ob.y, ob.r, ob.r * 0.82, 0, ["#a8a29e", "#57534e", "#1c1917"], "#0c0a09");
+      } else {
+        shadedBall(g, ob.x, ob.y, ob.r * 0.85, ob.r * 0.85, 0, ["#cbd5e1", "#475569", "#0f172a"], "#020617");
+        g.beginPath();
+        g.arc(ob.x, ob.y, ob.r * 0.5, 0, Math.PI * 2);
+        g.strokeStyle = "rgba(226, 232, 240, 0.35)";
+        g.lineWidth = 3;
+        g.stroke();
       }
     }
 
@@ -5815,75 +6242,7 @@
       const obStyle = currentStage().obstacle;
       for (const ob of obstacles) {
         if (!inView(ob.x, ob.y)) continue;
-        drawShadow(ctx, ob.x, ob.y + ob.r * 0.35, ob.r * 1.05);
-        if (obStyle === "swamp") {
-          // 독안개 늪: 이끼 낀 바위 + 녹색 독기
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = 0.25 + Math.sin(timestamp / 500 + ob.y) * 0.08;
-          drawGlow(ctx, "#4ade80", ob.x, ob.y, ob.r * 1.7);
-          ctx.globalAlpha = 1;
-          ctx.globalCompositeOperation = "source-over";
-          shadedBall(ctx, ob.x, ob.y, ob.r, ob.r * 0.8, 0, ["#86efac", "#3f6212", "#0a1505"], "#020a02");
-          shadedBall(ctx, ob.x - ob.r * 0.3, ob.y - ob.r * 0.25, ob.r * 0.35, ob.r * 0.25, 0, ["#bbf7d0", "#15803d", "#052e16"]);
-        } else if (obStyle === "ice" || obStyle === "void") {
-          // 얼음 수정(하늘색) / 공허 수정(보라색): 육각 결정 + 안쪽 빛
-          const isVoid = obStyle === "void";
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = 0.35;
-          drawGlow(ctx, isVoid ? "#a855f7" : "#38bdf8", ob.x, ob.y, ob.r * 1.6);
-          ctx.globalAlpha = 1;
-          ctx.globalCompositeOperation = "source-over";
-          const ig = ctx.createLinearGradient(ob.x - ob.r, ob.y - ob.r, ob.x + ob.r, ob.y + ob.r);
-          ig.addColorStop(0, isVoid ? "#f5d0fe" : "#f0f9ff");
-          ig.addColorStop(0.45, isVoid ? "#7e22ce" : "#7dd3fc");
-          ig.addColorStop(1, isVoid ? "#1e0838" : "#0c4a6e");
-          ctx.beginPath();
-          for (let k = 0; k < 6; k++) {
-            const a = k * Math.PI / 3 + (ob.kind === "rock" ? 0.3 : 0);
-            const rr = ob.r * (k % 2 ? 0.85 : 1);
-            if (k === 0) ctx.moveTo(ob.x + Math.cos(a) * rr, ob.y + Math.sin(a) * rr);
-            else ctx.lineTo(ob.x + Math.cos(a) * rr, ob.y + Math.sin(a) * rr);
-          }
-          ctx.closePath();
-          ctx.fillStyle = ig;
-          ctx.fill();
-          ctx.strokeStyle = "rgba(224, 242, 254, 0.9)";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(ob.x - ob.r * 0.5, ob.y - ob.r * 0.2);
-          ctx.lineTo(ob.x + ob.r * 0.3, ob.y + ob.r * 0.4);
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-          ctx.stroke();
-        } else if (obStyle === "lava") {
-          // 3층: 검은 화산암 + 주황빛 용암 균열
-          ctx.globalCompositeOperation = "lighter";
-          ctx.globalAlpha = 0.3 + Math.sin(timestamp / 400 + ob.x) * 0.1;
-          drawGlow(ctx, "#f97316", ob.x, ob.y, ob.r * 1.7);
-          ctx.globalAlpha = 1;
-          ctx.globalCompositeOperation = "source-over";
-          shadedBall(ctx, ob.x, ob.y, ob.r, ob.r * 0.85, 0, ["#57534e", "#1c1917", "#000000"], "#000");
-          ctx.beginPath();
-          ctx.moveTo(ob.x - ob.r * 0.6, ob.y - ob.r * 0.1);
-          ctx.lineTo(ob.x - ob.r * 0.1, ob.y + ob.r * 0.15);
-          ctx.lineTo(ob.x + ob.r * 0.2, ob.y - ob.r * 0.3);
-          ctx.lineTo(ob.x + ob.r * 0.6, ob.y + ob.r * 0.1);
-          ctx.strokeStyle = "#fb923c";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          ctx.strokeStyle = "#fde68a";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        } else if (ob.kind === "rock") {
-          shadedBall(ctx, ob.x, ob.y, ob.r, ob.r * 0.82, 0, ["#a8a29e", "#57534e", "#1c1917"], "#0c0a09");
-        } else {
-          shadedBall(ctx, ob.x, ob.y, ob.r * 0.85, ob.r * 0.85, 0, ["#cbd5e1", "#475569", "#0f172a"], "#020617");
-          ctx.beginPath();
-          ctx.arc(ob.x, ob.y, ob.r * 0.5, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(226, 232, 240, 0.35)";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
+        drawObstacle(ctx, ob, obStyle, timestamp);
       }
 
       // 금이 간 장애물: 부서질 때가 가까울수록 균열이 늘고, 마지막 2초는 흔들리며 깜빡임
