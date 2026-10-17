@@ -723,17 +723,34 @@
       if (hitEffects.length < MAX_HIT_EFFECTS) hitEffects.push(effect);
     }
 
-    // 보석이 너무 많이 쌓이면 새 보석을 기존 보석에 합쳐서 개수를 제한
+    // 보석이 너무 많이 쌓이면, 플레이어에게서 가장 먼 보석을 없애고 그 경험치를 새 보석에 합침
+    // (새 보석은 항상 몬스터가 죽은 자리에 보이고, 경험치 손실도 없음)
     function dropExp(gem) {
-      if (exps.length >= MAX_EXPS && gem.type !== "boss") {
-        const target = exps[(Math.random() * exps.length) | 0];
-        if (target.type !== "boss") {
-          target.value += gem.value;
-          if (target.value >= 5 && target.type === "normal") {
-            target.type = "super";
-            target.radius = 10;
+      if (exps.length >= MAX_EXPS) {
+        let farIdx = -1;
+        let farD = -1;
+        for (let i = 0; i < exps.length; i++) {
+          const e = exps[i];
+          if (e.type === "boss") continue;
+          const dx = e.x - player.x, dy = e.y - player.y, d = dx * dx + dy * dy;
+          if (d > farD) {
+            farD = d;
+            farIdx = i;
           }
-          return;
+        }
+        if (farIdx >= 0) {
+          const far = exps[farIdx];
+          exps.splice(farIdx, 1);
+          if (gem.type !== "boss") {
+            gem.value += far.value;
+            if (gem.value >= 5 && gem.type === "normal") {
+              gem.type = "super";
+              gem.radius = 10;
+            }
+          } else {
+            // 보스 코어는 고정 효과라 합치지 않고 근처에 일반 보석으로 남김
+            exps.push({ x: gem.x + 30, y: gem.y, radius: far.value >= 5 ? 10 : 8, value: far.value, type: far.value >= 5 ? "super" : "normal" });
+          }
         }
       }
       exps.push(gem);
@@ -962,6 +979,13 @@
       });
     }
 
+    // 궤도 구체 (만렙은 황금색)
+    function orbSprite(size, gold) {
+      return getSprite(`orb_${size}_${gold}`, size * 2.4, 2, g => {
+        shadedBall(g, 0, 0, size, size, 0, gold ? ["#fffbeb", "#eab308", "#422006"] : ["#f5f3ff", "#8b5cf6", "#1e0b4b"], "#0b0618");
+      });
+    }
+
     // 부드러운 원형 그림자
     function shadowSprite() {
       return getSprite("shadow", 64, 1, g => {
@@ -1184,6 +1208,17 @@
 
       ricochetLevel: 0,
 
+      orbitLevel: 0,
+      orbitAngle: 0,
+      orbitPos: [],
+
+      chainLevel: 0,
+      chainTimer: 0,
+      chainActive: false,
+      chainStart: 0,
+      chainSpin: 0,
+      chainPos: [],
+
       shieldHits: 0,
       armorLevel: 0
     };
@@ -1219,6 +1254,8 @@
     let lastSpawnTime = 0;
     let lastItemSpawnTime = 0;
     const pendingBlasts = []; // 탄환 폭발은 몬스터 순회가 끝난 뒤 한꺼번에 처리
+    let orbitHits = new WeakMap(); // 궤도 구체: 몬스터별 마지막 타격 시각
+    let chainHits = new WeakMap(); // 사슬 회전날: 몬스터별 마지막 타격 시각
 
     // 업그레이드 선택지 풀 (Lv.15 이후 보유 스킬 최우선 등장 가중치 적용)
     function getAvailableUpgrades() {
@@ -1396,6 +1433,36 @@
         });
       }
 
+      if (player.orbitLevel < 5) {
+        const nextLv = player.orbitLevel + 1;
+        let descText = nextLv === 1 ? "구체 2개가 내 주위를 일정 간격으로 계속 돌며 닿는 적을 공격합니다." :
+                       nextLv === 5 ? "★ 최종 진화: 황금 구체 6개 + 회전 범위 대폭 확장!" :
+                       `구체 +1개 (${nextLv + 1}개), 구체 크기·피해량 증가`;
+        allUpgrades.push({
+          id: "orbit",
+          isOwned: player.orbitLevel > 0,
+          title: `🌀 궤도 구체 [Lv. ${player.orbitLevel} ➔ Lv. ${nextLv}]`,
+          desc: "[광역] " + descText,
+          apply: () => { player.orbitLevel++; }
+        });
+      }
+
+      if (player.chainLevel < 5) {
+        const nextLv = player.chainLevel + 1;
+        const roundTrip = (2.0 - (nextLv - 1) * 0.25).toFixed(2).replace(/0$/, "");
+        const cooldown = (3.2 - (nextLv - 1) * 0.3).toFixed(1);
+        let descText = nextLv === 1 ? `회전날 3개가 멀리까지 뻗어 나갔다가 돌아옵니다. (왕복 ${roundTrip}초 · 쿨타임 ${cooldown}초)` :
+                       nextLv === 5 ? "★ 최종 진화: 회전날 4개 + 최대 사거리 증가, 왕복 1초!" :
+                       `회전날 크기 증가, 왕복 시간 ${roundTrip}초, 쿨타임 ${cooldown}초로 단축`;
+        allUpgrades.push({
+          id: "chain",
+          isOwned: player.chainLevel > 0,
+          title: `⛓️ 사슬 회전날 [Lv. ${player.chainLevel} ➔ Lv. ${nextLv}]`,
+          desc: "[광역] " + descText,
+          apply: () => { player.chainLevel++; }
+        });
+      }
+
       if (player.ricochetLevel < 5) {
         const nextLv = player.ricochetLevel + 1;
         let descText = nextLv === 1 ? "기본 탄환이 명중 후 근처의 적 3명에게 연속으로 튕깁니다." :
@@ -1504,7 +1571,7 @@
       let type = "normal";
       let radius = 20;
       let speed = 1.3 + Math.random() * 0.35;
-      let hp = Math.floor(12 + (player.level - 1) * 2.2);
+      let hp = Math.floor(10 + (player.level - 1) * 1.6);
       let color = "#166534";
 
       if (player.level >= 10 && roll < 0.22) {
@@ -1517,7 +1584,7 @@
         type = "tanker";
         radius = 29;
         speed = 0.85;
-        hp = Math.floor(hp * 3.2);
+        hp = Math.floor(hp * 2.6);
         color = "#581c87";
       } else if (roll > 0.68) {
         type = "runner";
@@ -1557,11 +1624,11 @@
       const angle = Math.random() * Math.PI * 2;
       const bossDist = 340;
 
-      // 보스 체력: 5레벨 단위(tier)로 크게 증가 (Lv5 ≈ 2,700 / Lv10 ≈ 11,440 / Lv15 ≈ 21,840 / Lv20 ≈ 35,360)
+      // 보스 체력: 5레벨 단위(tier)로 증가 (Lv5 ≈ 2,000 / Lv10 ≈ 7,600 / Lv15 ≈ 14,250 / Lv20 ≈ 22,800)
       const isLateBoss = player.level >= 15;
       const tier = player.level / 5;
       const isFirstBoss = tier < 2; // 첫 보스는 체력/패턴 완화
-      const bossHp = Math.floor(2600 * tier * (1 + tier * 0.6) * (isFirstBoss ? 0.65 : 1));
+      const bossHp = Math.floor(1900 * tier * (1 + tier * 0.5) * (isFirstBoss ? 0.7 : 1));
       const bossSpeed = isLateBoss ? 1.75 : 1.5;
       const now = performance.now();
 
@@ -1731,6 +1798,25 @@
       if (m.hp <= 0 && !m.dead) {
         const idx = monsters.indexOf(m);
         if (idx >= 0) handleMonsterDeath(m, idx);
+      }
+    }
+
+    // 회전형 스킬 공용 충돌 처리: 같은 적은 cooldownMs 간격으로만 타격
+    function hitWithOrbiters(points, hitMap, cooldownMs, dmg, color, timestamp) {
+      for (let j = monsters.length - 1; j >= 0; j--) {
+        const m = monsters[j];
+        const last = hitMap.get(m) || 0;
+        if (timestamp - last < cooldownMs) continue;
+        for (const p of points) {
+          const dx = m.x - p.x, dy = m.y - p.y, rr = m.radius + p.size;
+          if (dx * dx + dy * dy < rr * rr) {
+            hitMap.set(m, timestamp);
+            m.hp -= dmg;
+            addHitEffect({ x: m.x, y: m.y, radius: 14, life: 8, maxLife: 8, color: color });
+            if (m.hp <= 0) handleMonsterDeath(m, j);
+            break;
+          }
+        }
       }
     }
 
@@ -2136,6 +2222,13 @@
       player.laserTarget = null;
       player.laserRamp = 0;
       player.ricochetLevel = 0;
+      player.orbitLevel = 0;
+      player.orbitPos = [];
+      player.chainLevel = 0;
+      player.chainActive = false;
+      player.chainPos = [];
+      orbitHits = new WeakMap();
+      chainHits = new WeakMap();
       player.walkCycle = 0;
       reviveCount = 0;
       deathCount = 0;
@@ -2381,6 +2474,54 @@
             addHitEffect({ x: t.x, y: t.y, radius: 10 + rampRatio * 14, life: 6, maxLife: 6, color: lv >= 5 ? "#e879f9" : "#f87171" });
           }
           damageMonster(t, dps / 60);
+        }
+      }
+
+      // 🌀 궤도 구체: 일정 간격으로 계속 회전 (레벨업마다 개수·크기 증가, 만렙은 회전 반경 확장)
+      player.orbitPos = [];
+      if (player.orbitLevel > 0) {
+        const lv = player.orbitLevel;
+        player.orbitAngle += 0.045 + lv * 0.004;
+        const count = lv + 1;
+        const orbitR = lv >= 5 ? 175 : 100 + lv * 8;
+        const size = 12 + lv * 4;
+        const dmg = player.damage * (0.8 + lv * 0.25);
+        for (let k = 0; k < count; k++) {
+          const a = player.orbitAngle + k * Math.PI * 2 / count;
+          player.orbitPos.push({ x: player.x + Math.cos(a) * orbitR, y: player.y + Math.sin(a) * orbitR, size: size });
+        }
+        hitWithOrbiters(player.orbitPos, orbitHits, 260, dmg, lv >= 5 ? "#fde047" : "#a78bfa", timestamp);
+      }
+
+      // ⛓️ 사슬 회전날: 쿨타임마다 멀리 뻗었다가 돌아옴 (레벨업마다 크기 증가, 왕복 시간·쿨타임 단축)
+      player.chainPos = [];
+      if (player.chainLevel > 0) {
+        const lv = player.chainLevel;
+        const duration = 2000 - (lv - 1) * 250;
+        const cooldown = 3200 - (lv - 1) * 300;
+        if (!player.chainActive && timestamp - player.chainTimer > cooldown) {
+          player.chainActive = true;
+          player.chainStart = timestamp;
+          Sound.boomerang();
+        }
+        if (player.chainActive) {
+          const t = (timestamp - player.chainStart) / duration;
+          if (t >= 1) {
+            player.chainActive = false;
+            player.chainTimer = timestamp; // 돌아온 시점부터 쿨타임 시작
+          } else {
+            player.chainSpin += 0.11;
+            const count = lv >= 5 ? 4 : 3;
+            const minR = 40;
+            const maxR = 280 + lv * 35 + (lv >= 5 ? 60 : 0);
+            const reach = minR + (maxR - minR) * Math.sin(Math.PI * t);
+            const size = 14 + lv * 5;
+            for (let k = 0; k < count; k++) {
+              const a = player.chainSpin + k * Math.PI * 2 / count;
+              player.chainPos.push({ x: player.x + Math.cos(a) * reach, y: player.y + Math.sin(a) * reach, size: size });
+            }
+            hitWithOrbiters(player.chainPos, chainHits, 200, player.damage * (1.0 + lv * 0.3), "#94a3b8", timestamp);
+          }
         }
       }
 
@@ -3242,6 +3383,67 @@
         ctx.stroke();
 
         ctx.restore();
+      }
+
+      // ⛓️ 사슬 회전날: 에너지 사슬 + 회전하는 금속 표창
+      if (player.chainPos.length > 0) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = "rgba(125, 211, 252, 0.35)";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        for (const p of player.chainPos) {
+          ctx.moveTo(player.x, player.y);
+          ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        for (const p of player.chainPos) drawGlow(ctx, "#38bdf8", p.x, p.y, p.size * 2.2);
+        ctx.globalCompositeOperation = "source-over";
+        const spin = timestamp / 45;
+        for (const p of player.chainPos) {
+          const s = p.size;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(spin);
+          const sg = ctx.createLinearGradient(-s, -s, s, s);
+          sg.addColorStop(0, "#ffffff");
+          sg.addColorStop(0.45, "#cbd5e1");
+          sg.addColorStop(1, "#334155");
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            const r = i % 2 === 0 ? s : s * 0.32;
+            const a = i * Math.PI / 4 + (i % 2 ? 0.3 : 0);
+            if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+            else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+          }
+          ctx.closePath();
+          ctx.fillStyle = sg;
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "#0f172a";
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(0, 0, s * 0.18, 0, Math.PI * 2);
+          ctx.fillStyle = "#0f172a";
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      // 🌀 궤도 구체: 회전 궤도선 + 발광 구체
+      if (player.orbitPos.length > 0) {
+        const gold = player.orbitLevel >= 5;
+        const orbitR = fastHypot(player.orbitPos[0].x - player.x, player.orbitPos[0].y - player.y);
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, orbitR, 0, Math.PI * 2);
+        ctx.strokeStyle = gold ? "rgba(250, 204, 21, 0.15)" : "rgba(167, 139, 250, 0.15)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalCompositeOperation = "lighter";
+        for (const p of player.orbitPos) drawGlow(ctx, gold ? "#facc15" : "#a78bfa", p.x, p.y, p.size * 2.6);
+        ctx.globalCompositeOperation = "source-over";
+        for (const p of player.orbitPos) blit(ctx, orbSprite(p.size, gold), p.x, p.y);
       }
 
       ctx.globalCompositeOperation = "lighter";
