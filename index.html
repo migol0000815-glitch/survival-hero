@@ -1109,7 +1109,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v26 · 2026-10-18";
+    const GAME_VERSION = "v27 · 2026-10-18";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1411,12 +1411,12 @@
     // ===== 게임 데이터: 동료(펫/용병) — 보조 화력 + 유틸리티 버프 =====
     // hpMult: 플레이어 최대 체력 대비 동료 체력, dmg: 공격 1회 피해(플레이어 공격력 배율), atkMs: 공격 간격, specialMs: 특수 능력 주기
     const PETS = {
-      drone: { name: "🛸 기동 지원 드론", short: "드론", hpMult: 0.8, dmg: 0.55, atkMs: 1100, range: 420, specialMs: 15000,
-        attackDesc: "전방의 적에게 약한 견제 레이저", specialDesc: "15초마다 4초간 이동속도 +30% · 잔상" },
-      golem: { name: "🗿 에너지 실드 골렘", short: "골렘", hpMult: 1.4, dmg: 0.9, atkMs: 1500, range: 330, specialMs: 14000,
-        attackDesc: "가장 가까운 적에게 충격파 (살짝 밀쳐냄)", specialDesc: "14초마다 최대 체력 15%만큼 피해를 흡수하는 보호막" },
-      wisp: { name: "✨ 증폭술사 정령", short: "정령", hpMult: 0.7, dmg: 0.4, atkMs: 950, range: 480, specialMs: 16000,
-        attackDesc: "적을 따라가는 약한 마력탄", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%)" }
+      drone: { name: "🛸 기동 지원 드론", short: "드론", hpMult: 0.8, dmg: 0.75, atkMs: 900, range: 420, specialMs: 15000,
+        attackDesc: "일직선의 적을 모두 꿰뚫는 관통 레이저", specialDesc: "15초마다 4초간 이동속도 +30% · 잔상 · 레이저 연사(공격 속도 2배)" },
+      golem: { name: "🗿 에너지 실드 골렘", short: "골렘", hpMult: 1.4, dmg: 1.0, atkMs: 1300, range: 330, specialMs: 14000,
+        attackDesc: "적 무리에 떨어지는 광역 충격파 (주변 적을 밀쳐냄)", specialDesc: "14초마다 최대 체력 15% 보호막 + 내 주위 대형 충격파" },
+      wisp: { name: "✨ 증폭술사 정령", short: "정령", hpMult: 0.7, dmg: 0.55, atkMs: 800, range: 480, specialMs: 16000,
+        attackDesc: "적을 따라가 터지는 마력탄 (작은 범위 피해)", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%, 필드 안 적에게 지속 피해)" }
     };
     const PET_RECHARGE_MS = 15000;  // 방전 후 자동 재가동까지
     const PET_RECHARGE_GEMS = 18;   // 이만큼 보석을 먹으면 바로 재가동
@@ -2752,6 +2752,7 @@
       dashReadyAt: 0,    // 대시 쿨타임이 끝나는 시각
       dashUntil: 0,      // 대시 이동이 끝나는 시각
       invulnUntil: 0,    // 대시 무적이 끝나는 시각
+      levelInvulnUntil: 0, // 레벨업 직후 무적이 끝나는 시각
       dashAngle: 0,
 
       shieldHits: 0,
@@ -2787,6 +2788,10 @@
     let meteors = [];
     let meteorFires = []; // 메테오가 떨어진 자리의 화염 장판
     let explosions = [];
+    // 처치 연출 (그림 전용): 몹이 터지는 고리. 폭발 목록과 따로 둬서 다른 스킬 폭발 개수 제한에 영향 없음
+    let killPops = [];
+    const MAX_KILL_POPS = 36;
+    let killBurstCount = 0, killBurstAt = 0; // 짧은 시간에 몰아서 처치한 수 (몰살 시 화면 흔들림)
     let sniperTracers = []; // 저격 치명타 글자 표시용
     let sniperShots = [];
     let monsters = [];
@@ -3044,7 +3049,7 @@
 
       if (player.vortexLevel < 5) {
         const nextLv = player.vortexLevel + 1;
-        let descText = nextLv === 1 ? "적이 가장 많이 모인 곳에 작은 블랙홀 1개를 열어 주변 적을 끌어당기며 지속 피해, 끝날 때 폭발합니다." :
+        let descText = nextLv === 1 ? "적이 가장 많이 모인 곳에 작은 블랙홀 1개를 열어 주변 적을 끌어당기며 지속 피해, 끝날 때 폭발합니다. 블랙홀에 들어온 적 탄환은 빨려 들어가 사라져요." :
                        nextLv === 5 ? "★ 최종 진화: 가장 큰 블랙홀 5개 동시 생성!" :
                        `블랙홀 ${nextLv}개 동시 생성 + 크기·흡입력 증가, 쿨타임 감소`;
         allUpgrades.push({
@@ -3124,15 +3129,16 @@
         });
       }
 
-      // 🤝 동료 강화: 동료 공격력 +25%, 체력 +10%, 특수 능력 주기 -8% (레벨당)
+      // 🤝 동료 강화 (레벨당): 공격력 +50%, 공격 속도 +10%, 체력 +15%, 특수 능력 주기 -8%, Lv2·4에 공격 갈래 +1
       if (pet.id && pet.level < 5) {
         const nextLv = pet.level + 1;
         const def = PETS[pet.id];
+        const extraText = nextLv % 2 === 0 ? ` · ★ ${pet.id === "drone" ? "레이저" : pet.id === "golem" ? "충격파" : "마력탄"} +1갈래` : "";
         allUpgrades.push({
           id: "petBoost",
           isOwned: pet.level > 0,
           title: `🤝 동료 강화 [Lv. ${pet.level} ➔ Lv. ${nextLv}]`,
-          desc: `[동료] ${def.short} 공격력 +25% · 체력 +10% · 특수 능력 ${(def.specialMs * (1 - pet.level * 0.08) / 1000).toFixed(1)}초 → ${(def.specialMs * (1 - nextLv * 0.08) / 1000).toFixed(1)}초마다`,
+          desc: `[동료] ${def.short} 공격력 ×${1 + pet.level * 0.5} → ×${1 + nextLv * 0.5} · 공격 속도 +10% · 체력 +15%${extraText} · 특수 능력 ${(def.specialMs * (1 - pet.level * 0.08) / 1000).toFixed(1)}초 → ${(def.specialMs * (1 - nextLv * 0.08) / 1000).toFixed(1)}초마다 (효과도 강해짐)`,
           apply: () => {
             const ratio = pet.maxHp ? pet.hp / pet.maxHp : 1;
             pet.level++;
@@ -4003,10 +4009,28 @@
     let petFx = [];     // 드론 레이저·골렘 충격파·재가동 파동 그림
     let petInfinite = false; // [개발자] 동료 버프 무한 유지
     function petActive() { return gameState === "playing" && !!pet.id; }
-    function petDmgMult() { return 1 + pet.level * 0.25; }
+    // 동료 강화 레벨당: 공격력 +50%, 공격 속도 +10%, 체력 +15%, 특수 능력 주기 -8%, Lv2·Lv4에 공격 갈래 +1
+    function petDmgMult() { return 1 + pet.level * 0.5; }
+    function petAtkMs() { return PETS[pet.id].atkMs * (1 - pet.level * 0.1) * (playTimeMs < pet.boostUntil ? 0.5 : 1); }
+    function petExtra() { return Math.floor(pet.level / 2); }
     function petSpecialMs() { return PETS[pet.id].specialMs * (1 - pet.level * 0.08); }
-    function petMaxHp() { return Math.round(player.maxHp * PETS[pet.id].hpMult * (1 + pet.level * 0.1)); }
+    function petMaxHp() { return Math.round(player.maxHp * PETS[pet.id].hpMult * (1 + pet.level * 0.15)); }
     function petSpeedMult() { return gameState === "playing" && playTimeMs < pet.boostUntil ? 1.3 : 1; }
+    function petSfx(kind) {
+      if (!sfxReady("pet", 110)) return;
+      if (kind === "laser") sfxTone({ type: "square", freq: 1500, freqEnd: 420, dur: 0.09, vol: 0.045, wet: 0.2 });
+      else if (kind === "wave") { sfxTone({ freq: 120, freqEnd: 45, dur: 0.22, vol: 0.22 }); sfxNoise({ filter: "lowpass", freq: 1200, freqEnd: 200, dur: 0.18, vol: 0.12 }); }
+      else sfxTone({ type: "triangle", freq: 900, freqEnd: 1500, dur: 0.1, vol: 0.05, wet: 0.4 });
+    }
+    // 원 안의 적 모두에게 피해 (+ 바깥으로 밀침, 보스·중간 보스 제외)
+    function petBlast(x, y, r, dmg, glow, push) {
+      for (const m of monsters.slice()) {
+        const dx = m.x - x, dy = m.y - y, d = fastHypot(dx, dy);
+        if (d >= r + m.radius) continue;
+        if (push && !m.isBoss && !m.isElite && d > 1) { m.x += dx / d * push; m.y += dy / d * push; }
+        damageMonster(m, dmg, glow, "pet");
+      }
+    }
 
     function resetPet(petId) {
       setPetField(false);
@@ -4112,7 +4136,7 @@
       if (!pet.offline && playTimeMs >= pet.atkAt) {
         const target = nearestMonsterTo(pet.x, pet.y, def.range);
         if (target) {
-          pet.atkAt = playTimeMs + def.atkMs;
+          pet.atkAt = playTimeMs + petAtkMs();
           petAttack(target, glow);
         }
       }
@@ -4126,30 +4150,73 @@
     function petAttack(target, glow) {
       const dmg = player.damage * PETS[pet.id].dmg * petDmgMult();
       pet.facing = Math.atan2(target.y - pet.y, target.x - pet.x);
+      const extra = petExtra();
       if (pet.id === "drone") {
-        petFx.push({ kind: "laser", x: pet.x, y: pet.y, x2: target.x, y2: target.y, life: 12, maxLife: 12, color: glow });
-        damageMonster(target, dmg, glow, "pet");
-      } else if (pet.id === "golem") {
-        petFx.push({ kind: "wave", x: pet.x, y: pet.y, x2: target.x, y2: target.y, life: 18, maxLife: 18, color: glow });
-        if (!target.isBoss && !target.isElite) {
-          const a = Math.atan2(target.y - pet.y, target.x - pet.x);
-          target.x += Math.cos(a) * 22;
-          target.y += Math.sin(a) * 22;
+        // 관통 레이저: 가장 가까운 적 방향으로 사거리 끝까지, 선 위의 적 모두 피해. 강화 Lv2·4에 다른 적을 향한 레이저 추가
+        const targets = [target];
+        if (extra) {
+          const others = monsters.filter(m => m !== target && fastHypot(m.x - pet.x, m.y - pet.y) < PETS.drone.range)
+            .sort((a, b) => fastHypot(a.x - pet.x, a.y - pet.y) - fastHypot(b.x - pet.x, b.y - pet.y));
+          targets.push(...others.slice(0, extra));
         }
-        damageMonster(target, dmg, glow, "pet");
+        const len = PETS.drone.range + 80, w = 14 + pet.level * 2;
+        for (const t of targets) {
+          const a = Math.atan2(t.y - pet.y, t.x - pet.x), cx = Math.cos(a), cy = Math.sin(a);
+          const x2 = pet.x + cx * len, y2 = pet.y + cy * len;
+          petFx.push({ kind: "laser", x: pet.x, y: pet.y, x2: x2, y2: y2, w: w, life: 14, maxLife: 14, color: glow });
+          for (const m of monsters.slice()) {
+            const rx = m.x - pet.x, ry = m.y - pet.y, along = rx * cx + ry * cy;
+            if (along < 0 || along > len) continue;
+            if (Math.abs(rx * cy - ry * cx) < w + m.radius) {
+              damageMonster(m, dmg, glow, "pet");
+              addHitEffect({ x: m.x, y: m.y, radius: 12, life: 6, maxLife: 6, color: glow });
+            }
+          }
+        }
+        petSfx("laser");
+      } else if (pet.id === "golem") {
+        // 광역 충격파: 대상 주변 반경(60 + 강화 Lv×10) 안의 적 모두 피해 + 밀침. 강화 Lv2·4에 다른 적 무리에도 한 번 더
+        const r = 60 + pet.level * 10;
+        const spots = [target];
+        for (let k = 0; k < extra; k++) {
+          const far = monsters.find(m => fastHypot(m.x - pet.x, m.y - pet.y) < PETS.golem.range + 60 && spots.every(s => fastHypot(s.x - m.x, s.y - m.y) > r * 1.5));
+          if (far) spots.push(far);
+        }
+        for (const s of spots) {
+          const sx = s.x, sy = s.y;
+          petFx.push({ kind: "wave", x: pet.x, y: pet.y, x2: sx, y2: sy, r: r, life: 20, maxLife: 20, color: glow });
+          petBlast(sx, sy, r, dmg, glow, 30);
+        }
+        addShake(2);
+        petSfx("wave");
       } else {
-        petShots.push({ x: pet.x, y: pet.y, angle: pet.facing, speed: 6.5, life: 110, damage: dmg, color: glow });
+        // 마력탄: 강화 Lv2·4에 1발씩 추가 (부채꼴), 맞으면 작은 범위 폭발
+        const n = 1 + extra;
+        for (let k = 0; k < n; k++) {
+          const ang = pet.facing + (k - (n - 1) / 2) * 0.35;
+          petShots.push({ x: pet.x, y: pet.y, angle: ang, speed: 7, life: 110, damage: dmg, color: glow, r: 40 + pet.level * 6 });
+        }
+        petSfx("shot");
       }
     }
 
     function petSpecial(glow) {
       if (pet.id === "drone") {
-        pet.boostUntil = playTimeMs + 4000;
+        // 가속 + 레이저 연사 (강화 Lv당 0.4초 더 길게). 연사는 petAtkMs에서 공격 간격 절반
+        pet.boostUntil = playTimeMs + 4000 + pet.level * 400;
+        pet.atkAt = playTimeMs;
       } else if (pet.id === "golem") {
-        pet.shieldMax = Math.round(player.maxHp * 0.15);
+        // 보호막(강화 Lv당 +3%) + 내 주위 대형 충격파 (공격력 ×1.5 × 동료 배율, 크게 밀쳐냄)
+        pet.shieldMax = Math.round(player.maxHp * (0.15 + pet.level * 0.03));
         pet.shield = pet.shieldMax;
+        const r = 170 + pet.level * 12;
+        petFx.push({ kind: "reboot", x: player.x, y: player.y, r: r, life: 26, maxLife: 26, color: glow });
+        petBlast(player.x, player.y, r, player.damage * 1.5 * petDmgMult(), glow, 60);
+        addShake(6);
+        Sound.explosion();
       } else {
-        pet.field = { x: player.x, y: player.y, r: 150, until: playTimeMs + 6000 };
+        // 증폭 필드 (강화 Lv당 반경 +10). 필드 안 적은 0.5초마다 피해 (updatePetEffects)
+        pet.field = { x: player.x, y: player.y, r: 150 + pet.level * 10, until: playTimeMs + 6000, tickAt: playTimeMs };
       }
       spawnBurst(player.x, player.y, glow, 16, 6);
       Sound.levelUp();
@@ -4159,8 +4226,8 @@
       // [개발자] 버프 무한 유지: 동료 종류의 특수 버프가 계속 켜져 있음
       if (petInfinite && IS_DEV_MODE) {
         if (pet.id === "drone") pet.boostUntil = playTimeMs + 1000;
-        if (pet.id === "golem") { pet.shieldMax = Math.round(player.maxHp * 0.15); pet.shield = pet.shieldMax; }
-        if (pet.id === "wisp") pet.field = { x: player.x, y: player.y, r: 150, until: playTimeMs + 1000 };
+        if (pet.id === "golem") { pet.shieldMax = Math.round(player.maxHp * (0.15 + pet.level * 0.03)); pet.shield = pet.shieldMax; }
+        if (pet.id === "wisp") pet.field = { x: player.x, y: player.y, r: 150 + pet.level * 10, until: playTimeMs + 1000, tickAt: pet.field && pet.field.tickAt != null ? pet.field.tickAt : playTimeMs };
       }
       // 드론 가속 중: 이동하면 잔상을 남김
       if (playTimeMs < pet.boostUntil && player.isMoving && playTimeMs - pet.ghostAt > 45) {
@@ -4173,6 +4240,12 @@
       }
       // 증폭 필드: 플레이어가 안에 있을 때만 버프
       if (pet.field && playTimeMs >= pet.field.until) pet.field = null;
+      // 필드 안 적에게 0.5초마다 지속 피해 (공격력 ×0.35 × 동료 배율)
+      if (pet.field && pet.field.tickAt != null && playTimeMs >= pet.field.tickAt) {
+        pet.field.tickAt = playTimeMs + 500;
+        petFx.push({ kind: "pulse", x: pet.field.x, y: pet.field.y, r: pet.field.r, life: 16, maxLife: 16, color: glow });
+        petBlast(pet.field.x, pet.field.y, pet.field.r, player.damage * 0.35 * petDmgMult(), glow, 0);
+      }
       setPetField(!!pet.field && fastHypot(player.x - pet.field.x, player.y - pet.field.y) < pet.field.r);
       // 정령 마력탄: 가장 가까운 적을 향해 천천히 방향을 틂
       for (let i = petShots.length - 1; i >= 0; i--) {
@@ -4193,7 +4266,13 @@
         }
         if (hit) {
           petShots.splice(i, 1);
+          // 맞은 적은 전체 피해, 주변 적은 절반 피해의 작은 폭발
+          const hx = hit.x, hy = hit.y;
           damageMonster(hit, s.damage, s.color, "pet");
+          for (const m of monsters.slice()) {
+            if (m !== hit && fastHypot(m.x - hx, m.y - hy) < s.r + m.radius) damageMonster(m, s.damage * 0.5, s.color, "pet");
+          }
+          petFx.push({ kind: "pop", x: hx, y: hy, r: s.r, life: 12, maxLife: 12, color: s.color });
         } else if (s.life <= 0) {
           petShots.splice(i, 1);
         }
@@ -4747,6 +4826,14 @@
             if (m.hp <= 0) { handleMonsterDeath(m, j); continue; }
           }
         }
+        // 적 탄환 흡수: 블랙홀 안(반경 85%)에 들어온 탄은 빨려 들어가 사라짐
+        for (let j = enemyBullets.length - 1; j >= 0; j--) {
+          const eb = enemyBullets[j];
+          if (eb && fastHypot(eb.x - v.x, eb.y - v.y) < v.radius * 0.85) {
+            addHitEffect({ x: eb.x, y: eb.y, radius: 9, life: 6, maxLife: 6, color: "#c084fc" });
+            enemyBullets.splice(j, 1);
+          }
+        }
         if (v.life <= 0) {
           // 붕괴 폭발: 중심 근처(반경 60%)에 큰 피해
           const br = v.radius * 0.6;
@@ -4974,6 +5061,7 @@
     function takeDamage(rawDamage) {
       if (gameState === "preview" || finalBossDefeated) return;
       if (playTimeMs < player.invulnUntil) return; // 대시 중 무적
+      if (playTimeMs < player.levelInvulnUntil) return; // 레벨업 카드를 고른 직후 무적
       // 에너지 방벽: 탄환·돌진 같은 큰 피해만 1번 막음 (몸통 접촉의 작은 지속 피해에는 소모되지 않음)
       if (rawDamage >= 5 && barrierReady()) {
         player.barrierReadyAt = playTimeMs + barrierCooldown(player.barrierLevel);
@@ -5045,6 +5133,8 @@
       }
       return t;
     })();
+    const LEVELUP_INVULN_MS = 800; // 레벨업 카드를 고른 뒤 무적 시간
+    const LEVEL_DMG_GROWTH = 1.03; // 레벨업마다 기본 공격력 +3% (Lv10 약 1.3배, Lv25 약 2배 → 후반 처리 속도)
     // 층 보정: 높은 층은 몹이 단단해 처치가 느리므로 요구량을 조금 낮춤 (1층 100% → 21층 이상 88%)
     function expNeed(level) {
       const floorMult = 1 - 0.12 * Math.min(1, (currentFloor - 1) / 20);
@@ -5058,6 +5148,7 @@
       if (player.exp >= player.nextExp) {
         const overflow = player.exp - player.nextExp;
         player.level++;
+        player.damage *= LEVEL_DMG_GROWTH;
 
         player.nextExp = expNeed(player.level);
         // 남는 경험치는 다음 요구량의 50%까지만 이월 (한 번에 여러 번 레벨업 방지)
@@ -5148,6 +5239,7 @@
           item.apply();
           levelupModal.style.display = "none";
           isPaused = false;
+          player.levelInvulnUntil = playTimeMs + LEVELUP_INVULN_MS;
           updateSynergies();
           updateUI();
         });
@@ -5860,6 +5952,7 @@
       }
       for (let i = 0; i < n && player.level < CLEAR_LEVEL; i++) {
         player.level++;
+        player.damage *= LEVEL_DMG_GROWTH;
         player.nextExp = expNeed(player.level);
         player.exp = 0;
         const pool = getAvailableUpgrades();
@@ -5991,7 +6084,7 @@
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
         sec("🤖 동료" + (IS_DEV_MODE ? ` (방전되면 보석 ${PET_RECHARGE_GEMS}개 또는 ${PET_RECHARGE_MS / 1000}초 뒤 재가동)` : ""), Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
-          .concat([["🤝 동료 강화 (레벨업 카드)", "레벨당 동료 공격력 +25% · 체력 +10% · 특수 능력 주기 -8% (최대 Lv5)"]])) +
+          .concat([["🤝 동료 강화 (레벨업 카드)", "레벨당 동료 공격력 +50% · 공격 속도 +10% · 체력 +15% · 특수 능력 주기 -8%, Lv2·Lv4에 공격 갈래 +1 (최대 Lv5: 공격력 ×3.5)"]])) +
         sec("🧑 캐릭터 (기본 공격 · 특성)", Object.values(CHARACTERS).map(c => [c.name, `${ATTACK_TYPES[c.attack].name}: ${ATTACK_TYPES[c.attack].desc}<br>${c.passive}`])) +
         sec("🏯 층 (끝없이 이어짐 · 맵 테마 5종 순환)", [1, 2, 3, 4, 5, 10, 20].map(f => [getStage(f).name, getStage(f).desc])) +
         sec("👾 몬스터", [
@@ -6179,7 +6272,7 @@
       document.getElementById("dev-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       // 이전 스킬의 투사체·장판 정리 후 바로 발동되도록 타이머 초기화
       bullets = []; homingMissiles = []; boomerangs = []; trails = []; fireWaves = [];
-      meteors = []; meteorFires = []; lightningBolts = []; sniperShots = []; explosions = []; shurikens = []; thunderStrikes = []; vortices = [];
+      meteors = []; meteorFires = []; lightningBolts = []; sniperShots = []; explosions = []; killPops = []; shurikens = []; thunderStrikes = []; vortices = [];
       player.thunderTimer = 0;
       player.vortexTimer = 0;
       player.laserTarget = null;
@@ -6250,6 +6343,7 @@
       player.dashSkillLevel = 0;
       player.dashUntil = 0;
       player.invulnUntil = 0;
+      player.levelInvulnUntil = 0;
       dashShown = "";
       player.lightningLevel = 0;
       player.meteorLevel = 0;
@@ -6287,6 +6381,7 @@
       meteors = [];
       meteorFires = [];
       explosions = [];
+      killPops = []; killBurstCount = 0; killBurstAt = 0;
       sniperTracers = [];
       sniperShots = [];
       items = [];
@@ -7126,7 +7221,7 @@
         hitEffects[i].life--;
         if (hitEffects[i].life <= 0) hitEffects.splice(i, 1);
       }
-      for (const list of [lightningBolts, explosions, sniperTracers]) {
+      for (const list of [lightningBolts, explosions, sniperTracers, killPops]) {
         for (let i = list.length - 1; i >= 0; i--) {
           list[i].life--;
           if (list[i].life <= 0) list.splice(i, 1);
@@ -7322,6 +7417,13 @@
         } else {
           dropExp({ x: m.x, y: m.y, radius: 8, value: 1, type: "normal" });
         }
+        // 처치 연출: 몹 색의 폭발 고리 + 흰 섬광 (Lv8부터 더 크게)
+        if (killPops.length < MAX_KILL_POPS) {
+          killPops.push({ x: m.x, y: m.y, radius: m.radius * (player.level >= 8 ? 2.6 : 1.8), life: 14, maxLife: 14, color: look.limb[0] });
+        }
+        // 0.5초 안에 10마리 이상 몰아서 처치하면 화면 흔들림 + 폭발음
+        if (playTimeMs - killBurstAt > 500) { killBurstAt = playTimeMs; killBurstCount = 0; }
+        if (++killBurstCount === 10) { addShake(6); Sound.blast(); }
       }
       monsters.splice(index, 1);
       kills++;
@@ -7807,6 +7909,18 @@
 
       // 폭발 (메테오·보스·도탄 폭렬탄)
       ctx.globalCompositeOperation = "lighter";
+      for (const kp of killPops) {
+        const a = kp.life / kp.maxLife, t = 1 - a;
+        ctx.globalAlpha = a;
+        drawGlow(ctx, kp.color, kp.x, kp.y, kp.radius * (0.6 + t * 0.8));
+        if (a > 0.6) drawGlow(ctx, "#ffffff", kp.x, kp.y, kp.radius * 0.45 * a);
+        ctx.beginPath();
+        ctx.arc(kp.x, kp.y, kp.radius * (0.4 + t * 0.9), 0, Math.PI * 2);
+        ctx.lineWidth = 2 + a * 3;
+        ctx.strokeStyle = kp.color;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       for (let ex of explosions) {
         const t = 1 - ex.life / ex.maxLife;
         const alpha = ex.life / ex.maxLife;
@@ -8492,6 +8606,14 @@
         ctx.stroke();
         ctx.restore();
       }
+      // 레벨업 직후 무적: 금빛으로 깜빡임
+      if (gameState === "playing" && playTimeMs < player.levelInvulnUntil) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.45 + Math.sin(timestamp / 45) * 0.25;
+        drawGlow(ctx, "#fbbf24", player.x, player.y, 56);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
       // 대시 무적 중에는 청록색 빛에 감싸임
       if (gameState === "playing" && playTimeMs < player.invulnUntil) {
         ctx.globalCompositeOperation = "lighter";
@@ -8757,23 +8879,37 @@
       }
       ctx.globalCompositeOperation = "lighter";
       for (const s of petShots) {
-        drawGlow(ctx, s.color, s.x, s.y, 13);
-        drawGlow(ctx, "#ffffff", s.x, s.y, 5);
+        drawGlow(ctx, s.color, s.x, s.y, 18);
+        drawGlow(ctx, "#ffffff", s.x, s.y, 7);
       }
       for (const fx of petFx) {
         const a = fx.life / fx.maxLife;
         ctx.globalAlpha = Math.min(1, a * 1.6);
         if (fx.kind === "laser") {
+          // 굵은 관통 빔: 바깥 빛 + 색 + 흰 심지
+          ctx.lineCap = "round";
           ctx.beginPath();
           ctx.moveTo(fx.x, fx.y - 10);
           ctx.lineTo(fx.x2, fx.y2);
+          ctx.strokeStyle = rgba(fx.color, 0.35);
+          ctx.lineWidth = (fx.w || 14) * 1.6 * a + 2;
+          ctx.stroke();
           ctx.strokeStyle = fx.color;
-          ctx.lineWidth = 4 * a + 1;
+          ctx.lineWidth = (fx.w || 14) * 0.7 * a + 2;
           ctx.stroke();
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 1.5;
+          ctx.lineWidth = 2.5 * a + 1;
           ctx.stroke();
-          drawGlow(ctx, fx.color, fx.x2, fx.y2, 16);
+          ctx.lineCap = "butt";
+          drawGlow(ctx, fx.color, fx.x, fx.y - 10, 22 * a + 6);
+        } else if (fx.kind === "pulse" || fx.kind === "pop") {
+          // 정령 필드 맥동 / 마력탄 폭발
+          ctx.beginPath();
+          ctx.arc(fx.x, fx.y, fx.r * (fx.kind === "pop" ? 0.4 + (1 - a) * 0.7 : 0.75 + (1 - a) * 0.25), 0, Math.PI * 2);
+          ctx.strokeStyle = fx.color;
+          ctx.lineWidth = (fx.kind === "pop" ? 5 : 3) * a + 1;
+          ctx.stroke();
+          if (fx.kind === "pop") drawGlow(ctx, fx.color, fx.x, fx.y, fx.r * (1 - a * 0.5));
         } else if (fx.kind === "wave") {
           // 골렘 충격파: 골렘에서 적까지 퍼지는 고리 3개 + 적 위치에서 터짐
           for (let k = 0; k < 3; k++) {
@@ -8785,11 +8921,14 @@
             ctx.lineWidth = 3;
             ctx.stroke();
           }
+          // 착탄: 광역 범위만큼 퍼지는 충격 고리 + 빛
+          const R = fx.r || 38;
           ctx.beginPath();
-          ctx.arc(fx.x2, fx.y2, 30 * (1 - a) + 8, 0, Math.PI * 2);
+          ctx.arc(fx.x2, fx.y2, R * (0.3 + (1 - a) * 0.8), 0, Math.PI * 2);
           ctx.strokeStyle = fx.color;
-          ctx.lineWidth = 4 * a;
+          ctx.lineWidth = 7 * a + 1;
           ctx.stroke();
+          drawGlow(ctx, fx.color, fx.x2, fx.y2, R * (1 - a * 0.4));
         } else {
           ctx.beginPath();
           ctx.arc(fx.x, fx.y, fx.r * (1 - a * 0.85), 0, Math.PI * 2);
