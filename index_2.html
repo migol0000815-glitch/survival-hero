@@ -716,6 +716,9 @@
       font-size: 14px;
       cursor: pointer;
     }
+    /* 세로로 이어지는 버튼끼리 겹쳐 보이지 않게 간격 */
+    .dev-panel > .dev-btn, .dev-panel > .dev-grid + .dev-btn { margin-top: 8px; }
+    #dev-reset { margin-top: 14px; }
     #preview-panel {
       position: absolute;
       top: 0;
@@ -964,11 +967,14 @@
             <div id="pet-list" class="pick-grid three" style="margin-top: 10px;"></div>
           </div>
           <div class="info-box pet-rule">
-            <h4>🔋 방전과 재가동</h4>
+            레벨업 카드의 <b>🤝 동료 강화</b>를 고르면 동료 공격력·체력이 오르고 특수 능력이 더 자주 발동해요.
+          </div>
+          <!-- 방전·재가동 상세 규칙은 개발자 모드에서만 표시 (setupDevPanel) -->
+          <div id="pet-rule-dev" class="info-box pet-rule" style="display: none;">
+            <h4>🔋 방전과 재가동 (개발자 보기)</h4>
             동료는 적의 몸통 공격과 탄환을 맞으면 체력이 줄어요. 동료가 맞은 탄환은 사라져서 나에게 오지 않아요.<br>
             체력이 0이 되면 쓰러지지 않고 <b>방전(오프라인)</b> 상태의 구체가 되어 뒤를 따라와요.<br>
-            <b>경험치 보석 18개를 먹거나 15초가 지나면</b> 100% 체력으로 재가동하고, 재가동할 때 주변 적에게 충격파를 퍼뜨려요. 횟수 제한은 없어요.<br>
-            레벨업 카드의 <b>🤝 동료 강화</b>를 고르면 동료 공격력·체력이 오르고 특수 능력이 더 자주 발동해요.
+            <b>경험치 보석 18개를 먹거나 15초가 지나면</b> 100% 체력으로 재가동하고, 재가동할 때 주변 적에게 충격파를 퍼뜨려요. 횟수 제한은 없어요.
           </div>
           <button class="menu-btn" onclick="openLobbyPanel('shop'); setShopTab('pet')">🛒 동료 외형 상점 가기</button>
         </div>
@@ -1103,7 +1109,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v25 · 2026-10-18";
+    const GAME_VERSION = "v26 · 2026-10-18";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1316,6 +1322,14 @@
           sfxTone({ freq: f * 2, dur: 0.5, vol: 0.04, wet: 0.7, delay: i * 0.08 });
         });
         sfxNoise({ filter: "highpass", freq: 6000, dur: 0.6, vol: 0.05, wet: 0.8, attack: 0.1 });
+      },
+      // 사망: 심장 박동 두 번(점점 약하게) → 멈춤 → 묵직한 타격음 + 아래로 떨어지는 단조 화음
+      gameOver() {
+        if (!sfxReady("gameover", 800)) return;
+        [[0, 0.5], [0.16, 0.36], [0.62, 0.3], [0.78, 0.2]].forEach(([d, v]) => sfxTone({ freq: 62, freqEnd: 38, dur: 0.16, vol: v, delay: d }));
+        sfxNoise({ filter: "lowpass", freq: 900, freqEnd: 90, dur: 0.9, vol: 0.4, wet: 0.5, delay: 1.25 });
+        sfxTone({ freq: 90, freqEnd: 26, dur: 1.1, vol: 0.55, delay: 1.25 });
+        [[392, 0], [311, 0.05], [233, 0.1]].forEach(([f, d]) => sfxTone({ type: "triangle", freq: f, freqEnd: f * 0.55, dur: 1.6, vol: 0.08, wet: 0.6, delay: 1.3 + d, attack: 0.02 }));
       },
       clear() {
         if (!audioCtx) return;
@@ -3567,9 +3581,10 @@
     }
 
     function handleItemSpawns(timestamp) {
-      if (timestamp - lastItemSpawnTime > 20000) {
+      // 랜덤 아이템: 13초마다 (예전 20초 → 35% 단축), 필드에 최대 4개
+      if (timestamp - lastItemSpawnTime > 13000) {
         lastItemSpawnTime = timestamp;
-        if (items.length >= 3) return;
+        if (items.length >= 4) return;
 
         const types = ["heal", "shield", "nuke", "magnet"];
         const pos = findOpenSpot(300, 700);
@@ -5019,9 +5034,21 @@
       updateUI();
     }
 
-    // 레벨업 요구량 증가 배율: ~Lv14 1.4배, Lv15~19 1.18배, Lv20~ 1.15배 (예전 1.22배 → 후반이 지나치게 느려지지 않게)
-    function expGrowth(level) {
-      return level >= 20 ? 1.15 : (level >= 15 ? 1.18 : 1.4);
+    // 레벨업 요구량 표 (v26): Lv1 3부터 증가 배율이 1.4배 → Lv21 1.13배로 서서히 줄어드는 완만한 곡선
+    // + 5레벨마다(Lv4·9·14·19·24) 5% 계단. 예전(1.4배 고정 ~Lv14)보다 Lv10까지 약 35%, Lv25까지 약 55% 적게 필요
+    const EXP_TABLE = (() => {
+      const t = [0];
+      let n = 3;
+      for (let L = 1; L <= CLEAR_LEVEL; L++) {
+        t[L] = Math.round(n);
+        n *= (1.4 - 0.27 * Math.min(1, (L - 1) / 20)) * ((L + 1) % 5 === 0 ? 1.05 : 1);
+      }
+      return t;
+    })();
+    // 층 보정: 높은 층은 몹이 단단해 처치가 느리므로 요구량을 조금 낮춤 (1층 100% → 21층 이상 88%)
+    function expNeed(level) {
+      const floorMult = 1 - 0.12 * Math.min(1, (currentFloor - 1) / 20);
+      return Math.max(3, Math.round(EXP_TABLE[Math.min(level, CLEAR_LEVEL)] * floorMult));
     }
 
     function addExp(amount) {
@@ -5032,7 +5059,7 @@
         const overflow = player.exp - player.nextExp;
         player.level++;
 
-        player.nextExp = Math.floor(player.nextExp * expGrowth(player.level));
+        player.nextExp = expNeed(player.level);
         // 남는 경험치는 다음 요구량의 50%까지만 이월 (한 번에 여러 번 레벨업 방지)
         player.exp = Math.min(overflow, Math.floor(player.nextExp * 0.5));
         Sound.levelUp();
@@ -5346,6 +5373,8 @@
     function triggerGameOver() {
       isPaused = true;
       joystick.active = false;
+      Sound.gameOver();
+      vibrate(400, true);
       const final = reviveCount >= 2;
       if (!final) {
         gameoverTitle.innerText = "💀 쓰러졌습니다!";
@@ -5831,7 +5860,7 @@
       }
       for (let i = 0; i < n && player.level < CLEAR_LEVEL; i++) {
         player.level++;
-        player.nextExp = Math.floor(player.nextExp * expGrowth(player.level));
+        player.nextExp = expNeed(player.level);
         player.exp = 0;
         const pool = getAvailableUpgrades();
         pool[Math.floor(Math.random() * pool.length)].apply();
@@ -5961,7 +5990,7 @@
           ["🛡️ 보호막 아이템", "피해 3회 막기"]
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
-        sec(`🤖 동료 (방전되면 보석 ${PET_RECHARGE_GEMS}개 또는 ${PET_RECHARGE_MS / 1000}초 뒤 재가동)`, Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
+        sec("🤖 동료" + (IS_DEV_MODE ? ` (방전되면 보석 ${PET_RECHARGE_GEMS}개 또는 ${PET_RECHARGE_MS / 1000}초 뒤 재가동)` : ""), Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
           .concat([["🤝 동료 강화 (레벨업 카드)", "레벨당 동료 공격력 +25% · 체력 +10% · 특수 능력 주기 -8% (최대 Lv5)"]])) +
         sec("🧑 캐릭터 (기본 공격 · 특성)", Object.values(CHARACTERS).map(c => [c.name, `${ATTACK_TYPES[c.attack].name}: ${ATTACK_TYPES[c.attack].desc}<br>${c.passive}`])) +
         sec("🏯 층 (끝없이 이어짐 · 맵 테마 5종 순환)", [1, 2, 3, 4, 5, 10, 20].map(f => [getStage(f).name, getStage(f).desc])) +
@@ -6060,6 +6089,7 @@
     function setupDevPanel() {
       // 개발자 모드일 때만 메인 화면에 '개발자 옵션' 버튼 표시
       document.getElementById("btn-dev-menu").style.display = IS_DEV_MODE ? "block" : "none";
+      document.getElementById("pet-rule-dev").style.display = IS_DEV_MODE ? "block" : "none";
       if (!IS_DEV_MODE) return;
       fillPetSelect("dev-pet", cs().pet);
       updatePetInfButtons();
@@ -6201,7 +6231,7 @@
       player.shieldHits = 0;
       player.level = 1;
       player.exp = 0;
-      player.nextExp = 5;
+      player.nextExp = expNeed(1);
       player.speed = start.speed;
       player.bulletCount = 1;
       player.damage = start.damage;
