@@ -879,6 +879,7 @@
         <button id="btn-dev-menu" class="menu-btn dev" style="display: none;" onclick="openLobbyPanel('dev')">🛠️ 개발자 옵션</button>
         <button class="start-btn" onclick="startGame()">게임 시작</button>
         <div class="lobby-hint">Lv.25 최종 보스를 처치하면 클리어 · 무사망 클리어 시 특별 보상</div>
+        <div id="game-version" class="lobby-hint" style="margin-top: 6px; opacity: 0.7;"></div>
       </div>
     </div>
     <!-- 로비 메뉴 창들: 메인 화면 위를 통째로 덮음 (게임 시작 버튼은 메인 화면에만) -->
@@ -1009,6 +1010,8 @@
     // ║  false = 배포/운영 모드 (일반 게임: 광고 부활·게임 오버, 개발 UI 숨김) ║
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
+    // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
+    const GAME_VERSION = "v24 · 2026-10-18";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -4868,7 +4871,8 @@
         : "아직 배운 스킬이 없어요";
       document.getElementById("pause-summary").innerText =
         `${currentStage().name} · ${currentCharacter().name}\nLv.${player.level} / ${CLEAR_LEVEL} · ⏱️ ${formatPlayTime(playTimeMs)}\n처치 ${kills} · 체력 ${Math.ceil(player.hp)} / ${player.maxHp} · 사망 ${deathCount}회` +
-        (IS_DEV_MODE && activeTraps.length ? `\n⚠️ 환경 함정: ${activeTraps.map(id => trapName(id, currentFloor)).join(" · ")}` : "");
+        (IS_DEV_MODE && activeTraps.length ? `\n⚠️ 환경 함정: ${activeTraps.map(id => trapName(id, currentFloor)).join(" · ")}` : "") +
+        `\n${GAME_VERSION} · ${IS_DEV_MODE ? "개발 버전" : "배포 버전"}`;
       document.getElementById("pause-dev").style.display = IS_DEV_MODE ? "block" : "none";
       updateGodButtons();
       updateMinimapSwitch();
@@ -5079,6 +5083,7 @@
       document.getElementById("menu-shop-sub").innerText = `💰 ${save.gold.toLocaleString()}G`;
       document.getElementById("shop-gold").innerText = `💰 ${save.gold.toLocaleString()}G`;
       document.getElementById("shop-char").innerHTML = `<b>${currentCharacter().name}</b> 전용 상점 · 강화와 외형은 캐릭터마다 따로 저장돼요 (골드는 공통)`;
+      document.getElementById("game-version").innerText = `${GAME_VERSION} · ${IS_DEV_MODE ? "🛠️ 개발 버전" : "🚀 배포 버전"}`;
       document.getElementById("lobby-dev").innerText = IS_DEV_MODE ? "⚙️ 개발자 모드 ON (무적·즉시 부활, 스킬 미리보기) — 배포 전 IS_DEV_MODE = false" : "";
       setupDevPanel();
     }
