@@ -4169,7 +4169,10 @@
         shurikens.push({ x: player.x, y: player.y, dx: Math.cos(a) * 7, dy: Math.sin(a) * 7, spin: 0, hits: new WeakMap() });
       }
       const viewW = canvas.width / currentViewScale, viewH = canvas.height / currentViewScale;
-      const left = camera.x, top = camera.y, right = camera.x + viewW, bottom = camera.y + viewH;
+      // 하단 배너 광고가 화면 아래를 가리므로 배너 윗선을 바닥으로 사용
+      const bannerEl = document.getElementById("banner-ad");
+      const bannerH = bannerEl && bannerEl.offsetHeight != null ? bannerEl.offsetHeight : 52;
+      const left = camera.x, top = camera.y, right = camera.x + viewW, bottom = camera.y + viewH - bannerH / currentViewScale;
       const step = frameDtMs / 16.67;
       for (const s of shurikens) {
         s.size = size;
