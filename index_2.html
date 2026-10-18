@@ -237,7 +237,8 @@
     .toggle-btn.on { border-color: #34d399; color: #d1fae5; background: rgba(6, 78, 59, 0.55); }
 
     /* ===== 로비 메인 메뉴 버튼 + 메뉴별 창 ===== */
-    .menu-grid { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .menu-grid { width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .menu-grid .menu-btn { font-size: 14px; padding: 11px 2px 9px; }
     .menu-btn {
       width: 100%;
       padding: 12px 6px 10px;
@@ -266,7 +267,15 @@
     .panel-head { display: flex; align-items: center; justify-content: space-between; }
     .panel-head h3 { font-size: 20px; font-weight: 900; }
     .gold-tag { font-size: 13px; color: #fde68a; margin-left: 6px; }
-    .tab-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+    .tab-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; }
+    .tab-row .pick-btn { font-size: 12px; padding: 9px 2px; }
+    /* ===== 동료(펫/용병) ===== */
+    .pet-card { display: flex; align-items: center; gap: 10px; }
+    .pet-card canvas { width: 120px; height: 120px; flex-shrink: 0; border-radius: 14px; background: radial-gradient(circle at 50% 60%, rgba(56, 189, 248, 0.14), rgba(2, 6, 23, 0.6)); }
+    .pet-card .pet-info { flex: 1; font-size: 12px; color: #cbd5e1; line-height: 1.55; }
+    .pet-card .pet-info b { display: block; font-size: 15px; color: #f1f5f9; margin-bottom: 2px; }
+    .pet-rule { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .pet-rule b { color: #fde68a; }
 
     /* ===== 로비: 캐릭터·층 선택, 상점 ===== */
     .pick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
@@ -579,8 +588,32 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
     }
     #lobby-preview { width: 190px; height: 190px; }
+    /* 메인 화면: 지금 도전할 층 배지 (캐릭터 카드 왼쪽 위, 누르면 층 선택 창) */
+    .floor-badge {
+      position: absolute; top: 10px; left: 10px; z-index: 2;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 6px 11px 7px; border-radius: 14px; cursor: pointer;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.95), rgba(180, 83, 9, 0.95));
+      border: 1.5px solid #fde68a;
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      animation: floorBadgeGlow 1.6s ease-in-out infinite alternate;
+    }
+    .floor-badge small { font-size: 10px; font-weight: 900; color: #fff7ed; letter-spacing: 1px; }
+    .floor-badge b { font-size: 30px; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 2px 0 #7c2d12, 0 0 10px rgba(255, 237, 213, 0.7); }
+    .floor-badge i { font-style: normal; font-size: 10px; font-weight: 800; color: #ffedd5; margin-top: 2px; }
+    @keyframes floorBadgeGlow {
+      from { box-shadow: 0 0 10px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+      to { box-shadow: 0 0 22px rgba(251, 191, 36, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+    }
+    /* 메인 화면: 함께하는 동료 이름 (카드 오른쪽 위) */
+    .pet-badge {
+      position: absolute; top: 12px; right: 12px; z-index: 2; cursor: pointer;
+      font-size: 11px; font-weight: 800; color: #a5f3fc; padding: 4px 8px; border-radius: 10px;
+      background: rgba(8, 47, 73, 0.75); border: 1px solid rgba(34, 211, 238, 0.45);
+    }
     .hero-name { font-size: 17px; font-weight: 900; margin-top: 2px; }
     .hero-sub { font-size: 12px; color: #94a3b8; margin-top: 4px; text-align: center; }
     .stat-grid {
@@ -802,6 +835,7 @@
         <div id="pause-summary" style="text-align: center; color: #cbd5e1; font-size: 14px; font-weight: 700; line-height: 1.6;"></div>
         <div class="info-box">
           <div class="opt-row"><span>🗺️ 미니맵 표시</span><button id="pause-minimap" class="switch" onclick="toggleMinimap()" aria-label="미니맵 켜기/끄기"></button></div>
+          <div class="opt-row"><span>📳 피격 진동</span><button id="pause-vibrate" class="switch" onclick="toggleVibrate()" aria-label="진동 켜기/끄기"></button></div>
         </div>
         <div id="pause-dmg-box" class="info-box"><h4>📊 [DEV] 스킬별 전투 통계 (이번 판)</h4><div id="pause-dmg"></div></div>
         <div class="info-box"><h4>보유 스킬</h4><div id="pause-skills"></div></div>
@@ -815,6 +849,15 @@
             <button class="dev-btn" onclick="devSpawnElite()">💀 중간 보스 소환</button>
           </div>
           <button id="pause-god" class="dev-btn" onclick="toggleGodMode()">🛡️ 무적 ON</button>
+          <div class="dev-row" style="margin-top: 6px;">
+            <span style="font-size: 12px; white-space: nowrap;">🤖 동료 변경</span>
+            <select id="pause-pet" onchange="devChangePet(this.value)"></select>
+          </div>
+          <div class="dev-grid" style="margin-top: 6px;">
+            <button class="dev-btn" onclick="devPetDischarge()">🪫 강제 방전</button>
+            <button class="dev-btn" onclick="devPetReboot()">🔋 즉시 부활</button>
+          </div>
+          <button id="pause-pet-inf" class="dev-btn" onclick="devTogglePetInfinite()">♾️ 동료 버프 무한 유지 OFF</button>
         </div>
         <button class="restart-btn" onclick="startDashEdit()">💨 대시 버튼 위치 옮기기</button>
         <button id="btn-quit" class="restart-btn" onclick="quitRun()">포기하고 결과 보기</button>
@@ -860,6 +903,8 @@
       <div class="lobby-inner">
         <h1 class="lobby-title">SURVIVAL<br><span>HERO</span></h1>
         <div class="hero-card">
+          <div id="floor-badge" class="floor-badge" onclick="openLobbyPanel('floor')"><small>현재 도전</small><b id="floor-badge-num">1F</b><i id="floor-badge-sub"></i></div>
+          <div id="pet-badge" class="pet-badge" onclick="openLobbyPanel('pet')"></div>
           <canvas id="lobby-preview" width="440" height="440"></canvas>
           <div id="hero-name" class="hero-name">신참 생존자</div>
           <div id="hero-sub" class="hero-sub">외형: 기본 강화복</div>
@@ -873,6 +918,7 @@
         <!-- 메인 메뉴: 누르면 해당 창이 열림 (메인 화면은 스크롤 없이 한 화면) -->
         <div class="menu-grid">
           <button class="menu-btn" onclick="openLobbyPanel('char')">🧑 캐릭터<small id="menu-char-sub"></small></button>
+          <button class="menu-btn" onclick="openLobbyPanel('pet')">🤖 동료<small id="menu-pet-sub"></small></button>
           <button class="menu-btn" onclick="openLobbyPanel('floor')">🏯 층 선택<small id="menu-floor-sub"></small></button>
           <button class="menu-btn" onclick="openLobbyPanel('shop')">🛒 상점<small id="menu-shop-sub"></small></button>
         </div>
@@ -905,6 +951,29 @@
         </div>
       </div>
 
+      <!-- 동료 창 -->
+      <div id="panel-pet" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🤖 동료</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div class="info-box">
+            <h4>함께 싸울 동료를 고르세요</h4>
+            <div class="pet-card">
+              <canvas id="pet-preview" width="240" height="240"></canvas>
+              <div id="pet-desc" class="pet-info"></div>
+            </div>
+            <div id="pet-list" class="pick-grid three" style="margin-top: 10px;"></div>
+          </div>
+          <div class="info-box pet-rule">
+            <h4>🔋 방전과 재가동</h4>
+            동료는 적의 몸통 공격과 탄환을 맞으면 체력이 줄어요. 동료가 맞은 탄환은 사라져서 나에게 오지 않아요.<br>
+            체력이 0이 되면 쓰러지지 않고 <b>방전(오프라인)</b> 상태의 구체가 되어 뒤를 따라와요.<br>
+            <b>경험치 보석 18개를 먹거나 15초가 지나면</b> 100% 체력으로 재가동하고, 재가동할 때 주변 적에게 충격파를 퍼뜨려요. 횟수 제한은 없어요.<br>
+            레벨업 카드의 <b>🤝 동료 강화</b>를 고르면 동료 공격력·체력이 오르고 특수 능력이 더 자주 발동해요.
+          </div>
+          <button class="menu-btn" onclick="openLobbyPanel('shop'); setShopTab('pet')">🛒 동료 외형 상점 가기</button>
+        </div>
+      </div>
+
       <!-- 층 선택 창 -->
       <div id="panel-floor" class="lobby-panel">
         <div class="panel-inner">
@@ -931,6 +1000,7 @@
             <button id="tab-stat" class="pick-btn on" onclick="setShopTab('stat')">💪 능력치</button>
             <button id="tab-skill" class="pick-btn" onclick="setShopTab('skill')">✨ 스킬 강화</button>
             <button id="tab-look" class="pick-btn" onclick="setShopTab('look')">🎨 외형</button>
+            <button id="tab-pet" class="pick-btn" onclick="setShopTab('pet')">🤖 동료 외형</button>
           </div>
           <div id="shop-stat" class="info-box">
             <h4>골드로 기본 능력치 영구 강화</h4>
@@ -950,6 +1020,18 @@
             <div class="info-box">
               <h4>능력치 변화 없음 · 이름을 누르면 입어보기 · 버튼으로 구매/장착</h4>
               <div id="cosmetic-list"></div>
+            </div>
+          </div>
+          <div id="shop-pet" style="display: none;">
+            <div class="info-box">
+              <div class="pet-card">
+                <canvas id="pet-shop-preview" width="240" height="240"></canvas>
+                <div id="pet-shop-label" class="pet-info"></div>
+              </div>
+            </div>
+            <div class="info-box">
+              <h4>동료 외형 · 능력치 변화 없음 · 이름을 누르면 미리보기</h4>
+              <div id="pet-skin-list"></div>
             </div>
           </div>
         </div>
@@ -977,6 +1059,16 @@
               <button class="dev-btn" onclick="devUnlockAll()">🔓 층 +10 해금</button>
               <button id="dev-god" class="dev-btn" onclick="toggleGodMode()">🛡️ 무적 ON</button>
             </div>
+            <div class="dev-row" style="margin-top: 6px;">
+              <span style="font-size: 12px; white-space: nowrap;">🏯 층 강제 변경</span>
+              <b id="dev-floor-label">1F</b>
+            </div>
+            <input type="range" id="dev-floor" min="1" max="60" value="1" oninput="devSetFloor(this.value)">
+            <div class="dev-row">
+              <span style="font-size: 12px; white-space: nowrap;">🤖 동료 즉시 변경</span>
+              <select id="dev-pet" onchange="devChangePet(this.value)"></select>
+            </div>
+            <button id="dev-pet-inf" class="dev-btn" onclick="devTogglePetInfinite()">♾️ 동료 버프 무한 유지 OFF</button>
             <button id="dev-reset" class="dev-btn danger" onclick="devResetData()">🗑️ 저장 데이터 완전 초기화</button>
             <div id="lobby-dev" class="lobby-hint" style="margin-top: 8px;"></div>
           </div>
@@ -1011,7 +1103,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v24 · 2026-10-18";
+    const GAME_VERSION = "v25 · 2026-10-18";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1302,6 +1394,41 @@
       return defaultSave();
     }
 
+    // ===== 게임 데이터: 동료(펫/용병) — 보조 화력 + 유틸리티 버프 =====
+    // hpMult: 플레이어 최대 체력 대비 동료 체력, dmg: 공격 1회 피해(플레이어 공격력 배율), atkMs: 공격 간격, specialMs: 특수 능력 주기
+    const PETS = {
+      drone: { name: "🛸 기동 지원 드론", short: "드론", hpMult: 0.8, dmg: 0.55, atkMs: 1100, range: 420, specialMs: 15000,
+        attackDesc: "전방의 적에게 약한 견제 레이저", specialDesc: "15초마다 4초간 이동속도 +30% · 잔상" },
+      golem: { name: "🗿 에너지 실드 골렘", short: "골렘", hpMult: 1.4, dmg: 0.9, atkMs: 1500, range: 330, specialMs: 14000,
+        attackDesc: "가장 가까운 적에게 충격파 (살짝 밀쳐냄)", specialDesc: "14초마다 최대 체력 15%만큼 피해를 흡수하는 보호막" },
+      wisp: { name: "✨ 증폭술사 정령", short: "정령", hpMult: 0.7, dmg: 0.4, atkMs: 950, range: 480, specialMs: 16000,
+        attackDesc: "적을 따라가는 약한 마력탄", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%)" }
+    };
+    const PET_RECHARGE_MS = 15000;  // 방전 후 자동 재가동까지
+    const PET_RECHARGE_GEMS = 18;   // 이만큼 보석을 먹으면 바로 재가동
+    // 동료 외형: c = 몸체 [밝음, 중간, 어두움], glow = 빛·공격 색
+    const PET_SKINS = {
+      drone: [
+        { id: "", name: "기본 청록", c: ["#e0f2fe", "#64748b", "#0f172a"], glow: "#2dd4bf" },
+        { id: "crimson", name: "🔴 크림슨 스트라이커", price: 1200, c: ["#fee2e2", "#b91c1c", "#2a0606"], glow: "#fb7185" },
+        { id: "gold", name: "🌟 골드 에이스", price: 2500, c: ["#fef9c3", "#ca8a04", "#422006"], glow: "#fde047" }
+      ],
+      golem: [
+        { id: "", name: "기본 강철", c: ["#e2e8f0", "#64748b", "#1e293b"], glow: "#60a5fa" },
+        { id: "moss", name: "🌿 이끼 수호자", price: 1200, c: ["#d9f99d", "#4d7c0f", "#1a2e05"], glow: "#86efac" },
+        { id: "obsidian", name: "🌑 흑요석 거인", price: 2500, c: ["#a1a1aa", "#27272a", "#030303"], glow: "#c084fc" }
+      ],
+      wisp: [
+        { id: "", name: "기본 비전", c: ["#f5d0fe", "#a855f7", "#3b0764"], glow: "#c084fc" },
+        { id: "frost", name: "❄️ 서리 정령", price: 1200, c: ["#e0f2fe", "#38bdf8", "#0c4a6e"], glow: "#7dd3fc" },
+        { id: "solar", name: "☀️ 태양 정령", price: 2500, c: ["#fef3c7", "#f97316", "#7c2d12"], glow: "#fdba74" }
+      ]
+    };
+    function petSkinOf(petId, skinId) {
+      const list = PET_SKINS[petId];
+      return list.find(s => s.id === skinId) || list[0];
+    }
+
     // ===== 캐릭터별 상점 데이터: 캐릭터마다 localStorage 키를 따로 씀 (survivalHeroChar_v1_캐릭터ID) =====
     // 한 캐릭터로 강화·구매한 것은 다른 캐릭터에 적용되지 않음
     const CHAR_SAVE_PREFIX = "survivalHeroChar_v1_";
@@ -1309,8 +1436,10 @@
       return {
         shop: { atk: 0, hp: 0, spd: 0, dash: 0 },      // 기본 능력치 강화 단계
         skillShop: { dmg: 0, cd: 0, area: 0, dur: 0 },  // 스킬 영구 강화 단계
-        owned: [],                                      // 구매한 외형 ("slot:id")
-        equip: { hat: "", armor: "", weapon: "", aura: "" } // 장착 중인 외형
+        owned: [],                                      // 구매한 외형 ("slot:id", 동료 외형은 "pet:동료ID:외형ID")
+        equip: { hat: "", armor: "", weapon: "", aura: "" }, // 장착 중인 외형
+        pet: "drone",                                   // 함께하는 동료
+        petSkin: { drone: "", golem: "", wisp: "" }     // 동료별 장착 외형 ("" = 기본)
       };
     }
     function normalizeCharSave(c) {
@@ -1320,7 +1449,9 @@
         shop: Object.assign(d.shop, c.shop),
         skillShop: Object.assign(d.skillShop, c.skillShop),
         owned: Array.isArray(c.owned) ? c.owned : [],
-        equip: Object.assign(d.equip, c.equip)
+        equip: Object.assign(d.equip, c.equip),
+        pet: PETS[c.pet] ? c.pet : d.pet,
+        petSkin: Object.assign(d.petSkin, c.petSkin)
       };
     }
     const charSaves = {};
@@ -1389,10 +1520,11 @@
         shooterSpread: 2, shotSpeed: 5, shooterInterval: 5500, shotColor: "#c084fc" }
     ];
     // 층 난이도는 계단식으로 튀지 않게 완만한 곡선으로 증가 (골드 보상은 층당 +50%)
-    //  - 몹 체력: 1 + 0.2×(층-1) + 0.005×(층-1)² → 2층 ×1.2, 5층 ×1.88, 10층 ×3.2, 20층 ×6.6
+    //  - 몹 체력: 0.72 + 0.18×(층-1) + 0.004×(층-1)² → 1층 ×0.72(초보 구간), 2층 ×0.9, 5층 ×1.5, 10층 ×2.66, 20층 ×5.58
+    //  - 몹 이동속도: 1층 ×0.75 → 7층부터 ×1.0 / 몹 공격력: 1층 ×0.8 → 5층부터 ×1.0 (조금씩 올라감)
     //  - 원거리 몹: 등장 비율·탄 갈래 수·탄속·연사 속도가 층에 따라 서서히 강해짐 (floorTier 0 → 1, 15층에서 최대)
     //    맵 테마의 탄막 특징(3갈래·빠른 탄 등)은 낮은 층에서 약하게 시작해 높은 층에서 원래 세기가 됨
-    // 몹 공격력·보스 체력은 층과 무관하게 동일
+    // 보스 체력은 층과 무관하게 동일
     const FLOOR_REWARD_STEP = 0.5;
     const stageCache = {};
     function getStage(floor) {
@@ -1400,7 +1532,9 @@
         const theme = STAGE_THEMES[(floor - 1) % STAGE_THEMES.length];
         const f = floor - 1;
         const tier = Math.min(1, f / 14);
-        const hp = +(1 + f * 0.2 + f * f * 0.005).toFixed(2);
+        const hp = +(0.72 + f * 0.18 + f * f * 0.004).toFixed(2);
+        const mobSpeed = +(0.75 + 0.25 * Math.min(1, f / 6)).toFixed(3);
+        const dmg = +(0.8 + 0.2 * Math.min(1, f / 4)).toFixed(2);
         const reward = +(1 + f * FLOOR_REWARD_STEP).toFixed(1);
         // 여러 갈래 사격은 8층부터 2갈래, 13층부터 테마 원래 갈래 수. 갈래가 많을수록 발사 간격을 늘려 총 탄 수는 완만하게
         const spread = floor < 8 ? 1 : (floor < 13 ? Math.min(2, theme.shooterSpread) : theme.shooterSpread);
@@ -1411,8 +1545,9 @@
         stageCache[floor] = Object.assign({}, theme, {
           floor: floor, theme: theme.id, obstacle: theme.id,
           name: `${floor}층 · ${theme.name}`,
-          desc: (floor === 1 ? "기본 난이도" : `몹 체력 ×${hp}`) + ` · 골드 보상 ×${reward} · ${attackDesc}`,
-          hp: hp, dmg: 1, boss: 1, reward: reward, mobSpeed: 1, shooterLv: 10,
+          desc: (floor === 1 ? "초보 구간 · " : "") + `몹 체력 ×${hp}` + (mobSpeed < 1 ? ` · 몹 속도 ×${+mobSpeed.toFixed(2)}` : "") +
+            (dmg < 1 ? ` · 몹 공격력 ×${dmg}` : "") + ` · 골드 보상 ×${reward} · ${attackDesc}`,
+          hp: hp, dmg: dmg, boss: 1, reward: reward, mobSpeed: mobSpeed, shooterLv: 10,
           shooterSpread: spread, shotSpeed: shotSpeed, shooterInterval: shooterInterval, attackDesc: attackDesc,
           // 원거리 몹 등장 비율 (Lv10부터 등장, Lv10 절반 → Lv16에 최대): 1층 20% → 15층 25%
           shooterChance: 0.2 + 0.05 * tier,
@@ -1546,6 +1681,27 @@
       } else {
         cs().equip[slot] = cs().equip[slot] === id ? "" : id;
       }
+      writeSave();
+      renderLobby();
+    }
+    // 동료 외형: 없으면 구매(+장착), 있으면 장착 (기본 외형은 항상 보유)
+    function usePetSkin(petId, skinId) {
+      const item = PET_SKINS[petId] && PET_SKINS[petId].find(s => s.id === skinId);
+      if (!item) return;
+      const key = `pet:${petId}:${skinId}`;
+      if (skinId && !cs().owned.includes(key)) {
+        if (save.gold < item.price) return;
+        save.gold -= item.price;
+        cs().owned.push(key);
+        Sound.itemPickup();
+      }
+      cs().petSkin[petId] = skinId;
+      writeSave();
+      renderLobby();
+    }
+    function selectPet(petId) {
+      if (!PETS[petId]) return;
+      cs().pet = petId;
       writeSave();
       renderLobby();
     }
@@ -2954,6 +3110,24 @@
         });
       }
 
+      // 🤝 동료 강화: 동료 공격력 +25%, 체력 +10%, 특수 능력 주기 -8% (레벨당)
+      if (pet.id && pet.level < 5) {
+        const nextLv = pet.level + 1;
+        const def = PETS[pet.id];
+        allUpgrades.push({
+          id: "petBoost",
+          isOwned: pet.level > 0,
+          title: `🤝 동료 강화 [Lv. ${pet.level} ➔ Lv. ${nextLv}]`,
+          desc: `[동료] ${def.short} 공격력 +25% · 체력 +10% · 특수 능력 ${(def.specialMs * (1 - pet.level * 0.08) / 1000).toFixed(1)}초 → ${(def.specialMs * (1 - nextLv * 0.08) / 1000).toFixed(1)}초마다`,
+          apply: () => {
+            const ratio = pet.maxHp ? pet.hp / pet.maxHp : 1;
+            pet.level++;
+            pet.maxHp = petMaxHp();
+            if (!pet.offline) pet.hp = pet.maxHp * Math.max(ratio, 0.5);
+          }
+        });
+      }
+
       if (player.armorLevel < 5) {
         const nextLv = player.armorLevel + 1;
         allUpgrades.push({
@@ -3071,7 +3245,7 @@
       } else if (roll > 0.88) {
         type = "tanker";
         radius = 29;
-        speed = 0.85;
+        speed = 0.85 * stage.mobSpeed;
         hp = Math.floor(hp * 2.6);
         color = "#581c87";
       } else if (roll > 0.68) {
@@ -3803,6 +3977,218 @@
       }
     }
 
+    // ===== 동료(펫/용병): 플레이어 뒤를 따라다니며 보조 공격 + 주기적 특수 버프 =====
+    // 체력이 0이 되면 쓰러지지 않고 '방전' 구체로 따라다니다가, 보석 18개 또는 15초 뒤 자동 재가동 (횟수 제한 없음)
+    const pet = {
+      id: "", skin: "", x: 0, y: 0, hp: 0, maxHp: 1, level: 0,
+      offline: false, offlineAt: 0, gems: 0, atkAt: 0, specialAt: 0, flash: 0, facing: 0,
+      boostUntil: 0, shield: 0, shieldMax: 0, field: null, fieldOn: false, ghosts: [], ghostAt: 0
+    };
+    let petShots = [];  // 정령 마력탄
+    let petFx = [];     // 드론 레이저·골렘 충격파·재가동 파동 그림
+    let petInfinite = false; // [개발자] 동료 버프 무한 유지
+    function petActive() { return gameState === "playing" && !!pet.id; }
+    function petDmgMult() { return 1 + pet.level * 0.25; }
+    function petSpecialMs() { return PETS[pet.id].specialMs * (1 - pet.level * 0.08); }
+    function petMaxHp() { return Math.round(player.maxHp * PETS[pet.id].hpMult * (1 + pet.level * 0.1)); }
+    function petSpeedMult() { return gameState === "playing" && playTimeMs < pet.boostUntil ? 1.3 : 1; }
+
+    function resetPet(petId) {
+      setPetField(false);
+      pet.id = petId || "";
+      pet.skin = pet.id ? cs().petSkin[pet.id] || "" : "";
+      pet.x = player.x - 50; pet.y = player.y + 10;
+      pet.level = 0;
+      pet.maxHp = pet.id ? petMaxHp() : 1;
+      pet.hp = pet.maxHp;
+      pet.offline = false; pet.offlineAt = 0; pet.gems = 0; pet.flash = 0;
+      pet.atkAt = playTimeMs + 800;
+      pet.specialAt = playTimeMs + (pet.id ? PETS[pet.id].specialMs * 0.4 : 0); // 첫 특수 능력은 조금 일찍
+      pet.boostUntil = 0; pet.shield = 0; pet.shieldMax = 0; pet.field = null;
+      pet.ghosts = []; pet.ghostAt = 0;
+      petShots = [];
+      petFx = [];
+    }
+
+    // 증폭 필드 안/밖이 바뀔 때만 공격력·스킬 범위 배율을 곱하고 나눔 (신단 공격력 버프와 같은 방식)
+    function setPetField(on) {
+      if (pet.fieldOn === on) return;
+      pet.fieldOn = on;
+      if (on) { player.damage *= 1.2; skillUp.area *= 1.15; }
+      else { player.damage /= 1.2; skillUp.area /= 1.15; }
+    }
+
+    function damagePet(d) {
+      if (pet.offline || d <= 0) return;
+      pet.hp -= d;
+      pet.flash = 6;
+      if (pet.hp <= 0) dischargePet();
+    }
+    function dischargePet() {
+      pet.hp = 0;
+      pet.offline = true;
+      pet.offlineAt = playTimeMs;
+      pet.gems = 0;
+      spawnBurst(pet.x, pet.y, "#94a3b8", 14, 5);
+      Sound.metalClang();
+    }
+    // 재가동: 체력 100% + 주변 적에게 충격파
+    function rebootPet() {
+      const glow = petSkinOf(pet.id, pet.skin).glow;
+      pet.offline = false;
+      pet.hp = pet.maxHp;
+      pet.atkAt = playTimeMs + 300;
+      petFx.push({ kind: "reboot", x: pet.x, y: pet.y, r: 150, life: 24, maxLife: 24, color: glow });
+      spawnBurst(pet.x, pet.y, glow, 18, 6);
+      Sound.itemPickup();
+      const dmg = player.damage * 1.2 * petDmgMult();
+      for (const m of monsters.slice()) {
+        if (fastHypot(m.x - pet.x, m.y - pet.y) < 150 + m.radius) damageMonster(m, dmg, glow, "pet");
+      }
+    }
+    function petGemCharge() {
+      if (petActive() && pet.offline) pet.gems++;
+    }
+
+    function nearestMonsterTo(x, y, range) {
+      let best = null, bd = range * range;
+      for (const m of monsters) {
+        const dx = m.x - x, dy = m.y - y, d = dx * dx + dy * dy;
+        if (d < bd) { bd = d; best = m; }
+      }
+      return best;
+    }
+
+    function updatePet() {
+      if (!petActive()) return;
+      const def = PETS[pet.id];
+      const glow = petSkinOf(pet.id, pet.skin).glow;
+      const step = frameDtMs / 16.67;
+      // 플레이어 뒤쪽 비스듬한 자리로 부드럽게 따라감 (방전 상태는 조금 더 뒤에서 느리게)
+      const back = player.angle + Math.PI;
+      const dist = pet.offline ? 62 : 50;
+      const tx = player.x + Math.cos(back) * dist + Math.cos(player.angle + Math.PI / 2) * 24;
+      const ty = player.y + Math.sin(back) * dist + Math.sin(player.angle + Math.PI / 2) * 24;
+      if (fastHypot(tx - pet.x, ty - pet.y) > 500) { pet.x = tx; pet.y = ty; }
+      const k = 1 - Math.pow(pet.offline ? 0.9 : 0.86, step);
+      pet.x += (tx - pet.x) * k;
+      pet.y += (ty - pet.y) * k;
+      if (pet.flash > 0) pet.flash -= step;
+
+      if (pet.offline) {
+        if (playTimeMs - pet.offlineAt >= PET_RECHARGE_MS || pet.gems >= PET_RECHARGE_GEMS) rebootPet();
+      } else {
+        // 피격: 적 탄환은 동료가 대신 맞고 사라짐, 몸통 접촉은 플레이어가 받는 피해의 절반
+        const pr = 16;
+        for (let i = enemyBullets.length - 1; i >= 0 && !pet.offline; i--) {
+          const eb = enemyBullets[i];
+          if (eb && fastHypot(eb.x - pet.x, eb.y - pet.y) < eb.radius + pr) {
+            addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: glow });
+            enemyBullets.splice(i, 1);
+            damagePet(eb.damage);
+          }
+        }
+        for (let i = 0; i < monsters.length && !pet.offline; i++) {
+          const m = monsters[i];
+          if (fastHypot(m.x - pet.x, m.y - pet.y) < m.radius + pr) damagePet(monsterDmg(m.isBoss ? 0.8 : (m.isElite ? 0.6 : 0.38)) * 0.5);
+        }
+      }
+
+      if (!pet.offline && playTimeMs >= pet.atkAt) {
+        const target = nearestMonsterTo(pet.x, pet.y, def.range);
+        if (target) {
+          pet.atkAt = playTimeMs + def.atkMs;
+          petAttack(target, glow);
+        }
+      }
+      if (!pet.offline && playTimeMs >= pet.specialAt) {
+        pet.specialAt = playTimeMs + petSpecialMs();
+        petSpecial(glow);
+      }
+      updatePetEffects(step, glow);
+    }
+
+    function petAttack(target, glow) {
+      const dmg = player.damage * PETS[pet.id].dmg * petDmgMult();
+      pet.facing = Math.atan2(target.y - pet.y, target.x - pet.x);
+      if (pet.id === "drone") {
+        petFx.push({ kind: "laser", x: pet.x, y: pet.y, x2: target.x, y2: target.y, life: 12, maxLife: 12, color: glow });
+        damageMonster(target, dmg, glow, "pet");
+      } else if (pet.id === "golem") {
+        petFx.push({ kind: "wave", x: pet.x, y: pet.y, x2: target.x, y2: target.y, life: 18, maxLife: 18, color: glow });
+        if (!target.isBoss && !target.isElite) {
+          const a = Math.atan2(target.y - pet.y, target.x - pet.x);
+          target.x += Math.cos(a) * 22;
+          target.y += Math.sin(a) * 22;
+        }
+        damageMonster(target, dmg, glow, "pet");
+      } else {
+        petShots.push({ x: pet.x, y: pet.y, angle: pet.facing, speed: 6.5, life: 110, damage: dmg, color: glow });
+      }
+    }
+
+    function petSpecial(glow) {
+      if (pet.id === "drone") {
+        pet.boostUntil = playTimeMs + 4000;
+      } else if (pet.id === "golem") {
+        pet.shieldMax = Math.round(player.maxHp * 0.15);
+        pet.shield = pet.shieldMax;
+      } else {
+        pet.field = { x: player.x, y: player.y, r: 150, until: playTimeMs + 6000 };
+      }
+      spawnBurst(player.x, player.y, glow, 16, 6);
+      Sound.levelUp();
+    }
+
+    function updatePetEffects(step, glow) {
+      // [개발자] 버프 무한 유지: 동료 종류의 특수 버프가 계속 켜져 있음
+      if (petInfinite && IS_DEV_MODE) {
+        if (pet.id === "drone") pet.boostUntil = playTimeMs + 1000;
+        if (pet.id === "golem") { pet.shieldMax = Math.round(player.maxHp * 0.15); pet.shield = pet.shieldMax; }
+        if (pet.id === "wisp") pet.field = { x: player.x, y: player.y, r: 150, until: playTimeMs + 1000 };
+      }
+      // 드론 가속 중: 이동하면 잔상을 남김
+      if (playTimeMs < pet.boostUntil && player.isMoving && playTimeMs - pet.ghostAt > 45) {
+        pet.ghostAt = playTimeMs;
+        pet.ghosts.push({ x: player.x, y: player.y, angle: player.angle, life: 14 });
+      }
+      for (let i = pet.ghosts.length - 1; i >= 0; i--) {
+        pet.ghosts[i].life -= step;
+        if (pet.ghosts[i].life <= 0) pet.ghosts.splice(i, 1);
+      }
+      // 증폭 필드: 플레이어가 안에 있을 때만 버프
+      if (pet.field && playTimeMs >= pet.field.until) pet.field = null;
+      setPetField(!!pet.field && fastHypot(player.x - pet.field.x, player.y - pet.field.y) < pet.field.r);
+      // 정령 마력탄: 가장 가까운 적을 향해 천천히 방향을 틂
+      for (let i = petShots.length - 1; i >= 0; i--) {
+        const s = petShots[i];
+        s.life -= step;
+        const t = nearestMonsterTo(s.x, s.y, 500);
+        if (t) {
+          let diff = Math.atan2(t.y - s.y, t.x - s.x) - s.angle;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          s.angle += diff * 0.12 * step;
+        }
+        s.x += Math.cos(s.angle) * s.speed * step;
+        s.y += Math.sin(s.angle) * s.speed * step;
+        let hit = null;
+        for (const m of monsters) {
+          if (fastHypot(m.x - s.x, m.y - s.y) < m.radius + 7) { hit = m; break; }
+        }
+        if (hit) {
+          petShots.splice(i, 1);
+          damageMonster(hit, s.damage, s.color, "pet");
+        } else if (s.life <= 0) {
+          petShots.splice(i, 1);
+        }
+      }
+      for (let i = petFx.length - 1; i >= 0; i--) {
+        petFx[i].life -= step;
+        if (petFx[i].life <= 0) petFx.splice(i, 1);
+      }
+    }
+
     function findNearestMonster(excludeDist = 850) {
       let nearest = null;
       let minDist = excludeDist;
@@ -3931,7 +4317,7 @@
     // ===== 스킬별 전투 통계 (딜미터기) =====
     // 피해를 줄 때 hurt(m, dmg, 출처)를 거치면 출처별 총 피해량을 쌓고, 막타 출처를 몬스터에 기록 → 처치 시 집계
     const STAT_NAMES = {
-      basic: "🔫 기본 공격", charged: "💠 차지샷", clone: "👥 분신", nuke: "💣 폭탄 아이템", revive: "📺 부활 충격파"
+      basic: "🔫 기본 공격", charged: "💠 차지샷", clone: "👥 분신", nuke: "💣 폭탄 아이템", revive: "📺 부활 충격파", pet: "🤖 동료"
     };
     let combatStats = {};
     function statOf(src) {
@@ -4598,11 +4984,23 @@
         addHitEffect({ x: player.x, y: player.y, radius: 26, life: 10, maxLife: 10, color: "#2dd4bf" });
         return;
       }
-      const actualDmg = rawDamage * (1 - player.armorLevel * 0.15) * (1 - ch.armor);
+      let actualDmg = rawDamage * (1 - player.armorLevel * 0.15) * (1 - ch.armor);
+      // 골렘 보호막: 남은 양만큼 피해를 먼저 흡수
+      if (pet.shield > 0) {
+        const absorbed = Math.min(pet.shield, actualDmg);
+        pet.shield -= absorbed;
+        actualDmg -= absorbed;
+        if (absorbed >= 3) addHitEffect({ x: player.x, y: player.y, radius: 34, life: 10, maxLife: 10, color: "#60a5fa" });
+        if (pet.shield <= 0) { pet.shield = 0; spawnBurst(player.x, player.y, "#93c5fd", 12, 5); }
+        if (actualDmg <= 0) return;
+      }
       player.hp -= actualDmg;
       if (actualDmg >= 5) {
         Sound.hurt();
         addShake(4);
+        vibrate(actualDmg >= 15 ? 90 : 55, true); // 탄환 등 큰 피해: 바로 진동 (클수록 길게)
+      } else if (actualDmg > 0) {
+        vibrate(18); // 몸통 접촉: 짧게, 0.35초 간격
       }
       if (player.hp <= 0) {
         deathCount++;
@@ -4865,6 +5263,7 @@
       if (player.armorLevel > 0) rows.push({ name: "🦾 나노 강화 장갑", lv: player.armorLevel });
       if (player.barrierLevel > 0) rows.push({ name: "🔰 에너지 방벽", lv: player.barrierLevel });
       if (player.dashSkillLevel > 0) rows.push({ name: `💨 대시 쿨타임 감소 (대시 ${(dashCooldown() / 1000).toFixed(1)}초)`, lv: player.dashSkillLevel });
+      if (pet.id && pet.level > 0) rows.push({ name: `🤝 동료 강화 (${PETS[pet.id].short})`, lv: pet.level });
       document.getElementById("pause-skills").innerHTML = rows.length
         ? rows.map(r => `<div class="skill-row"><span>${r.name}</span><span class="stars">${stars(r.lv)} Lv.${r.lv}</span></div>`).join("") +
           activeSynergies.map(id => { const s = SYNERGIES.find(x => x.id === id); return `<div class="syn-row">🔗 ${s.name}<small>${s.desc}</small></div>`; }).join("")
@@ -4882,8 +5281,11 @@
       document.getElementById("pause-stats").innerHTML = [
         `⚔️ 공격력 ${Math.round(player.damage)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
         `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초`,
-        `👟 이동속도 ${player.speed.toFixed(1)} · 🧲 자석 범위 ${player.magnetRange}`
-      ].join("<br>");
+        `👟 이동속도 ${player.speed.toFixed(1)} · 🧲 자석 범위 ${player.magnetRange}`,
+        petStatusText()
+      ].filter(Boolean).join("<br>");
+      fillPetSelect("pause-pet", pet.id);
+      updatePetInfButtons();
       const quit = document.getElementById("btn-quit");
       quit.dataset.armed = "";
       quit.innerText = "포기하고 결과 보기";
@@ -4915,6 +5317,23 @@
     }
     function updateMinimapSwitch() {
       document.getElementById("pause-minimap").className = "switch" + (save.minimap ? " on" : "");
+      document.getElementById("pause-vibrate").className = "switch" + (save.vibrate !== false ? " on" : "");
+    }
+    function toggleVibrate() {
+      save.vibrate = save.vibrate === false;
+      writeSave();
+      updateMinimapSwitch();
+      if (save.vibrate) vibrate(40, true); // 켜면 한 번 짧게 확인 진동
+    }
+    // 📳 진동 (안드로이드 브라우저 지원, 아이폰은 브라우저가 지원하지 않아 무시됨)
+    // 몸통 접촉처럼 매 프레임 들어오는 작은 피해는 0.35초에 한 번만 짧게 울림
+    let lastVibrateAt = 0;
+    function vibrate(ms, force) {
+      if (save.vibrate === false || !navigator.vibrate) return;
+      const now = performance.now();
+      if (!force && now - lastVibrateAt < 350) return;
+      lastVibrateAt = now;
+      try { navigator.vibrate(ms); } catch (e) {}
     }
 
     // 최종 레벨 · 생존 시간 · 처치 수 타일 (게임오버 창·결과 창 공용)
@@ -5081,6 +5500,13 @@
       document.getElementById("menu-char-sub").innerText = currentCharacter().name.replace(/^\S+\s/, "");
       document.getElementById("menu-floor-sub").innerText = getStage(save.selectedFloor).name;
       document.getElementById("menu-shop-sub").innerText = `💰 ${save.gold.toLocaleString()}G`;
+      // 현재 도전 층 배지: 개방된 최고 층(다음에 깰 층). 낮은 층을 골라 둔 경우 그 층도 함께 표시
+      document.getElementById("floor-badge-num").innerText = `${save.unlockedFloor}F`;
+      document.getElementById("floor-badge-sub").innerText = save.selectedFloor !== save.unlockedFloor ? `선택 ${save.selectedFloor}F` : getStage(save.unlockedFloor).name.split("· ")[1] || "";
+      const petDef = PETS[cs().pet];
+      document.getElementById("pet-badge").innerText = `${petDef.name.split(" ")[0]} ${petDef.short}`;
+      document.getElementById("menu-pet-sub").innerText = petDef.short;
+      renderPetPanel();
       document.getElementById("shop-gold").innerText = `💰 ${save.gold.toLocaleString()}G`;
       document.getElementById("shop-char").innerHTML = `<b>${currentCharacter().name}</b> 전용 상점 · 강화와 외형은 캐릭터마다 따로 저장돼요 (골드는 공통)`;
       document.getElementById("game-version").innerText = `${GAME_VERSION} · ${IS_DEV_MODE ? "🛠️ 개발 버전" : "🚀 배포 버전"}`;
@@ -5108,8 +5534,34 @@
       drawHeroFront(g, cx, footY - 50 * s, s, skin, equip, timestamp);
     }
 
+    // 동료 창·상점 미리보기: 받침대 위에 크게 (천천히 좌우를 둘러봄)
+    function drawPetStage(canvasEl, petId, skinId, timestamp) {
+      const g = canvasEl.getContext("2d");
+      const w = canvasEl.width, h = canvasEl.height;
+      const s = w / 72;
+      g.clearRect(0, 0, w, h);
+      g.beginPath();
+      g.ellipse(w / 2, h * 0.74, w * 0.3, h * 0.07, 0, 0, Math.PI * 2);
+      g.fillStyle = "rgba(51, 65, 85, 0.7)";
+      g.fill();
+      g.strokeStyle = rgba(petSkinOf(petId, skinId).glow, 0.6);
+      g.lineWidth = 2;
+      g.stroke();
+      drawPet(g, w / 2, h * 0.6, petId, skinId, timestamp, s, { facing: Math.PI / 2 + Math.sin(timestamp / 900) * 1.2 });
+    }
+
     function drawLobbyPreview(timestamp) {
       drawFrontStage(lobbyCanvas, getSkin(), cs().equip, timestamp);
+      // 메인 화면: 캐릭터 오른쪽 위에 함께하는 동료
+      const ls = lobbyCanvas.width / 150;
+      drawPet(lctx, lobbyCanvas.width * 0.8, lobbyCanvas.height * 0.5, cs().pet, cs().petSkin[cs().pet], timestamp, ls * 0.95, { facing: Math.PI * 0.85 });
+      if (document.getElementById("panel-pet").style.display === "block") {
+        drawPetStage(document.getElementById("pet-preview"), cs().pet, cs().petSkin[cs().pet], timestamp);
+      }
+      if (document.getElementById("panel-shop").style.display === "block" && document.getElementById("shop-pet").style.display === "block") {
+        const view = petTryOn || { pet: cs().pet, skin: cs().petSkin[cs().pet] };
+        drawPetStage(document.getElementById("pet-shop-preview"), view.pet, view.skin, timestamp);
+      }
       // 열려 있는 창의 미리보기도 함께 갱신
       if (document.getElementById("panel-char").style.display === "block") {
         drawFrontStage(document.getElementById("char-preview"), getSkin(), cs().equip, timestamp);
@@ -5180,6 +5632,59 @@
         ? `<div class="trap-tag">🛠️ [DEV] 환경 함정${traps.length > 1 ? " 2종 동시" : ""}: ` +
           traps.map(id => `<b>${trapName(id, save.selectedFloor)}</b> ${TRAP_TYPES[id].desc}`).join("<br>") + "</div>"
         : "");
+    }
+
+    // ===== 로비: 동료 선택 창 + 상점 '동료 외형' 탭 =====
+    let petTryOn = null; // 상점에서 이름을 눌러 미리보는 동료 외형 { pet, skin }
+    function renderPetPanel() {
+      const cur = cs().pet;
+      const def = PETS[cur];
+      const list = document.getElementById("pet-list");
+      list.innerHTML = "";
+      for (const id in PETS) {
+        const btn = document.createElement("button");
+        btn.className = "pick-btn" + (cur === id ? " on" : "");
+        btn.innerText = PETS[id].name.split(" ")[0] + " " + PETS[id].short;
+        btn.onclick = () => selectPet(id);
+        list.appendChild(btn);
+      }
+      document.getElementById("pet-desc").innerHTML =
+        `<b>${def.name}</b>⚔️ ${def.attackDesc}<br>✨ ${def.specialDesc}<br>🎨 외형: ${petSkinOf(cur, cs().petSkin[cur]).name}` +
+        `<br><span style="color:#94a3b8">동료는 캐릭터마다 따로 정해요</span>`;
+
+      // 상점 동료 외형 탭
+      const view = petTryOn || { pet: cur, skin: cs().petSkin[cur] };
+      const viewSkin = petSkinOf(view.pet, view.skin);
+      const viewOwned = !view.skin || cs().owned.includes(`pet:${view.pet}:${view.skin}`);
+      document.getElementById("pet-shop-label").innerHTML = `<b>${PETS[view.pet].name}</b>${petTryOn ? "👀 미리보는 중: " : "✔ 장착 중: "}${viewSkin.name}` +
+        (viewOwned ? "" : " (미구매)") + `<br><span style="color:#94a3b8">지금 함께하는 동료: ${def.short}</span>`;
+      const box = document.getElementById("pet-skin-list");
+      box.innerHTML = "";
+      for (const pid in PETS) {
+        const head = document.createElement("div");
+        head.className = "cos-slot";
+        head.innerText = PETS[pid].name;
+        box.appendChild(head);
+        for (const sk of PET_SKINS[pid]) {
+          const owned = !sk.id || cs().owned.includes(`pet:${pid}:${sk.id}`);
+          const equipped = (cs().petSkin[pid] || "") === sk.id;
+          const trying = petTryOn && petTryOn.pet === pid && petTryOn.skin === sk.id;
+          const row = document.createElement("div");
+          row.className = "shop-row" + (trying ? " trying" : "");
+          const name = document.createElement("div");
+          name.className = "cos-name";
+          name.innerText = (trying ? "👀 " : "") + sk.name;
+          name.onclick = () => { petTryOn = trying ? null : { pet: pid, skin: sk.id }; renderPetPanel(); };
+          row.appendChild(name);
+          const btn = document.createElement("button");
+          btn.className = "buy-btn" + (equipped ? " equipped" : (owned ? " owned" : ""));
+          btn.innerText = equipped ? "✔ 장착 중" : (owned ? "장착하기" : `💰 ${sk.price.toLocaleString()}`);
+          btn.disabled = equipped || (!owned && save.gold < sk.price);
+          btn.onclick = () => { petTryOn = null; usePetSkin(pid, sk.id); };
+          row.appendChild(btn);
+          box.appendChild(row);
+        }
+      }
     }
 
     // 외형 입어보기: 구매 전에도 미리보기에 착용한 모습을 보여 줌 (상점을 닫으면 원래대로)
@@ -5349,6 +5854,68 @@
       resumeGame();
     }
 
+    // ===== 동료 상태 표시 · 개발자 도구 =====
+    function petStatusText() {
+      if (!pet.id) return "";
+      const def = PETS[pet.id];
+      const state = pet.offline
+        ? `🪫 방전 (보석 ${pet.gems}/${PET_RECHARGE_GEMS} · ${Math.max(0, Math.ceil((PET_RECHARGE_MS - (playTimeMs - pet.offlineAt)) / 1000))}초 뒤 재가동)`
+        : `❤️ ${Math.ceil(pet.hp)} / ${pet.maxHp}`;
+      return `${def.name}${pet.level ? ` Lv.${pet.level}` : ""} · ${state}`;
+    }
+    function fillPetSelect(id, value) {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      if (!sel.options.length) for (const pid in PETS) sel.add(new Option(PETS[pid].name, pid));
+      sel.value = value;
+    }
+    function updatePetInfButtons() {
+      for (const id of ["dev-pet-inf", "pause-pet-inf"]) {
+        const btn = document.getElementById(id);
+        if (btn) btn.innerText = `♾️ 동료 버프 무한 유지 ${petInfinite ? "ON" : "OFF"}`;
+      }
+    }
+    // 로비에서는 이 캐릭터의 동료 선택을 바꾸고, 게임 중에는 지금 판의 동료만 바로 교체 (동료 강화 레벨 유지)
+    function devChangePet(petId) {
+      if (!IS_DEV_MODE || !PETS[petId]) return;
+      if (gameState === "playing") {
+        const lv = pet.level;
+        resetPet(petId);
+        pet.level = lv;
+        pet.maxHp = petMaxHp();
+        pet.hp = pet.maxHp;
+      } else {
+        selectPet(petId);
+      }
+    }
+    function devPetDischarge() {
+      if (!IS_DEV_MODE || !petActive() || pet.offline) return;
+      dischargePet();
+      resumeGame();
+    }
+    function devPetReboot() {
+      if (!IS_DEV_MODE || !petActive()) return;
+      if (pet.offline) rebootPet();
+      else pet.hp = pet.maxHp;
+      pet.specialAt = playTimeMs; // 특수 능력도 바로 한 번
+      resumeGame();
+    }
+    function devTogglePetInfinite() {
+      if (!IS_DEV_MODE) return;
+      petInfinite = !petInfinite;
+      updatePetInfButtons();
+    }
+    // 층 강제 변경: 도전 가능 최고 층을 그 층으로 바꾸고(낮추기도 가능) 바로 그 층을 선택
+    function devSetFloor(v) {
+      if (!IS_DEV_MODE) return;
+      const f = Math.max(1, Math.round(+v || 1));
+      save.unlockedFloor = f;
+      save.selectedFloor = f;
+      floorPage = -1;
+      writeSave();
+      renderLobby();
+    }
+
     // 도감: 신단·아이템·스킬·캐릭터·층·몬스터를 한 화면에 정리
     function openCodex() {
       const sec = (title, items) => `<div class="info-box"><h4>${title}</h4>` +
@@ -5394,6 +5961,8 @@
           ["🛡️ 보호막 아이템", "피해 3회 막기"]
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
+        sec(`🤖 동료 (방전되면 보석 ${PET_RECHARGE_GEMS}개 또는 ${PET_RECHARGE_MS / 1000}초 뒤 재가동)`, Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
+          .concat([["🤝 동료 강화 (레벨업 카드)", "레벨당 동료 공격력 +25% · 체력 +10% · 특수 능력 주기 -8% (최대 Lv5)"]])) +
         sec("🧑 캐릭터 (기본 공격 · 특성)", Object.values(CHARACTERS).map(c => [c.name, `${ATTACK_TYPES[c.attack].name}: ${ATTACK_TYPES[c.attack].desc}<br>${c.passive}`])) +
         sec("🏯 층 (끝없이 이어짐 · 맵 테마 5종 순환)", [1, 2, 3, 4, 5, 10, 20].map(f => [getStage(f).name, getStage(f).desc])) +
         sec("👾 몬스터", [
@@ -5464,7 +6033,7 @@
     let previewDef = PREVIEW_SKILLS[0];
 
     // ===== 로비 메뉴 창 열기/닫기 =====
-    const LOBBY_PANELS = ["char", "floor", "shop", "dev"];
+    const LOBBY_PANELS = ["char", "pet", "floor", "shop", "dev"];
     function openLobbyPanel(name) {
       if (name === "dev" && !IS_DEV_MODE) return;
       for (const p of LOBBY_PANELS) document.getElementById("panel-" + p).style.display = p === name ? "block" : "none";
@@ -5478,10 +6047,11 @@
     function closeLobbyPanel() {
       hideLobbyPanels();
       shopTryOn = {}; // 입어보기는 상점을 닫으면 해제
+      petTryOn = null;
       renderLobby();
     }
     function setShopTab(tab) {
-      for (const t of ["stat", "skill", "look"]) {
+      for (const t of ["stat", "skill", "look", "pet"]) {
         document.getElementById("shop-" + t).style.display = tab === t ? "block" : "none";
         document.getElementById("tab-" + t).className = "pick-btn" + (tab === t ? " on" : "");
       }
@@ -5491,6 +6061,12 @@
       // 개발자 모드일 때만 메인 화면에 '개발자 옵션' 버튼 표시
       document.getElementById("btn-dev-menu").style.display = IS_DEV_MODE ? "block" : "none";
       if (!IS_DEV_MODE) return;
+      fillPetSelect("dev-pet", cs().pet);
+      updatePetInfButtons();
+      const floorSlider = document.getElementById("dev-floor");
+      floorSlider.max = Math.max(60, save.unlockedFloor);
+      floorSlider.value = save.unlockedFloor;
+      document.getElementById("dev-floor-label").innerText = `${save.unlockedFloor}F`;
       const devSkill = document.getElementById("dev-skill");
       const pvSkill = document.getElementById("pv-skill");
       if (!devSkill.options.length) {
@@ -5704,6 +6280,9 @@
       lastEliteSpawn = 0;
       eliteSummons = [];
       resetTraps();
+      // 동료: 이번 캐릭터가 고른 동료로 시작 (증폭 필드 배율은 위에서 공격력·스킬 범위를 새로 정했으므로 그냥 끔)
+      pet.fieldOn = false;
+      resetPet(cs().pet);
       // 원소술사: 체인 라이트닝 Lv1로 시작 (미리보기 모드는 제외)
       if (ch.startSkill && gameState !== "preview") player[ch.startSkill + "Level"] = 1;
       runSeed = (Math.random() * 2147483647) | 0; // 판마다 장애물 배치가 달라짐
@@ -5742,6 +6321,7 @@
           updateTraps();
           updateShrines();
           updateClones(timestamp);
+          updatePet();
           updateDashButton();
           if (bossAlertHideAt && playTimeMs >= bossAlertHideAt) {
             bossAlert.style.display = "none";
@@ -5788,7 +6368,7 @@
       if (moveX !== 0 || moveY !== 0) {
         player.isMoving = true;
         const len = fastHypot(moveX, moveY);
-        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * trapMoveMult(moveX / len, moveY / len);
+        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * petSpeedMult() * trapMoveMult(moveX / len, moveY / len);
         player.x += (moveX / len) * spd;
         player.y += (moveY / len) * spd;
         pushOutOfObstacles(player, player.radius, 0);
@@ -6507,6 +7087,7 @@
         if (dist < player.radius + e.radius) {
           addExp(e.type === "boss" ? Math.max(1, player.nextExp - player.exp) : e.value);
           exps.splice(i, 1);
+          petGemCharge(); // 방전된 동료는 보석을 먹을 때마다 충전
           if (isPaused) break; // 레벨업 창이 뜨면 같은 프레임에 더 먹지 않음
         }
       }
@@ -7849,6 +8430,7 @@
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
 
+      drawPetFloor(timestamp);
       // 신단 버프 중: 버프 색 오라 (공격력 주황, 이속 청록, 회복 초록)
       const buffColors = { power: "#fb923c", speed: "#2dd4bf", heal: "#4ade80" };
       ctx.globalCompositeOperation = "lighter";
@@ -7889,6 +8471,8 @@
         ctx.globalCompositeOperation = "source-over";
       }
 
+      // 동료 (플레이어 뒤에서 따라다니므로 플레이어보다 먼저 그림)
+      drawPetWorld(timestamp);
       // 플레이어
       drawHumanPlayer(player.x, player.y, player.angle, timestamp);
       drawTrapsOverlay(ctx, timestamp, vx0, vy0, vx1, vy1);
@@ -7953,6 +8537,250 @@
       g.font = "bold 12px sans-serif";
       g.fillText(def.icon, x, y - 112 + bob);
       g.textBaseline = "alphabetic";
+    }
+
+    // ===== 동료 그리기 (게임·로비·상점 공용) =====
+    // s: 크기 배율 (게임 안 1), opt: { offline, charge(0~1 재가동 진행), flash, facing }
+    function drawPet(g, x, y, petId, skinId, t, s, opt) {
+      opt = opt || {};
+      const sk = petSkinOf(petId, skinId);
+      const bob = Math.sin(t / 260) * 3 * s;
+      g.textAlign = "center";
+      if (opt.offline) {
+        // 방전: 빛을 잃은 회색 구체 + 재가동 진행 고리
+        const oy = y - 4 * s + bob * 0.4;
+        drawShadow(g, x, y + 12 * s, 9 * s);
+        shadedBall(g, x, oy, 10 * s, 10 * s, 0, ["#cbd5e1", "#475569", "#0f172a"], "#020617");
+        g.beginPath();
+        g.arc(x, oy, 15 * s, 0, Math.PI * 2);
+        g.strokeStyle = "rgba(148, 163, 184, 0.35)";
+        g.lineWidth = 2.5 * s;
+        g.stroke();
+        g.beginPath();
+        g.arc(x, oy, 15 * s, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, opt.charge || 0));
+        g.strokeStyle = sk.glow;
+        g.stroke();
+        g.globalAlpha = 0.45 + 0.45 * Math.sin(t / 140);
+        g.fillStyle = sk.glow;
+        g.font = `bold ${Math.round(10 * s)}px sans-serif`;
+        g.textBaseline = "middle";
+        g.fillText("⚡", x, oy + 0.5 * s);
+        g.textBaseline = "alphabetic";
+        g.globalAlpha = 1;
+        return;
+      }
+      const yy = y - 10 * s + bob; // 공중에 떠 있음
+      drawShadow(g, x, y + 12 * s, 12 * s);
+      const facing = opt.facing || 0;
+      if (petId === "drone") {
+        // 대각선 팔 4개 끝에 회전 날개, 가운데 둥근 몸체와 렌즈
+        for (let k = 0; k < 4; k++) {
+          const a = Math.PI / 4 + k * Math.PI / 2;
+          const ex = x + Math.cos(a) * 17 * s, ey = yy + Math.sin(a) * 12 * s;
+          g.beginPath();
+          g.moveTo(x, yy);
+          g.lineTo(ex, ey);
+          g.strokeStyle = sk.c[2];
+          g.lineWidth = 3.2 * s;
+          g.stroke();
+          g.beginPath();
+          g.ellipse(ex, ey, 8 * s, 5 * s, 0, 0, Math.PI * 2);
+          g.fillStyle = rgba(sk.glow, 0.18);
+          g.fill();
+          const r = t / 28 + k;
+          g.beginPath();
+          g.moveTo(ex - Math.cos(r) * 8 * s, ey - Math.sin(r) * 5 * s);
+          g.lineTo(ex + Math.cos(r) * 8 * s, ey + Math.sin(r) * 5 * s);
+          g.strokeStyle = rgba(sk.c[0], 0.75);
+          g.lineWidth = 1.6 * s;
+          g.stroke();
+        }
+        shadedBall(g, x, yy, 11 * s, 9 * s, 0, sk.c, "#020617");
+        g.globalCompositeOperation = "lighter";
+        drawGlow(g, sk.glow, x + Math.cos(facing) * 4 * s, yy + Math.sin(facing) * 3 * s, 9 * s);
+        g.globalCompositeOperation = "source-over";
+        g.beginPath();
+        g.arc(x + Math.cos(facing) * 4 * s, yy + Math.sin(facing) * 3 * s, 2.6 * s, 0, Math.PI * 2);
+        g.fillStyle = "#ffffff";
+        g.fill();
+      } else if (petId === "golem") {
+        // 떠 있는 돌 몸통 + 빛나는 핵 + 양옆에서 둥실거리는 주먹
+        const fist = Math.sin(t / 340) * 2.5 * s;
+        for (const side of [-1, 1]) shadedBall(g, x + side * 18 * s, yy + 3 * s + fist * side, 6.5 * s, 6 * s, 0, sk.c, "#020617");
+        shadedBall(g, x, yy, 14 * s, 12 * s, 0, sk.c, "#020617");
+        shadedBall(g, x, yy - 12 * s, 6.5 * s, 5.5 * s, 0, sk.c, "#020617");
+        g.strokeStyle = rgba(sk.c[2], 0.8);
+        g.lineWidth = 1.2 * s;
+        g.beginPath();
+        g.moveTo(x - 9 * s, yy - 5 * s); g.lineTo(x - 3 * s, yy - 1 * s); g.lineTo(x - 7 * s, yy + 6 * s);
+        g.moveTo(x + 10 * s, yy - 3 * s); g.lineTo(x + 5 * s, yy + 3 * s);
+        g.stroke();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.75 + Math.sin(t / 200) * 0.25;
+        drawGlow(g, sk.glow, x, yy + 1 * s, 13 * s);
+        drawGlow(g, sk.glow, x, yy - 12 * s, 6 * s);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        g.beginPath();
+        g.moveTo(x, yy - 4 * s); g.lineTo(x + 4 * s, yy + 1 * s); g.lineTo(x, yy + 6 * s); g.lineTo(x - 4 * s, yy + 1 * s);
+        g.closePath();
+        g.fillStyle = "#ffffff";
+        g.fill();
+      } else {
+        // 정령: 흔들리는 꼬리 빛 + 빛나는 핵 + 주위를 도는 작은 불꽃
+        g.globalCompositeOperation = "lighter";
+        for (let k = 1; k <= 4; k++) {
+          const tx = x - Math.cos(facing) * k * 5 * s + Math.sin(t / 180 + k) * 2 * s;
+          const ty = yy + k * 3 * s - Math.sin(facing) * k * 3 * s;
+          g.globalAlpha = 0.5 - k * 0.09;
+          drawGlow(g, sk.glow, tx, ty, (12 - k * 2) * s);
+        }
+        g.globalAlpha = 0.9;
+        drawGlow(g, sk.glow, x, yy, 22 * s);
+        for (let k = 0; k < 3; k++) {
+          const a = t / 400 + k * Math.PI * 2 / 3;
+          drawGlow(g, sk.c[0], x + Math.cos(a) * 15 * s, yy + Math.sin(a) * 9 * s, 4.5 * s);
+        }
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, x, yy, 8.5 * s, 8.5 * s, 0, sk.c, null);
+        g.fillStyle = "#ffffff";
+        for (const side of [-1, 1]) {
+          g.beginPath();
+          g.arc(x + side * 3 * s + Math.cos(facing) * 1.5 * s, yy - 1 * s, 1.6 * s, 0, Math.PI * 2);
+          g.fill();
+        }
+      }
+      if (opt.flash > 0) {
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = Math.min(1, opt.flash / 6) * 0.8;
+        drawGlow(g, "#ffffff", x, yy, 20 * s);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      }
+    }
+
+    // 게임 화면: 증폭 필드(바닥) → 가속 잔상 → 골렘 보호막 → 정령 탄 → 공격 효과 → 동료 본체·체력바
+    function drawPetFloor(timestamp) {
+      if (!petActive() || !pet.field) return;
+      const f = pet.field, glow = petSkinOf(pet.id, pet.skin).glow;
+      const left = Math.max(0, f.until - playTimeMs);
+      const fade = Math.min(1, left / 600);
+      ctx.save();
+      ctx.globalAlpha = fade;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(glow, pet.fieldOn ? 0.16 : 0.09);
+      ctx.fill();
+      ctx.setLineDash([14, 10]);
+      ctx.lineDashOffset = -timestamp / 40;
+      ctx.strokeStyle = rgba(glow, 0.75);
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.translate(f.x, f.y);
+      ctx.rotate(timestamp / 1600);
+      ctx.strokeStyle = rgba(glow, 0.35);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let k = 0; k < 6; k++) {
+        const a = k * Math.PI / 3;
+        if (k === 0) ctx.moveTo(Math.cos(a) * f.r * 0.62, Math.sin(a) * f.r * 0.62);
+        else ctx.lineTo(Math.cos(a) * f.r * 0.62, Math.sin(a) * f.r * 0.62);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPetWorld(timestamp) {
+      if (!petActive()) return;
+      const glow = petSkinOf(pet.id, pet.skin).glow;
+      // 드론 가속 잔상
+      for (const gh of pet.ghosts) {
+        ctx.globalAlpha = (gh.life / 14) * 0.35;
+        blit(ctx, heroSprite(gh.angle, getSkin()), gh.x, gh.y);
+      }
+      ctx.globalAlpha = 1;
+      if (playTimeMs < pet.boostUntil) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.35 + Math.sin(timestamp / 90) * 0.1;
+        drawGlow(ctx, glow, player.x, player.y + 14, 34);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+      }
+      // 골렘 보호막: 남은 양만큼 밝은 원
+      if (pet.shield > 0 && pet.shieldMax > 0) {
+        const r = pet.shield / pet.shieldMax;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 38, 0, Math.PI * 2);
+        ctx.fillStyle = rgba("#60a5fa", 0.08 + r * 0.08);
+        ctx.fill();
+        ctx.strokeStyle = rgba("#93c5fd", 0.35 + r * 0.5);
+        ctx.lineWidth = 2 + r * 2;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 43, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * r);
+        ctx.strokeStyle = rgba(glow, 0.8);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of petShots) {
+        drawGlow(ctx, s.color, s.x, s.y, 13);
+        drawGlow(ctx, "#ffffff", s.x, s.y, 5);
+      }
+      for (const fx of petFx) {
+        const a = fx.life / fx.maxLife;
+        ctx.globalAlpha = Math.min(1, a * 1.6);
+        if (fx.kind === "laser") {
+          ctx.beginPath();
+          ctx.moveTo(fx.x, fx.y - 10);
+          ctx.lineTo(fx.x2, fx.y2);
+          ctx.strokeStyle = fx.color;
+          ctx.lineWidth = 4 * a + 1;
+          ctx.stroke();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          drawGlow(ctx, fx.color, fx.x2, fx.y2, 16);
+        } else if (fx.kind === "wave") {
+          // 골렘 충격파: 골렘에서 적까지 퍼지는 고리 3개 + 적 위치에서 터짐
+          for (let k = 0; k < 3; k++) {
+            const p = Math.min(1, (1 - a) * 1.6 + k * 0.15);
+            const px = fx.x + (fx.x2 - fx.x) * p, py = fx.y + (fx.y2 - fx.y) * p;
+            ctx.beginPath();
+            ctx.arc(px, py, 8 + k * 3, 0, Math.PI * 2);
+            ctx.strokeStyle = rgba(fx.color, 0.8 - k * 0.2);
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          }
+          ctx.beginPath();
+          ctx.arc(fx.x2, fx.y2, 30 * (1 - a) + 8, 0, Math.PI * 2);
+          ctx.strokeStyle = fx.color;
+          ctx.lineWidth = 4 * a;
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.arc(fx.x, fx.y, fx.r * (1 - a * 0.85), 0, Math.PI * 2);
+          ctx.strokeStyle = fx.color;
+          ctx.lineWidth = 6 * a + 1;
+          ctx.stroke();
+          drawGlow(ctx, fx.color, fx.x, fx.y, fx.r * (1 - a) * 0.8 + 10);
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      const charge = pet.offline ? Math.max((playTimeMs - pet.offlineAt) / PET_RECHARGE_MS, pet.gems / PET_RECHARGE_GEMS) : 0;
+      drawPet(ctx, pet.x, pet.y, pet.id, pet.skin, timestamp, 1.25, { offline: pet.offline, charge: charge, flash: pet.flash, facing: pet.facing });
+      // 체력바 (다쳤을 때만)
+      if (!pet.offline && pet.hp < pet.maxHp) {
+        const w = 30, r = Math.max(0, pet.hp / pet.maxHp);
+        ctx.fillStyle = "rgba(2, 6, 23, 0.8)";
+        ctx.fillRect(pet.x - w / 2 - 1, pet.y - 44, w + 2, 5);
+        ctx.fillStyle = r > 0.5 ? "#4ade80" : (r > 0.25 ? "#facc15" : "#f87171");
+        ctx.fillRect(pet.x - w / 2, pet.y - 43, w * r, 3);
+      }
     }
 
     // 분신: 보라색 반투명 잔상으로 그린 캐릭터
