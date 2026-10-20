@@ -711,6 +711,9 @@
     .dev-row { display: flex; align-items: center; gap: 8px; }
     .dev-row select {
       flex: 1;
+      min-width: 0;
+      width: 0;
+      text-overflow: ellipsis;
       padding: 8px;
       border-radius: 10px;
       border: 1px solid #475569;
@@ -757,6 +760,16 @@
       cursor: pointer;
     }
     .pv-hint { font-size: 11px; color: #94a3b8; text-align: center; }
+    /* 스킬 선택 줄: 긴 이름의 옵션이 있어도 화면 밖으로 밀리지 않게 select 를 줄어들 수 있게 함 */
+    .pv-top { gap: 6px; }
+    .pv-top select { min-width: 0; width: 0; font-size: 13px; padding: 7px 6px; }
+    .pv-top b { min-width: 0; font-size: 12px; white-space: nowrap; }
+    .pv-small { padding: 7px 9px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
+    .pv-exit { border-color: #f87171; color: #fecaca; }
+    #pv-body .lv-buttons { margin: 8px 0 4px; }
+    #pv-body .syn-info { margin-top: 8px; font-size: 11px; }
+    #preview-panel.folded #pv-body { display: none; }
+    #preview-panel { padding-bottom: 6px; }
     .lv-buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 8px; }
     .lv-buttons button {
       padding: 9px 0;
@@ -931,19 +944,18 @@
     </div>
 
     <div id="preview-panel" style="display: none;">
-      <div class="dev-row">
+      <div class="dev-row pv-top">
         <select id="pv-skill"></select>
         <b id="pv-lv-label">Lv.1</b>
-        <button class="pv-close" onclick="goToLobby()">✕ 닫기</button>
+        <button id="pv-fold" class="pv-close pv-small" onclick="togglePreviewFold()">▲</button>
+        <button class="pv-close pv-small pv-exit" onclick="goToLobby()">✕ 종료</button>
       </div>
-      <div id="pv-syn-info" class="syn-info"></div>
+      <div id="pv-body">
+        <div id="pv-syn-info" class="syn-info"></div>
+        <div id="pv-lv-buttons" class="lv-buttons"></div>
+      </div>
       <input type="hidden" id="pv-level" value="1">
-      <div id="pv-lv-buttons" class="lv-buttons"></div>
-      <div class="dev-row" style="gap: 6px; margin-bottom: 6px;">
-        <button id="pv-shooter" class="pv-close" style="flex: 1;" onclick="togglePreviewShooters()">🔫 원거리 몹 ON</button>
-        <button class="pv-close" style="flex: 1;" onclick="tryDash()">💨 대시 (무적 0.5초)</button>
-      </div>
-      <div id="pv-hint" class="pv-hint">레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동</div>
+      <div id="pv-hint" class="pv-hint">🎯 원거리 몹 탄에 맞은 횟수: 0회 (피해 없음)</div>
     </div>
 
     <div id="lobby">
@@ -1136,7 +1148,7 @@
           <div class="info-box dev-panel">
             <h4>🎰 슬롯머신 테스트 (배포판과 같은 확률)</h4>
             <div class="dev-grid">
-              <button class="dev-btn" onclick="openSlot(true)">🎰 테스트 돌리기 (미지급)</button>
+              <button class="dev-btn" onclick="openSlot(true)">🎰 테스트 돌리기</button>
               <button class="dev-btn" onclick="devAddSlotTicket()">🎟️ 실제 기회 +1</button>
               <button class="dev-btn" onclick="devAddCharXp()">⭐ 캐릭터 경험치 +500</button>
               <button class="dev-btn" onclick="devSlotStats()">📈 1만 회 확률 검증</button>
@@ -1195,7 +1207,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v28 · 2026-10-20";
+    const GAME_VERSION = "v29 · 2026-10-21";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -3141,7 +3153,6 @@
       bulletCaliberLevel: 0,
       caliberMult: 1,    // 대구경 탄환 누적 배율 (기본 탄환에 그대로, 스킬에는 25%)
       hasteLevel: 0,     // 발사 속도 증폭을 고른 횟수
-      fusions: [],       // 레벨업으로 얻은 융합(시너지) 스킬 id
       isMoving: false,
       chargeTime: 0,
       chargeThreshold: 800,
@@ -3626,19 +3637,6 @@
           title: `🦾 나노 강화 장갑 [Lv. ${player.armorLevel} ➔ Lv. ${nextLv}]`,
           desc: `받는 모든 피해량을 15% 경감시킵니다.`,
           apply: () => { player.armorLevel++; }
-        });
-      }
-
-      // 🔗 융합 스킬: 선행 스킬 2개를 모두 Lv3 이상으로 올리면 레벨업 카드로 등장 (고르면 영구 발동)
-      for (const s of SYNERGIES) {
-        if (!s.fusion || player.fusions.includes(s.id) || !fusionReady(s)) continue;
-        allUpgrades.push({
-          id: "fusion:" + s.id,
-          isOwned: true,
-          fusion: true,
-          title: `🔗 융합 스킬: ${s.name}`,
-          desc: `[시너지 조합: ${s.needs.map(needLabel).join(" + ")}] ${s.desc}`,
-          apply: () => { if (!player.fusions.includes(s.id)) player.fusions.push(s.id); }
         });
       }
 
@@ -4210,7 +4208,7 @@
     // ===== 층별 환경 함정: 1~9층은 1종, 10층부터 2종 동시 작동 =====
     // 층 번호로 정해지므로 같은 층은 항상 같은 함정 (층 선택 창에서 미리 확인 가능). 스킬 미리보기에서는 꺼짐
     const TRAP_TYPES = {
-      wind:    { name: "🌬️ 돌풍", desc: "몇 초마다 한 방향으로 강풍이 불어요. 바람을 거슬러 가면 이동속도 최대 35% 감소, 바람 방향으로 살짝 밀림" },
+      wind:    { name: "🌬️ 돌풍", desc: "몇 초마다 한 방향으로 강풍이 불어요. 바람을 거슬러 가면 이동속도 최대 35% 감소, 바람 방향으로 가면 최대 35% 증가 (가만히 있으면 살짝 밀림)" },
       gravity: { name: "🌀 중력 왜곡", desc: "근처에 중력장이 생겨 플레이어와 모든 탄환을 서서히 끌어당겨요" },
       bog:     { name: "🕸️ 속박 늪", desc: "주변에 늪이 생겨요. 들어가면 1.2초 동안 발이 묶이고(대시로 탈출 가능), 늪 안에서는 이동속도 70% 감소" },
       hazard:  { name: "🪨 낙석", lavaName: "🌋 화염 분출", desc: "붉은 경고 원이 생기고 1.2초 뒤 그 자리에 피해" },
@@ -4281,7 +4279,7 @@
       let m = 1;
       if (windActive()) {
         const dot = ux * Math.cos(trap.windAngle) + uy * Math.sin(trap.windAngle);
-        if (dot < 0) m *= 1 + 0.35 * dot; // 정면으로 거스르면 -35%
+        m *= 1 + 0.35 * dot; // 정면으로 거스르면 -35%, 바람을 등지고 가면 +35% (옆으로는 그대로)
       }
       if (hasTrap("bog") && inBog()) m *= 0.3;
       return m;
@@ -5677,7 +5675,7 @@
         desc: "플레임 노바 불길이 독 안개에 닿으면 안개가 대폭발" },
       { id: "plagueVortex", name: "🌀 역병 소용돌이", needs: ["poison", "vortex"],
         desc: "블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독 피해 1.5배" },
-      // ===== (v28) 융합 스킬: 선행 스킬 2개를 모두 Lv3 이상 → 레벨업 카드로 획득 (fusion: true) =====
+      // ===== (v28) 융합 스킬: 기존 시너지처럼 두 스킬을 랜덤 레벨업으로 모두 배우면 자동 발동 (fusion: 표시용 분류) =====
       { id: "thunderBoomerang", name: "⚡ 뇌전 부메랑", needs: ["lightning", "boomerang"], fusion: true,
         desc: "부메랑이 적에게 맞을 때마다 주변 적 3명에게 번개가 연쇄로 튐" },
       { id: "volcano", name: "🌋 화산 폭발", needs: ["meteor", "fireNova"], fusion: true,
@@ -5701,9 +5699,6 @@
       const s = PREVIEW_SKILLS.find(p => p.id === id);
       return s ? player[s.key] : 0;
     }
-    // 융합 카드 등장 조건: 필요한 스킬을 모두 Lv3 이상 ("또는" 조건은 그중 가장 높은 레벨)
-    const FUSION_NEED_LV = 3;
-    const fusionReady = s => s.needs.every(n => (Array.isArray(n) ? Math.max(...n.map(skillLevelOf)) : skillLevelOf(n)) >= FUSION_NEED_LV);
     // 개발자 미리보기·도감용: "[시너지 조합: A + B]" 문구
     const synComboText = s => `[시너지 조합: ${s.needs.map(needLabel).join(" + ")}]`;
     function skillLabel(id) {
@@ -5715,7 +5710,7 @@
     const needHas = (n, id) => Array.isArray(n) ? n.includes(id) : n === id;
     // 보유 스킬이 바뀔 때마다 호출. 새로 발동된 시너지는 화면에 알림
     function updateSynergies() {
-      const now = SYNERGIES.filter(s => s.needs.every(needMet) && (!s.fusion || player.fusions.includes(s.id))).map(s => s.id);
+      const now = SYNERGIES.filter(s => s.needs.every(needMet)).map(s => s.id);
       const fresh = now.filter(id => !activeSynergies.includes(id));
       activeSynergies = now;
       if (gameState === "playing") for (const id of fresh) showSynergyToast(SYNERGIES.find(s => s.id === id));
@@ -5980,10 +5975,10 @@
       const pool = getAvailableUpgrades();
       const fresh = pool.filter(u => !shownUpgradeIds.includes(u.id));
       const source = fresh.length >= 3 ? fresh : pool;
-      currentChoices = [...source].sort(() => Math.random() - 0.5).slice(0, 3);
-      // 🔗 융합 카드가 열려 있으면 선택지 하나는 반드시 융합 카드
-      const fusion = pool.find(u => u.fusion);
-      if (fusion && !currentChoices.some(u => u.fusion)) currentChoices[0] = fusion;
+      // 모든 선택지가 같은 확률이 되도록 피셔-예이츠 셔플 (sort+random 은 순서에 따라 확률이 치우침)
+      const deck = [...source];
+      for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+      currentChoices = deck.slice(0, 3);
       shownUpgradeIds = currentChoices.map(u => u.id);
       showUpgradeChoices();
     }
@@ -6902,7 +6897,7 @@
       document.getElementById("codex-body").innerHTML =
         sec("⛩️ 신단 (22초마다 등장 · 30초 후 사라짐)", Object.values(SHRINE_TYPES).map(d => [`${d.icon} ${d.name}`, d.desc])) +
         sec("🔗 스킬 시너지 (조합 스킬을 모두 배우면 자동 발동)", SYNERGIES.filter(s => !s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
-        sec(`🔗 융합 스킬 (두 스킬 모두 Lv${FUSION_NEED_LV} 이상 → 레벨업 카드로 획득)`, SYNERGIES.filter(s => s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
+        sec("🔗 융합 스킬 (두 스킬을 랜덤 레벨업으로 모두 배우면 자동 발동)", SYNERGIES.filter(s => s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
         sec("🎁 보너스 스테이지 (목숨 2개 · 광고 부활 1회 · 무사망 보너스)", Object.values(BONUS_MODES).map(d => [`${d.name} (${d.diffName})`, `${d.desc}<br>💰 클리어 ${d.gold}G · 무사망 +${d.noDeathGold}G`])) +
         sec("⭐ 캐릭터 레벨 · 🎰 슬롯머신", [
           ["캐릭터 레벨", `층을 클리어하면 경험치 (1층 ${floorClearXp(1)} → 층마다 +25%, 10층 ${floorClearXp(10)}). 레벨업 필요량 60 + 30×(Lv−1). 캐릭터마다 따로 오름`],
@@ -7449,7 +7444,7 @@
     // ╔══════════════════════════════════════════════════════════════╗
     // ║  🎰 슬롯머신: 캐릭터 10레벨마다 1회 · 아이템 3개 (캐릭터에 영구 귀속)   ║
     // ╚══════════════════════════════════════════════════════════════╝
-    let slotTest = false, slotSpinning = false, slotShownOnLoad = false;
+    let slotTest = false, slotSpinning = false;
     function openSlot(test) {
       if (test && !IS_DEV_MODE) return;
       slotTest = !!test;
@@ -7551,43 +7546,25 @@
       f = Math.max(1, Math.round(+f || 1));
       document.getElementById("dev-data-label").innerText = `${f}F`;
       const st = getStage(f);
-      const lvs = [1, 5, 10, 15, 20, 25];
       const spawnIv = lv => Math.max(260, 920 - (lv - 1) * 55);
       const spawnN = lv => Math.min(5, 1 + Math.floor((lv - 1) / 3));
       const perMin = lv => 60000 / spawnIv(lv) * spawnN(lv);
-      const normalHp = lv => Math.floor((10 + (lv - 1) * 1.6) * st.hp * (1 + Math.max(0, lv - 12) * 0.16));
-      const shooterRamp = lv => lv < st.shooterLv ? 0 : Math.min(1, 0.5 + (lv - st.shooterLv) * 0.085);
-      const dmgAt = (base, lv) => (base * st.dmg * (1 + Math.max(0, lv - 15) * 0.04)).toFixed(1);
-      const bossHp = lv => { const tier = lv / 5; return Math.floor(1600 * tier * (1 + tier * 0.5) * (tier < 2 ? 0.7 : 1) * st.boss); };
-      // 예상 총 스폰: 약 8분 클리어 기준, Lv1~24 를 고르게 지나간다고 가정 (보스전 중 스폰 정지는 반영 안 함)
-      let total = 0;
-      for (let lv = 1; lv < CLEAR_LEVEL; lv++) total += perMin(lv) * (480 / (CLEAR_LEVEL - 1)) / 60;
-      const shotsPerMin = 60000 / st.shooterInterval * st.shooterSpread;
-      const row = (name, fn) => `<tr><td>${name}</td>${lvs.map(lv => `<td>${fn(lv)}</td>`).join("")}</tr>`;
-      const head = `<tr><th></th>${lvs.map(lv => `<th>Lv${lv}</th>`).join("")}</tr>`;
+      const shooterP = lv => lv < st.shooterLv ? 0 : Math.min(1, st.shooterChance * Math.min(1, 0.5 + (lv - st.shooterLv) * 0.085));
+      // 예상 몹 수: 약 8분 클리어 기준, Lv1~24 를 고르게 지나간다고 가정 (spawnMonster 의 종류 확률 그대로)
+      const cnt = { normal: 0, runner: 0, tanker: 0, shooter: 0 };
+      for (let lv = 1; lv < CLEAR_LEVEL; lv++) {
+        const n = perMin(lv) * (480 / (CLEAR_LEVEL - 1)) / 60, s = shooterP(lv);
+        cnt.shooter += n * s;
+        cnt.tanker += n * Math.max(0, 1 - Math.max(s, 0.88));
+        cnt.runner += n * Math.max(0, 0.88 - Math.max(s, 0.68));
+        cnt.normal += n * Math.max(0, 0.68 - s);
+      }
+      const total = cnt.normal + cnt.runner + cnt.tanker + cnt.shooter;
+      const r = n => Math.round(n).toLocaleString() + "마리";
       document.getElementById("dev-floor-data").innerHTML =
-        `<div class="pick-desc" style="color:#e2e8f0">${st.name} · 함정: ${floorTraps(f).map(id => trapName(id, f)).join(", ")}</div>` +
-        `<h5>👾 스폰</h5><table class="floor-table">${head}` +
-        row("스폰 간격(초)", lv => (spawnIv(lv) / 1000).toFixed(2)) +
-        row("1회 마리 수", spawnN) +
-        row("분당 스폰", lv => Math.round(perMin(lv))) +
-        row("원거리 비율", lv => Math.round(st.shooterChance * shooterRamp(lv) * 100) + "%") +
-        `</table><div class="pick-desc">예상 총 스폰 ≈ <b>${Math.round(total).toLocaleString()}마리</b> (약 8분 클리어 기준 추정) · 동시 최대 ${MAX_MONSTERS}마리 · 원거리 동시 최대 ${st.shooterCap}마리</div>` +
-        `<h5>🔫 탄막 기준치 (원거리 몹)</h5><div class="pick-desc">` +
-        `${st.shooterSpread}갈래 · 탄속 ${st.shotSpeed} · 발사 간격 ${(st.shooterInterval / 1000).toFixed(2)}초(±15%) · 탄 크기 ${st.shotRadius || 6}<br>` +
-        `1마리 분당 ${shotsPerMin.toFixed(1)}발 · 최대 수(${st.shooterCap}) 기준 분당 약 <b>${Math.round(shotsPerMin * st.shooterCap)}발</b> · 등장 Lv${st.shooterLv}부터</div>` +
-        `<h5>❤️ 몹 체력 · 공격력</h5><table class="floor-table">${head}` +
-        row("일반", normalHp) +
-        row("돌격(×0.65)", lv => Math.floor(normalHp(lv) * 0.65)) +
-        row("탱커(×2.6)", lv => Math.floor(normalHp(lv) * 2.6)) +
-        row("원거리(×1.3)", lv => Math.floor(normalHp(lv) * 1.3)) +
-        row("중간보스(×14)", lv => lv >= 4 ? fmtNum(normalHp(lv) * 14) : "-") +
-        row("보스", lv => lv % 5 === 0 ? fmtNum(bossHp(lv)) : "-") +
-        row("탄 피해", lv => dmgAt(14, lv)) +
-        row("접촉 피해/초", lv => (dmgAt(0.38, lv) * 60).toFixed(0)) +
-        `</table><div class="pick-desc">스케일링: 층 체력 ×${st.hp} · 이동속도 ×${st.mobSpeed} · 공격력 ×${st.dmg} · 골드 ×${st.reward}<br>` +
-        `체력 = (10 + (Lv−1)×1.6) × 층 배율 × (Lv12부터 레벨당 +16%) × 시간 보정(분당 +3%, 최대 +45%, 표에는 미포함)<br>` +
-        `공격력 = 기본 × 층 배율 × (Lv15부터 레벨당 +4%) · 보스 체력은 층 배율 ×${st.boss}</div>`;
+        `<table class="floor-table"><tr><th>${f}F 몹 수</th><th>${r(total)}</th></tr>` +
+        `<tr><td>일반</td><td>${r(cnt.normal)}</td></tr><tr><td>돌격</td><td>${r(cnt.runner)}</td></tr>` +
+        `<tr><td>탱커</td><td>${r(cnt.tanker)}</td></tr><tr><td>원거리</td><td>${r(cnt.shooter)}</td></tr></table>`;
     }
 
     // ===== 개발자 모드: 스킬 미리보기 =====
@@ -7661,7 +7638,7 @@
         }
         // 시너지 미리보기: 조합 스킬을 함께 켬 (목록에도 어떤 두 스킬의 조합인지 표시)
         for (const s of SYNERGIES) {
-          const label = `🔗 ${s.name} ${s.fusion ? "(융합)" : "(시너지)"} = ${s.needs.map(n => needLabel(n).replace(/^\S+\s/, "")).join(" + ")}`;
+          const label = `🔗 ${s.name} (${s.fusion ? "융합" : "시너지"})`; // 조합 내용은 아래 안내 박스에 표시 (옵션이 길면 선택 박스가 화면 밖으로 밀림)
           devSkill.add(new Option(label, "syn:" + s.id));
           pvSkill.add(new Option(label, "syn:" + s.id));
         }
@@ -7681,7 +7658,7 @@
         const el = document.getElementById(id);
         el.style.display = syn && IS_DEV_MODE ? "block" : "none";
         el.innerHTML = syn ? `${synComboText(syn)}<br><span style="font-weight:600;color:#e2e8f0">${syn.name}: ${syn.desc}</span>` +
-          `<br><span style="font-weight:600;color:#94a3b8">${syn.fusion ? `획득: 두 스킬 모두 Lv${FUSION_NEED_LV} 이상 → 레벨업 융합 카드` : "획득: 두 스킬을 모두 배우면 자동 발동"}</span>` : "";
+          `<br><span style="font-weight:600;color:#94a3b8">획득: 두 스킬을 랜덤 레벨업으로 모두 배우면 자동 발동</span>` : "";
       }
     }
 
@@ -7722,6 +7699,8 @@
       lobbyEl.style.display = "none";
       uiLayer.style.display = "none";
       previewPanel.style.display = "block";
+      btnDash.style.display = "block"; // 대시 버튼은 실제 게임과 같은 위치
+      applyDashPos();
       gameState = "preview";
       activeTraps = []; // 미리보기에서는 함정 없음
       updateTrapHud();
@@ -7740,7 +7719,6 @@
         player[d.key] = lv;
         if (d.after) d.after(lv);
       }
-      player.fusions = syn && syn.fusion ? [syn.id] : []; // 융합 스킬 미리보기는 카드를 고른 것으로 처리
       poisonClouds = [];
       player.poisonTimer = 0;
       updateSynergies();
@@ -7766,7 +7744,6 @@
 
     // 미리보기용 더미 몬스터를 일정 수 유지 (느리게 다가오고, 처치 연출을 볼 수 있도록 적당한 체력)
     // + 실제로 탄을 쏘는 원거리 몹 4마리 (회피·탄 상쇄 테스트용, 맞아도 피해 없음 · 맞은 횟수만 표시)
-    let previewShooters = true;
     let previewHits = 0, previewHitsShown = -1;
     const PREVIEW_SHOOTERS = 4;
     function previewTick() {
@@ -7781,7 +7758,7 @@
         m.hp = m.maxHp = m.type === "tanker" ? 900 : 300;
       }
       guard = 0;
-      while (previewShooters && monsters.filter(m => m.previewShooter).length < PREVIEW_SHOOTERS && guard++ < 4) {
+      while (monsters.filter(m => m.previewShooter).length < PREVIEW_SHOOTERS && guard++ < 4) {
         const a = Math.random() * Math.PI * 2, d = 340 + Math.random() * 80;
         spawnMonster(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, 0.3);
         const m = monsters[monsters.length - 1];
@@ -7790,20 +7767,13 @@
       }
       if (previewHits !== previewHitsShown) {
         previewHitsShown = previewHits;
-        document.getElementById("pv-hint").innerText = previewShooters
-          ? `🎯 원거리 몹 탄에 맞은 횟수: ${previewHits}회 (피해 없음) · 대시 무적 0.5초로 피해 보세요`
-          : "레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동";
+        document.getElementById("pv-hint").innerText = `🎯 원거리 몹 탄에 맞은 횟수: ${previewHits}회 (피해 없음)`;
       }
     }
-    function togglePreviewShooters() {
-      previewShooters = !previewShooters;
-      if (!previewShooters) {
-        monsters = monsters.filter(m => !m.previewShooter);
-        enemyBullets = [];
-      }
-      previewHits = 0;
-      previewHitsShown = -1;
-      document.getElementById("pv-shooter").innerText = previewShooters ? "🔫 원거리 몹 ON" : "🔫 원거리 몹 OFF";
+    // 레벨 버튼·시너지 설명을 접었다 펴기 (접으면 화면을 거의 가리지 않음)
+    function togglePreviewFold() {
+      const folded = previewPanel.classList.toggle("folded");
+      document.getElementById("pv-fold").innerText = folded ? "▼" : "▲";
     }
 
     // 시작 능력치 = 기본값 × 캐릭터 특성 + 클리어 영구 보너스 + 상점 강화
@@ -7829,7 +7799,6 @@
       combatStats = {};
       player.caliberMult = 1;
       player.hasteLevel = 0;
-      player.fusions = [];
       player.slowUntil = 0;
       player.orbitMissileAt = 0;
       bossIntro = null;
@@ -7948,7 +7917,8 @@
       const frameDt = lastFrameTs ? Math.max(0, Math.min(100, timestamp - lastFrameTs)) : 0; // 시간이 거꾸로 가는 경우 방지
       lastFrameTs = timestamp;
       frameDtMs = Math.max(4, Math.min(50, frameDt || 16.67)); // 회전체 각속도 계산용 (너무 긴 멈춤은 50ms로 제한)
-      if (gameState === "playing" && !isPaused) playTimeMs += frameDt;
+      // 미리보기도 게임 시간이 흘러야 대시(무적·이동 종료 시각)·쿨타임이 정상 동작
+      if ((gameState === "playing" && !isPaused) || gameState === "preview") playTimeMs += frameDt;
       if (gameState === "lobby") {
         drawLobbyPreview(timestamp);
       } else {
@@ -7978,6 +7948,7 @@
         } else if (gameState === "preview") {
           previewTick();
           update(timestamp);
+          updateDashButton();
         }
         draw(timestamp);
         if (uiDirty) renderUI();
@@ -10849,8 +10820,7 @@
     }
 
     renderLobby();
-    // 지난번에 돌리지 않은 슬롯 기회가 남아 있으면 시작하자마자 슬롯머신 창 (게임을 껐다 켜도 보상 유지)
-    if (cs().slotTickets > 0) openSlot(false);
+    // 실행하면 항상 메인 화면부터 (남은 슬롯 기회는 저장돼 있고 메인 메뉴 🎰 버튼으로 돌림)
     requestAnimationFrame(gameLoop);
   </script>
 </body>
