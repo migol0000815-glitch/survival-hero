@@ -188,6 +188,7 @@
     .resume-top { flex-shrink: 0; padding: 10px 18px; border-radius: 14px; border: none; font-size: 15px; font-weight: 900; color: #052e16;
       background: linear-gradient(180deg, #4ade80, #16a34a); box-shadow: 0 4px 14px rgba(34, 197, 94, 0.45); cursor: pointer; }
     .opt-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .opt-row + .opt-row { margin-top: 14px; } /* 스위치끼리 붙어 있어 잘못 누르지 않게 간격 */
     .switch { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; background: #334155; cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
     .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #e2e8f0; transition: left 0.15s; }
     .switch.on { background: #22c55e; }
@@ -566,21 +567,13 @@
         linear-gradient(180deg, #070b18 0%, #0b1226 55%, #05070f 100%);
     }
     #lobby, #lobby * { touch-action: pan-y; }
-    /* 메인 화면 오른쪽 위 게임 종료 버튼 (메인 화면 높이를 늘리지 않도록 겹쳐 배치) */
-    .lobby-exit {
-      position: absolute;
-      top: calc(12px + env(safe-area-inset-top, 0px));
-      right: 12px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(248, 113, 113, 0.6);
-      background: rgba(15, 23, 42, 0.8);
+    /* 게임 시작 버튼 바로 아래 게임 종료 버튼 (크기는 게임 시작과 같고 색만 어둡게) */
+    .start-btn.lobby-exit {
+      background: linear-gradient(180deg, #475569, #334155 60%, #1e293b);
       color: #fecaca;
-      font-size: 13px;
-      font-weight: 800;
-      cursor: pointer;
-      z-index: 2;
+      box-shadow: 0 6px 0 #0f172a, 0 10px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.2);
     }
+    .start-btn.lobby-exit:active { box-shadow: 0 2px 0 #0f172a, 0 4px 10px rgba(0, 0, 0, 0.4); }
     .exit-box { width: 100%; max-width: 300px; padding: 22px 18px; border-radius: 18px; background: #0f172a; border: 1px solid #475569; text-align: center; color: #e2e8f0; }
     .exit-box h3 { margin: 8px 0 6px; font-size: 19px; }
     .exit-box p, #exit-done p { color: #94a3b8; font-size: 13px; margin-bottom: 16px; }
@@ -1010,8 +1003,8 @@
           <button id="btn-slot-menu" class="menu-btn gold" onclick="openSlot(false)">🎰 슬롯머신<small id="menu-slot-sub"></small></button>
         </div>
         <button id="btn-dev-menu" class="menu-btn dev" style="display: none;" onclick="openLobbyPanel('dev')">🛠️ 개발자 옵션</button>
-        <button class="lobby-exit" onclick="openExitConfirm()">⏻ 종료</button>
         <button class="start-btn" onclick="startGame()">게임 시작</button>
+        <button class="start-btn lobby-exit" onclick="openExitConfirm()">게임 종료</button>
         <div class="lobby-hint">Lv.25 최종 보스를 처치하면 클리어 · 무사망 클리어 시 특별 보상</div>
         <div id="game-version" class="lobby-hint" style="margin-top: 6px; opacity: 0.7;"></div>
       </div>
@@ -1250,7 +1243,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v30 · 2026-10-21";
+    const GAME_VERSION = "v31 · 2026-10-21";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -10851,13 +10844,15 @@
     }
 
     // ===== 휴대폰 뒤로가기 버튼: 페이지를 떠나지 않고 게임 안에서 처리 =====
-    // 방문 기록에 '가드' 항목을 하나 쌓아 두고, 뒤로가기로 가드가 빠지면(popstate) 다시 쌓으면서 게임 안의 '뒤로' 동작만 실행.
-    // (크롬은 사용자 터치 없이 쌓은 기록은 뒤로가기 때 건너뛸 수 있어서, 터치할 때마다 필요하면 다시 쌓음)
-    let backGuardFresh = false; // 마지막 가드가 터치로 쌓였는지
+    // 방문 기록에 '가드' 항목(state.shIdx = 1, 2, 3 …)을 여러 개 쌓아 두고, 뒤로가기로 가드가 하나 빠질 때(popstate)마다
+    // 게임 안의 '뒤로' 동작만 실행. 크롬(안드로이드)은 터치 없이 쌓은 기록을 뒤로가기 때 건너뛰고 바로 페이지를 나가 버리므로
+    // 가드는 반드시 터치·클릭 중에 쌓음 → 터치할 때마다 가드를 BACK_GUARDS 개까지 채움 (터치 없이 연속 6번 눌러야 나가짐)
+    const BACK_GUARDS = 6;
     let exitingGame = false;
-    function pushBackGuard(byGesture) {
+    const guardIdx = () => (history.state && history.state.shIdx) || 0;
+    function fillBackGuards() {
       if (exitingGame) return;
-      try { history.pushState({ shGuard: Date.now() }, ""); backGuardFresh = !!byGesture; } catch (e) {}
+      try { for (let i = guardIdx(); i < BACK_GUARDS; i++) history.pushState({ shIdx: i + 1 }, ""); } catch (e) {}
     }
     function isShown(id) { return document.getElementById(id).style.display === "flex"; }
     function handleBackButton() {
@@ -10879,14 +10874,17 @@
     }
     window.addEventListener("popstate", () => {
       if (exitingGame) { history.back(); return; } // 종료 중: 게임 페이지를 완전히 떠날 때까지 뒤로
-      pushBackGuard(false);
+      if (guardIdx() === 0) try { history.pushState({ shIdx: 1 }, ""); } catch (e) {} // 가드가 바닥나면 비상용 (크롬 외 브라우저)
       handleBackButton();
     });
-    // 터치/클릭할 때 가드가 터치 없이 쌓인 것이면 새로 쌓음
-    for (const ev of ["touchend", "click", "keydown"]) {
-      window.addEventListener(ev, () => { if (!backGuardFresh) pushBackGuard(true); }, true);
-    }
-    pushBackGuard(false);
+    for (const ev of ["touchend", "pointerup", "click", "keydown"]) window.addEventListener(ev, fillBackGuards, true);
+    // 그래도 페이지를 떠나려 하면 브라우저의 '사이트에서 나가시겠습니까?' 확인 (종료 버튼으로 나갈 때는 제외)
+    window.addEventListener("beforeunload", e => {
+      if (exitingGame) return;
+      e.preventDefault();
+      e.returnValue = "";
+    });
+    fillBackGuards();
 
     // ===== 게임 종료 (메인 화면 ⏻ 버튼) =====
     function openExitConfirm() { document.getElementById("exit-modal").style.display = "flex"; }
@@ -10898,7 +10896,7 @@
       if (audioCtx) try { audioCtx.suspend(); } catch (e) {}
       try { window.close(); } catch (e) {} // 앱/홈 화면 바로가기로 연 창은 여기서 닫힘
       // 브라우저 탭이면 기록을 거슬러 게임 페이지를 떠나고, 더 갈 곳이 없으면 종료 화면을 보여줌
-      setTimeout(() => { try { history.back(); } catch (e) {} }, 50);
+      setTimeout(() => { try { history.go(-(guardIdx() + 1)); } catch (e) {} }, 50);
       setTimeout(() => {
         isPaused = true;
         gameState = "lobby";
