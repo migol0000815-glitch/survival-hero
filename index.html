@@ -125,12 +125,12 @@
     }
     #btn-pause:active { transform: scale(0.92); }
 
-    /* 대시 버튼 (오른쪽 아래, 광고 배너 위) */
+    /* 대시 버튼 (오른쪽 아래) */
     #btn-dash {
       display: none;
       position: absolute;
       right: 18px;
-      bottom: 76px;
+      bottom: calc(26px + env(safe-area-inset-bottom, 0px));
       width: 68px;
       height: 68px;
       border-radius: 50%;
@@ -353,47 +353,63 @@
       transition: opacity 0.5s ease-out;
     }
 
-    #banner-ad {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 52px;
-      background: #1e293b;
-      border-top: 1.5px solid #334155;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      z-index: 10;
-      box-shadow: 0 -4px 12px rgba(0,0,0,0.5);
-    }
-    .ad-tag {
-      background: #475569;
-      color: #cbd5e1;
-      font-size: 10px;
-      padding: 2px 5px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .ad-content {
-      font-size: 12px;
-      color: #f1f5f9;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .ad-btn {
-      background: #2563eb;
-      color: white;
-      font-size: 11px;
-      font-weight: bold;
-      padding: 6px 12px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-    }
+    /* (v28) 하단 배너 광고 영역 제거 → 플레이 화면 전체 사용 */
+
+    /* ===== 캐릭터 레벨 · 슬롯머신 ===== */
+    .char-lv { width: 100%; margin-top: 6px; }
+    .char-lv-bar { height: 8px; border-radius: 5px; background: rgba(15, 23, 42, 0.9); border: 1px solid #334155; overflow: hidden; }
+    .char-lv-bar div { height: 100%; background: linear-gradient(90deg, #f59e0b, #fde047); }
+    .char-lv small { display: block; text-align: center; font-size: 11px; color: #fde68a; margin-top: 3px; font-weight: 800; }
+    .menu-grid.two { grid-template-columns: repeat(2, 1fr); margin-top: -4px; }
+    .menu-btn.gold { border-color: rgba(250, 204, 21, 0.7); background: linear-gradient(180deg, rgba(113, 63, 18, 0.9), rgba(28, 25, 23, 0.95)); color: #fef3c7; }
+    .menu-btn.gold.ready { animation: floorBadgeGlow 1.2s ease-in-out infinite alternate; }
+    #slot-modal { z-index: 46; }
+    .slot-box { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .slot-frame { width: 100%; padding: 14px 10px; border-radius: 20px; background: linear-gradient(180deg, #7c2d12, #431407); border: 3px solid #fbbf24;
+      box-shadow: 0 0 30px rgba(251, 191, 36, 0.45), inset 0 2px 0 rgba(255, 255, 255, 0.2); }
+    .slot-reels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .slot-reel { height: 96px; border-radius: 12px; background: linear-gradient(180deg, #e2e8f0, #ffffff 40%, #cbd5e1); color: #0f172a; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid #78350f; box-shadow: inset 0 6px 10px rgba(0, 0, 0, 0.35); }
+    .slot-reel b { font-size: 34px; line-height: 1; }
+    .slot-reel span { font-size: 10px; font-weight: 900; margin-top: 4px; text-align: center; padding: 0 2px; }
+    .slot-reel.spin b { animation: slotSpin 0.12s linear infinite; }
+    .slot-reel.win { border-color: #facc15; box-shadow: 0 0 18px rgba(250, 204, 21, 0.9), inset 0 6px 10px rgba(0, 0, 0, 0.25); }
+    @keyframes slotSpin { from { transform: translateY(-14px); opacity: 0.4; } to { transform: translateY(14px); opacity: 1; } }
+    .slot-info { font-size: 13px; color: #fde68a; text-align: center; line-height: 1.6; min-height: 42px; }
+    .relic-list { font-size: 12px; color: #cbd5e1; line-height: 1.7; }
+    .odds-row { display: grid; grid-template-columns: 1fr 52px; font-size: 12px; padding: 2px 0; border-bottom: 1px solid rgba(71, 85, 105, 0.3); }
+    .odds-row span:last-child { text-align: right; color: #fde68a; font-weight: 800; }
+
+    /* ===== 보너스 스테이지 ===== */
+    .bonus-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 16px; border: 1.5px solid rgba(148, 163, 184, 0.35);
+      background: linear-gradient(160deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); }
+    .bonus-card h4 { font-size: 16px; color: #f1f5f9; letter-spacing: 0; margin: 0; }
+    .bonus-card p { font-size: 12px; color: #94a3b8; line-height: 1.55; margin: 0; }
+    .bonus-card .diff { font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+    .diff.normal { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+    .diff.hard { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
+    .diff.hell { background: rgba(239, 68, 68, 0.25); color: #fca5a5; }
+    .bonus-card .start-btn { padding: 12px; font-size: 15px; letter-spacing: 1px; }
+    #rush-modal { z-index: 46; justify-content: safe center; overflow-y: auto; }
+    #rush-modal, #rush-modal * { touch-action: pan-y; }
+    .rush-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; width: 100%; max-width: 360px; }
+    .rush-grid .pick-btn { font-size: 12px; padding: 10px 4px; }
+
+    /* ===== 개발자: 층 데이터 · 레벨업 전체 선택 · 시너지 조합 표시 ===== */
+    .syn-info { margin-top: 6px; padding: 6px 8px; border-radius: 8px; background: rgba(250, 204, 21, 0.12); border: 1px solid rgba(250, 204, 21, 0.45);
+      color: #fde68a; font-size: 12px; font-weight: 800; display: none; }
+    .floor-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+    .floor-table th, .floor-table td { padding: 3px 4px; border-bottom: 1px solid rgba(71, 85, 105, 0.35); text-align: right; }
+    .floor-table th:first-child, .floor-table td:first-child { text-align: left; color: #cbd5e1; }
+    .floor-table th { color: #94a3b8; font-weight: 800; }
+    .floor-table td { color: #fde68a; }
+    .floor-data h5 { font-size: 12px; color: #7dd3fc; margin: 10px 0 2px; }
+    #levelup-modal.dev-full { justify-content: flex-start; overflow-y: auto; }
+    #levelup-modal.dev-full, #levelup-modal.dev-full * { touch-action: pan-y; }
+    .dev-pick-row { display: flex; gap: 6px; }
+    .dev-pick-row .upgrade-btn { flex: 1; padding: 10px 12px; font-size: 13px; }
+    .dev-pick-row .max-btn { flex-shrink: 0; width: 58px; border-radius: 14px; border: none; font-weight: 900; color: #1c1917; background: linear-gradient(180deg, #fbbf24, #d97706); }
+    .upgrade-btn.fusion { border-color: #facc15; background: linear-gradient(135deg, #422006, #1e293b); }
 
     .game-modal {
       display: none;
@@ -814,19 +830,42 @@
     <div id="boss-alert">⚠️ WARNING! 극강의 탄막 보스 출현 ⚠️</div>
     <div id="syn-toast"></div>
 
-    <div id="banner-ad">
-      <div class="ad-content">
-        <span class="ad-tag">AD</span>
-        <span>Google AdMob 테스트 배너 광고</span>
-      </div>
-      <button class="ad-btn" onclick="alert('배너 광고 클릭 테스트 완료!')">설치</button>
-    </div>
-
     <div id="levelup-modal" class="game-modal">
       <h2 id="levelup-title" class="modal-title" style="color: #fbbf24;">⚡ 레벨 업! 특성 선택</h2>
+      <!-- [DEV] 레벨업 프리패스: 랜덤 3개 ↔ 전체 목록 전환 -->
+      <button id="btn-dev-full" class="reroll-btn" style="display: none; margin: 0 0 10px; border-color: #f59e0b; color: #fde68a;" onclick="toggleDevFullPick()">🛠️ [DEV] 전체 스킬 목록에서 고르기</button>
       <div id="upgrade-list"></div>
       <button id="btn-reroll" class="reroll-btn" onclick="rerollUpgrades()">🔄 선택지 새로고침</button>
       <button id="btn-swap" class="reroll-btn ad" style="display: none;" onclick="openSwapPick()">🔁 보유 스킬 1개 교체 (광고)</button>
+    </div>
+
+    <!-- 보스 러시: 시작 전에 만렙으로 받을 스킬 5개 고르기 -->
+    <div id="rush-modal" class="game-modal">
+      <h2 class="modal-title" style="color: #fdba74; margin-bottom: 8px;">⚔️ 보스 러시 — 스킬 5개 선택</h2>
+      <div id="rush-info" class="pv-hint" style="margin-bottom: 10px; font-size: 13px;">만렙(MAX)으로 바로 장착할 스킬 5개를 고르세요</div>
+      <div id="rush-list" class="rush-grid"></div>
+      <div class="dev-grid" style="width: 100%; max-width: 360px; margin-top: 12px;">
+        <button class="restart-btn" onclick="rushRandomPick()">🎲 무작위 5개</button>
+        <button class="restart-btn" onclick="closeRushPick()">↩ 돌아가기</button>
+      </div>
+      <button id="rush-start" class="start-btn" style="max-width: 360px; margin-top: 8px;" onclick="confirmRushPick()">결전 시작</button>
+    </div>
+
+    <!-- 슬롯머신: 캐릭터 10레벨마다 아이템 3개 (캐릭터에 영구 귀속) -->
+    <div id="slot-modal" class="game-modal">
+      <h2 id="slot-title" class="modal-title" style="color: #fde047; margin-bottom: 10px;">🎰 레벨 보상 슬롯머신</h2>
+      <div class="slot-box">
+        <div class="slot-frame">
+          <div class="slot-reels">
+            <div id="reel-0" class="slot-reel"><b>❔</b><span></span></div>
+            <div id="reel-1" class="slot-reel"><b>❔</b><span></span></div>
+            <div id="reel-2" class="slot-reel"><b>❔</b><span></span></div>
+          </div>
+        </div>
+        <div id="slot-info" class="slot-info"></div>
+        <button id="slot-spin" class="start-btn" onclick="spinSlot()">🎰 돌리기</button>
+        <button id="slot-skip" class="restart-btn" style="width: 100%;" onclick="closeSlot()">나중에 돌리기 (메인 메뉴에서 언제든 가능)</button>
+      </div>
     </div>
 
     <div id="pause-modal" class="game-modal">
@@ -897,9 +936,14 @@
         <b id="pv-lv-label">Lv.1</b>
         <button class="pv-close" onclick="goToLobby()">✕ 닫기</button>
       </div>
+      <div id="pv-syn-info" class="syn-info"></div>
       <input type="hidden" id="pv-level" value="1">
       <div id="pv-lv-buttons" class="lv-buttons"></div>
-      <div class="pv-hint">레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동</div>
+      <div class="dev-row" style="gap: 6px; margin-bottom: 6px;">
+        <button id="pv-shooter" class="pv-close" style="flex: 1;" onclick="togglePreviewShooters()">🔫 원거리 몹 ON</button>
+        <button class="pv-close" style="flex: 1;" onclick="tryDash()">💨 대시 (무적 0.5초)</button>
+      </div>
+      <div id="pv-hint" class="pv-hint">레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동</div>
     </div>
 
     <div id="lobby">
@@ -911,9 +955,10 @@
           <canvas id="lobby-preview" width="440" height="440"></canvas>
           <div id="hero-name" class="hero-name">신참 생존자</div>
           <div id="hero-sub" class="hero-sub">외형: 기본 강화복</div>
+          <div class="char-lv"><div class="char-lv-bar"><div id="char-xp-fill" style="width: 0%;"></div></div><small id="char-xp-text"></small></div>
         </div>
         <div class="stat-grid">
-          <div class="stat"><b id="st-best">1</b><span>최고 레벨</span></div>
+          <div class="stat"><b id="st-best">1</b><span>캐릭터 레벨</span></div>
           <div class="stat"><b id="st-clears">0</b><span>클리어</span></div>
           <div class="stat"><b id="st-nodeath">0</b><span>무사망</span></div>
           <div class="stat"><b id="st-gold">0</b><span>골드</span></div>
@@ -924,6 +969,10 @@
           <button class="menu-btn" onclick="openLobbyPanel('pet')">🤖 동료<small id="menu-pet-sub"></small></button>
           <button class="menu-btn" onclick="openLobbyPanel('floor')">🏯 층 선택<small id="menu-floor-sub"></small></button>
           <button class="menu-btn" onclick="openLobbyPanel('shop')">🛒 상점<small id="menu-shop-sub"></small></button>
+        </div>
+        <div class="menu-grid two">
+          <button class="menu-btn gold" onclick="openLobbyPanel('bonus')">🎁 보너스 스테이지<small>골드 파밍 미니게임</small></button>
+          <button id="btn-slot-menu" class="menu-btn gold" onclick="openSlot(false)">🎰 슬롯머신<small id="menu-slot-sub"></small></button>
         </div>
         <button id="btn-dev-menu" class="menu-btn dev" style="display: none;" onclick="openLobbyPanel('dev')">🛠️ 개발자 옵션</button>
         <button class="start-btn" onclick="startGame()">게임 시작</button>
@@ -948,9 +997,25 @@
             <div id="lobby-bonus">없음</div>
           </div>
           <div class="info-box">
+            <h4>🎰 슬롯머신 영구 아이템 (이 캐릭터 전용)</h4>
+            <div id="relic-list" class="relic-list">아직 없음 · 캐릭터 10레벨마다 슬롯머신으로 3개 획득</div>
+          </div>
+          <div class="info-box">
             <h4>보유 칭호</h4>
             <div id="lobby-titles">아직 칭호가 없습니다</div>
           </div>
+        </div>
+      </div>
+
+      <!-- 보너스 스테이지 창: 골드 파밍 미니게임 3종 -->
+      <div id="panel-bonus" class="lobby-panel">
+        <div class="panel-inner">
+          <div class="panel-head"><h3>🎁 보너스 스테이지</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
+          <div class="info-box pet-rule">
+            목숨 <b>❤️ 2개</b>로 시작 · 목숨을 다 쓰면 <b>📺 광고 보고 1회 부활</b> 가능<br>
+            한 번도 죽지 않고 클리어하면 <b>무사망 보너스 골드</b>를 크게 더 받아요
+          </div>
+          <div id="bonus-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
       </div>
 
@@ -974,7 +1039,7 @@
             <h4>🔋 방전과 재가동 (개발자 보기)</h4>
             동료는 적의 몸통 공격과 탄환을 맞으면 체력이 줄어요. 동료가 맞은 탄환은 사라져서 나에게 오지 않아요.<br>
             체력이 0이 되면 쓰러지지 않고 <b>방전(오프라인)</b> 상태의 구체가 되어 뒤를 따라와요.<br>
-            <b>경험치 보석 18개를 먹거나 15초가 지나면</b> 100% 체력으로 재가동하고, 재가동할 때 주변 적에게 충격파를 퍼뜨려요. 횟수 제한은 없어요.
+            시간이 지나도 저절로 살아나지 않아요. 방전된 뒤 <b>경험치 보석을 100개 모으면</b> 100% 체력으로 재가동하고, 재가동할 때 주변 적에게 충격파를 퍼뜨려요. 동료 머리 위에 🪫 REPAIR 아이콘과 수집 게이지가 표시돼요.
           </div>
           <button class="menu-btn" onclick="openLobbyPanel('shop'); setShopTab('pet')">🛒 동료 외형 상점 가기</button>
         </div>
@@ -1053,9 +1118,30 @@
               <select id="dev-skill"></select>
               <b id="dev-lv-label">Lv.1</b>
             </div>
+            <div id="dev-syn-info" class="syn-info"></div>
             <input type="hidden" id="dev-level" value="1">
             <div id="dev-lv-buttons" class="lv-buttons"></div>
             <button class="dev-btn" onclick="startPreview()">▶ 미리보기 실행</button>
+            <div class="lobby-hint" style="margin-top: 6px;">미리보기 방에는 더미 몹 + 실제로 탄을 쏘는 원거리 몹이 함께 나와요 (회피·탄 상쇄 테스트)</div>
+          </div>
+          <div class="info-box dev-panel">
+            <h4>🏯 층별 데이터 뷰어</h4>
+            <div class="dev-row">
+              <span style="font-size: 12px; white-space: nowrap;">층 선택</span>
+              <input type="range" id="dev-data-floor" min="1" max="60" value="1" style="flex: 1; margin: 0;" oninput="renderFloorData(+this.value)">
+              <b id="dev-data-label">1F</b>
+            </div>
+            <div id="dev-floor-data" class="floor-data"></div>
+          </div>
+          <div class="info-box dev-panel">
+            <h4>🎰 슬롯머신 테스트 (배포판과 같은 확률)</h4>
+            <div class="dev-grid">
+              <button class="dev-btn" onclick="openSlot(true)">🎰 테스트 돌리기 (미지급)</button>
+              <button class="dev-btn" onclick="devAddSlotTicket()">🎟️ 실제 기회 +1</button>
+              <button class="dev-btn" onclick="devAddCharXp()">⭐ 캐릭터 경험치 +500</button>
+              <button class="dev-btn" onclick="devSlotStats()">📈 1만 회 확률 검증</button>
+            </div>
+            <div id="dev-slot-odds" class="relic-list"></div>
           </div>
           <div class="info-box dev-panel">
             <h4>🛠️ 테스트 도구</h4>
@@ -1109,15 +1195,25 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v27 · 2026-10-18";
+    const GAME_VERSION = "v28 · 2026-10-20";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
     // 모든 스킬 피해 배율 (1.0 = 기존). 난이도 조절은 이 숫자로 하면 됩니다.
     const SKILL_POWER = 1.5;
     let skillPower = SKILL_POWER; // 실제 적용 배율 (캐릭터 특성 반영, 판 시작 시 계산)
-    // 고정 피해 스킬(부메랑·노바·칼날·얼음)도 공격력 성장(대구경 탄환, 영구 보너스)을 따라가도록
+    // 고정 피해 스킬(부메랑·노바·칼날·얼음)도 공격력 성장(레벨당 공격력, 영구 보너스)을 따라가도록
     function skillScale() { return skillPower * (player.damage / 13); }
+    // 💥 대구경 탄환: 기본 탄환은 레벨당 ×1.45, 다른 모든 공격 스킬은 그 증가분의 25%만 (오버밸런스 방지)
+    const CALIBER_STEP = 1.45;
+    const CALIBER_SKILL_EFF = 0.25;
+    function caliberSkillMult() { return 1 + (player.caliberMult - 1) * CALIBER_SKILL_EFF; }
+    // 🚀 발사 속도 증폭: 전역 효과(모든 스킬 발사 주기 ×0.94, 투사체 속도 ×1.1)는 5회까지 누적
+    const HASTE_MAX = 5;
+    const HASTE_CD = 0.94;
+    const HASTE_PROJ = 1.1;
+    // 🔥 플레임 노바 쿨타임 (v28 대폭 단축): Lv1 2.0초 → Lv4 1.55초, Lv5는 화면 전체 파동이라 1.6초
+    function fireNovaCooldown(lv) { return lv >= 5 ? 1600 : 2000 - (lv - 1) * 150; }
 
     // ===== 사운드 엔진 (Web Audio 실시간 합성) =====
     // 모든 효과음은 컴프레서(음압·타격감) + 리버브(공간감) 버스를 거쳐 출력됩니다.
@@ -1227,21 +1323,31 @@
       // 캐릭터별 기본 공격 발사음
       basicAttack(kind) {
         if (kind === "snipe") {
-          // 날카로운 총성: 짧은 고음 크랙 + 묵직한 저음
+          // 건슬링어 고속 실탄: 날카로운 총성 크랙 + 묵직한 반동 저음 + 탄피가 떨어지는 금속음
           if (!sfxReady("atkSnipe", 70)) return;
-          sfxNoise({ filter: "highpass", freq: 2500, dur: 0.05, vol: 0.22, wet: 0.35 });
-          sfxTone({ type: "triangle", freq: 1500, freqEnd: 300, dur: 0.08, vol: 0.08, wet: 0.2 });
-          sfxTone({ freq: 120, freqEnd: 45, dur: 0.12, vol: 0.22 });
+          sfxNoise({ filter: "highpass", freq: 3200, dur: 0.035, vol: 0.28, wet: 0.4 });
+          sfxNoise({ filter: "bandpass", freq: 1400, freqEnd: 400, q: 1.4, dur: 0.1, vol: 0.16, wet: 0.25 });
+          sfxTone({ freq: 140, freqEnd: 42, dur: 0.14, vol: 0.28 });
+          sfxTone({ type: "triangle", freq: 4200, dur: 0.05, vol: 0.03, delay: 0.16 });
+          sfxTone({ type: "triangle", freq: 3600, dur: 0.04, vol: 0.02, delay: 0.22 });
         } else if (kind === "fireball") {
-          // 화르륵: 위로 열리는 노이즈 + 낮은 울림
+          // 파이로 화염탄: 화르륵 타오르며 날아가는 소리 + 낮은 불꽃 울림
           if (!sfxReady("atkFire", 90)) return;
-          sfxNoise({ filter: "lowpass", freq: 400, freqEnd: 2600, dur: 0.22, vol: 0.18, attack: 0.03, wet: 0.25 });
-          sfxTone({ freq: 90, freqEnd: 55, dur: 0.2, vol: 0.16 });
+          sfxNoise({ filter: "lowpass", freq: 300, freqEnd: 3000, dur: 0.26, vol: 0.2, attack: 0.04, wet: 0.3 });
+          sfxNoise({ filter: "bandpass", freq: 900, q: 0.7, dur: 0.18, vol: 0.08, delay: 0.05 });
+          sfxTone({ freq: 85, freqEnd: 50, dur: 0.24, vol: 0.18 });
+        } else if (kind === "ice") {
+          // 프로스트 얼음 가시: 유리처럼 맑은 차임 + 얼어붙는 쉬익 소리
+          if (!sfxReady("atkIce", 80)) return;
+          sfxTone({ type: "triangle", freq: 1900, freqEnd: 2600, dur: 0.16, vol: 0.07, wet: 0.6 });
+          sfxTone({ type: "sine", freq: 3100, dur: 0.22, vol: 0.04, wet: 0.7, delay: 0.03 });
+          sfxNoise({ filter: "highpass", freq: 6500, dur: 0.12, vol: 0.09, wet: 0.4 });
         } else if (kind === "bolt") {
-          // 지지직: 고음 노이즈 + 톱니파 떨림
+          // 스파크 체인 전격: 찌릿한 고음 + 사각파 지지직 + 짧은 방전 크랙
           if (!sfxReady("atkBolt", 70)) return;
-          sfxNoise({ filter: "bandpass", freq: 5200, freqEnd: 1800, q: 4, dur: 0.09, vol: 0.16, wet: 0.3 });
-          sfxTone({ type: "sawtooth", freq: 900, freqEnd: 420, dur: 0.07, vol: 0.05 });
+          sfxNoise({ filter: "bandpass", freq: 5600, freqEnd: 1600, q: 4, dur: 0.1, vol: 0.18, wet: 0.3 });
+          sfxTone({ type: "square", freq: 1200, freqEnd: 300, dur: 0.08, vol: 0.045 });
+          sfxTone({ type: "sawtooth", freq: 160, freqEnd: 90, dur: 0.06, vol: 0.06, delay: 0.02 });
         } else {
           this.shoot();
         }
@@ -1331,6 +1437,37 @@
         sfxTone({ freq: 90, freqEnd: 26, dur: 1.1, vol: 0.55, delay: 1.25 });
         [[392, 0], [311, 0.05], [233, 0.1]].forEach(([f, d]) => sfxTone({ type: "triangle", freq: f, freqEnd: f * 0.55, dur: 1.6, vol: 0.08, wet: 0.6, delay: 1.3 + d, attack: 0.02 }));
       },
+      // 보스 등장 팡파르 (약 3.2초): 빨라지는 팀파니 → 금관 화음이 부풀고 합창·심벌이 차오름 → 마지막에 거대한 타격음
+      // 이 소리가 끝나는 순간(BOSS_INTRO_MS) 보스가 실제로 나타남
+      bossIntro() {
+        if (!audioCtx) return;
+        let d = 0;
+        for (let k = 0; k < 14; k++) { // 팀파니 롤: 간격이 점점 좁아짐
+          sfxTone({ freq: 70, freqEnd: 44, dur: 0.28, vol: 0.18 + k * 0.02, delay: d });
+          sfxNoise({ filter: "lowpass", freq: 260, dur: 0.12, vol: 0.06 + k * 0.006, delay: d });
+          d += Math.max(0.07, 0.3 - k * 0.02);
+        }
+        [[73.4, 0], [110, 0.05], [146.8, 0.1], [174.6, 0.15], [220, 0.4]].forEach(([f, dl]) => { // 금관 D단조 화음 (점점 커짐)
+          sfxTone({ type: "sawtooth", freq: f, dur: 2.7 - dl, vol: 0.035, attack: 1.6, wet: 0.5, delay: dl });
+          sfxTone({ type: "triangle", freq: f * 2, dur: 2.6 - dl, vol: 0.05, attack: 1.4, wet: 0.6, delay: dl });
+        });
+        [[293.7, 0.6], [349.2, 0.75], [440, 0.9]].forEach(([f, dl]) => // 합창 느낌의 높은 화음
+          sfxTone({ type: "triangle", freq: f, dur: 2.2, vol: 0.04, attack: 1.2, wet: 0.85, delay: dl }));
+        sfxNoise({ filter: "highpass", freq: 4000, dur: 2.2, vol: 0.12, attack: 2.0, wet: 0.6, delay: 0.8 }); // 심벌 스웰
+        // 2.95초: 거대한 타격 (저음 붐 + 폭발 노이즈 + 금관 스탭)
+        sfxTone({ freq: 62, freqEnd: 24, dur: 1.4, vol: 0.75, delay: 2.95 });
+        sfxNoise({ filter: "lowpass", freq: 5000, freqEnd: 90, dur: 1.2, vol: 0.55, wet: 0.6, delay: 2.95 });
+        [146.8, 220, 293.7].forEach(f => sfxTone({ type: "sawtooth", freq: f, freqEnd: f * 0.97, dur: 0.9, vol: 0.06, wet: 0.6, delay: 2.95 }));
+      },
+      slotTick() {
+        if (!sfxReady("slotTick", 60)) return;
+        sfxTone({ type: "square", freq: 1400, dur: 0.03, vol: 0.03 });
+      },
+      slotStop() {
+        if (!sfxReady("slotStop", 50)) return;
+        sfxTone({ type: "triangle", freq: 660, dur: 0.18, vol: 0.12, wet: 0.4 });
+        sfxNoise({ filter: "bandpass", freq: 2500, q: 2, dur: 0.05, vol: 0.1 });
+      },
       clear() {
         if (!audioCtx) return;
         [[523, 0], [659, 0.15], [784, 0.3], [1047, 0.45], [784, 0.7], [1047, 0.85]].forEach(([f, d]) => {
@@ -1355,7 +1492,7 @@
     // 보석이 너무 많이 쌓이면, 플레이어에게서 가장 먼 보석을 없애고 그 경험치를 새 보석에 합침
     // (새 보석은 항상 몬스터가 죽은 자리에 보이고, 경험치 손실도 없음)
     function dropExp(gem) {
-      if (gameState === "preview") return; // 스킬 미리보기에서는 보석 없음
+      if (gameState === "preview" || bonus) return; // 스킬 미리보기·보너스 스테이지에서는 보석 없음
       if (exps.length >= MAX_EXPS) {
         let farIdx = -1;
         let farD = -1;
@@ -1394,6 +1531,7 @@
     function defaultSave() {
       return {
         bestLevel: 1, bestKills: 0, plays: 0, clears: 0, noDeathClears: 0, gold: 0, titles: [], bestClearMs: 0, minimap: true,
+        bonusStats: {},        // 보너스 스테이지 기록 { 모드: { plays, clears, perfect, bestMs } }
         unlockedFloor: 1,      // 개방된 최고 층
         selectedFloor: 1,      // 로비에서 고른 층
         character: "survivor"  // 로비에서 고른 캐릭터
@@ -1418,8 +1556,8 @@
       wisp: { name: "✨ 증폭술사 정령", short: "정령", hpMult: 0.7, dmg: 0.55, atkMs: 800, range: 480, specialMs: 16000,
         attackDesc: "적을 따라가 터지는 마력탄 (작은 범위 피해)", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%, 필드 안 적에게 지속 피해)" }
     };
-    const PET_RECHARGE_MS = 15000;  // 방전 후 자동 재가동까지
-    const PET_RECHARGE_GEMS = 18;   // 이만큼 보석을 먹으면 바로 재가동
+    // 방전된 동료는 시간이 지나도 자동으로 살아나지 않음. 방전 후 경험치 보석을 이만큼 모아야 재가동
+    const PET_RECHARGE_GEMS = 100;
     // 동료 외형: c = 몸체 [밝음, 중간, 어두움], glow = 빛·공격 색
     const PET_SKINS = {
       drone: [
@@ -1453,7 +1591,10 @@
         owned: [],                                      // 구매한 외형 ("slot:id", 동료 외형은 "pet:동료ID:외형ID")
         equip: { hat: "", armor: "", weapon: "", aura: "" }, // 장착 중인 외형
         pet: "drone",                                   // 함께하는 동료
-        petSkin: { drone: "", golem: "", wisp: "" }     // 동료별 장착 외형 ("" = 기본)
+        petSkin: { drone: "", golem: "", wisp: "" },    // 동료별 장착 외형 ("" = 기본)
+        lvl: 1, xp: 0,                                  // 캐릭터 레벨 (층 클리어 경험치로 오름)
+        slotTickets: 0,                                 // 아직 돌리지 않은 슬롯머신 기회 (10레벨마다 +1)
+        relics: {}                                      // 슬롯머신으로 얻은 영구 아이템 { 아이템ID: 개수 }
       };
     }
     function normalizeCharSave(c) {
@@ -1465,8 +1606,50 @@
         owned: Array.isArray(c.owned) ? c.owned : [],
         equip: Object.assign(d.equip, c.equip),
         pet: PETS[c.pet] ? c.pet : d.pet,
-        petSkin: Object.assign(d.petSkin, c.petSkin)
+        petSkin: Object.assign(d.petSkin, c.petSkin),
+        lvl: Math.max(1, Math.floor(+c.lvl || 1)),
+        xp: Math.max(0, +c.xp || 0),
+        slotTickets: Math.max(0, Math.floor(+c.slotTickets || 0)),
+        relics: c.relics && typeof c.relics === "object" ? c.relics : {}
       };
+    }
+
+    // ===== 캐릭터 레벨: 층을 클리어하면 경험치, 10레벨마다 슬롯머신 1회 (아이템 3개 영구 귀속) =====
+    function charXpNeed(lv) { return 60 + 30 * (lv - 1); }
+    // 층 클리어 경험치: 1층 120 → 층마다 +25% (5층 240, 10층 390)
+    function floorClearXp(floor) { return Math.round(120 * (1 + (floor - 1) * 0.25)); }
+    // 경험치를 더하고, 오른 레벨 목록을 돌려줌 (10의 배수 레벨마다 슬롯 기회 +1)
+    function addCharXp(amount, id) {
+      const c = cs(id);
+      const ups = [];
+      c.xp += Math.round(amount);
+      while (c.xp >= charXpNeed(c.lvl)) {
+        c.xp -= charXpNeed(c.lvl);
+        c.lvl++;
+        ups.push(c.lvl);
+        if (c.lvl % 10 === 0) { c.slotTickets++; slotAutoPending = true; }
+      }
+      return ups;
+    }
+    let slotAutoPending = false; // 새 슬롯 기회가 생기면 메인 화면에 돌아올 때 슬롯 창을 바로 띄움
+
+    // 슬롯머신 아이템: weight 합계 100 → 그대로 확률(%). instant 는 즉시 골드, 나머지는 캐릭터에 영구 귀속
+    const RELICS = [
+      { id: "atk", icon: "⚔️", name: "기본 공격력 +5", weight: 22 },
+      { id: "hp", icon: "❤️", name: "최대 체력 +20", weight: 18 },
+      { id: "spd", icon: "👟", name: "이동속도 +5%", weight: 16 },
+      { id: "gold", icon: "💰", name: "골드 +500 (즉시 지급)", weight: 20, instant: 500 },
+      { id: "magnet", icon: "🧲", name: "자석 범위 +15%", weight: 8 },
+      { id: "skill", icon: "✨", name: "스킬 피해 +5%", weight: 8 },
+      { id: "goldUp", icon: "📈", name: "판 종료 골드 +10%", weight: 5 },
+      { id: "jackpot", icon: "👑", name: "잭팟! 골드 +3,000 (즉시 지급)", weight: 3, instant: 3000 }
+    ];
+    function relicCount(id, charId) { return (cs(charId).relics[id] || 0); }
+    function rollRelic() {
+      const total = RELICS.reduce((a, r) => a + r.weight, 0);
+      let x = Math.random() * total;
+      for (const r of RELICS) { x -= r.weight; if (x < 0) return r; }
+      return RELICS[0];
     }
     const charSaves = {};
     // cs(): 지금 고른 캐릭터(또는 지정한 캐릭터)의 상점 데이터
@@ -1580,25 +1763,31 @@
     const ATTACK_TYPES = {
       energy:   { name: "⚡ 에너지탄", desc: "균형 잡힌 기본 탄환",
         speed: 11, dmgMult: 1, range: 950, radiusMult: 1, tailLen: 2.2, tail: "rgba(250, 204, 21, 0.4)", glow: "#facc15" },
-      snipe:    { name: "🎯 고속 실탄", desc: "탄속 2배 · 사거리 1300 · 한 발 피해 ×1.6 (단일 대상)",
-        speed: 22, dmgMult: 1.6, range: 1300, radiusMult: 0.6, tailLen: 3.2, tail: "rgba(165, 243, 252, 0.6)", glow: "#67e8f9" },
-      fireball: { name: "🔥 화염탄", desc: "탄속 보통 · 명중 시 주변에 폭발 (반경 60, 피해 70%)",
-        speed: 8, dmgMult: 1, range: 900, radiusMult: 1.5, tailLen: 2.6, tail: "rgba(249, 115, 22, 0.5)", glow: "#f97316", core: "#fde047" },
-      bolt:     { name: "🌩️ 전격탄", desc: "명중 시 주변 적 2명에게 연쇄 감전 (피해 60%)",
-        speed: 13, dmgMult: 0.95, range: 950, radiusMult: 0.9, tailLen: 2.2, tail: "rgba(167, 139, 250, 0.55)", glow: "#a78bfa" }
+      // pierce: 관통해서 더 맞힐 수 있는 적 수, slowMs: 맞은 적 둔화 시간
+      snipe:    { name: "🔫 고속 실탄", desc: "매우 빠른 직선 관통탄 · 한 발 피해 ×1.5 · 일직선의 적 3명까지 꿰뚫음 · 사거리 1300",
+        speed: 24, dmgMult: 1.5, range: 1300, radiusMult: 0.6, tailLen: 3.4, tail: "rgba(254, 240, 138, 0.6)", glow: "#fde68a", pierce: 2 },
+      fireball: { name: "🔥 화염탄", desc: "명중 시 폭발하며 주변에 화염 스플래시 (반경 70, 피해 75%)",
+        speed: 8.5, dmgMult: 1, range: 900, radiusMult: 1.5, tailLen: 2.6, tail: "rgba(249, 115, 22, 0.5)", glow: "#f97316", core: "#fde047" },
+      ice:      { name: "❄️ 얼음 가시", desc: "적을 관통(최대 3명)하며 맞은 적의 이동속도를 1초간 50% 둔화",
+        speed: 15, dmgMult: 0.95, range: 1000, radiusMult: 0.85, tailLen: 2.8, tail: "rgba(186, 230, 253, 0.6)", glow: "#7dd3fc", core: "#f0f9ff", pierce: 2, slowMs: 1000 },
+      bolt:     { name: "⚡ 체인 전격", desc: "명중 시 주변 적 2~3명에게 번개가 튀는 연쇄 공격 (피해 65%)",
+        speed: 13, dmgMult: 0.95, range: 950, radiusMult: 0.9, tailLen: 2.2, tail: "rgba(250, 204, 21, 0.5)", glow: "#facc15" }
     };
 
     // ===== 게임 데이터: 캐릭터 =====
+    // (v28) 캐릭터 4종을 평타 원소/스타일로 완전히 구분: 건슬링어(실탄) · 파이로(화염) · 프로스트(얼음) · 스파크(전격)
+    // 저장 데이터 호환을 위해 ID(survivor/warrior/assassin/mage)는 그대로 유지
     const CHARACTERS = {
-      survivor: { name: "🛡️ 생존자", attack: "energy", passive: "균형형 · 클리어 보상 외형(은빛·황금 갑옷) 적용",
+      survivor: { name: "🔫 건슬링어", attack: "snipe", passive: "균형형 · 고속 관통탄 · 클리어 보상 외형(은빛·황금 코트) 적용",
         hpMult: 1, speedMult: 1, fireRateMult: 1, armor: 0, dodge: 0, skillMult: 1, crit: 0 },
-      assassin: { name: "🗡️ 신속의 암살자", attack: "snipe", passive: "이동속도 +20% · 공격 쿨타임 -10% · 12% 확률로 피해 회피 · 체력 -25%",
-        hpMult: 0.75, speedMult: 1.2, fireRateMult: 0.9, armor: 0, dodge: 0.12, skillMult: 1, crit: 0, skin: "assassin" },
-      warrior: { name: "🪖 중장갑 전사", attack: "fireball", passive: "최대 체력 +40% · 받는 피해 -15% · 이동속도 -10%",
+      warrior: { name: "🔥 파이로", attack: "fireball", passive: "최대 체력 +40% · 받는 피해 -15% · 이동속도 -10%",
         hpMult: 1.4, speedMult: 0.9, fireRateMult: 1, armor: 0.15, dodge: 0, skillMult: 1, crit: 0, skin: "warrior" },
-      mage: { name: "🔮 원소술사", attack: "bolt", passive: "기본 공격 치명타 확률 15% (피해 ×2) · 모든 스킬 피해 +20% · 체인 라이트닝 Lv1로 시작 · 체력 -10%",
+      assassin: { name: "❄️ 프로스트", attack: "ice", passive: "이동속도 +20% · 공격 쿨타임 -10% · 12% 확률로 피해 회피 · 체력 -25%",
+        hpMult: 0.75, speedMult: 1.2, fireRateMult: 0.9, armor: 0, dodge: 0.12, skillMult: 1, crit: 0, skin: "assassin" },
+      mage: { name: "⚡ 스파크", attack: "bolt", passive: "기본 공격 치명타 확률 15% (피해 ×2) · 모든 스킬 피해 +20% · 체인 라이트닝 Lv1로 시작 · 체력 -10%",
         hpMult: 0.9, speedMult: 1, fireRateMult: 1, armor: 0, dodge: 0, skillMult: 1.2, crit: 0.15, startSkill: "lightning", skin: "mage" }
     };
+    const CHARACTER_ORDER = ["survivor", "warrior", "assassin", "mage"]; // 건슬링어 → 파이로 → 프로스트 → 스파크
     function currentCharacter() { return CHARACTERS[save.character] || CHARACTERS.survivor; }
     function currentAttack() { return ATTACK_TYPES[currentCharacter().attack] || ATTACK_TYPES.energy; }
 
@@ -1618,10 +1807,11 @@
       { id: "dur", name: "🚀 투사체 속도·지속시간", per: 5, unit: "%", sign: "+", max: 8, base: 350, growth: 1.34, desc: "미사일·부메랑·수리검 속도, 메테오 화염·얼음 길·칼날 지속시간 증가" }
     ];
     // 판 시작 시 save.skillShop에서 계산되는 배율 (dmg·area·dur는 1 이상, cd는 1 이하)
-    let skillUp = { dmg: 1, cd: 1, area: 1, dur: 1 };
+    // proj: 투사체 속도 배율 (레벨업 '🚀 발사 속도 증폭'의 전역 효과로만 오름)
+    let skillUp = { dmg: 1, cd: 1, area: 1, dur: 1, proj: 1 };
     function computeSkillUp() {
       const s = cs().skillShop;
-      return { dmg: 1 + s.dmg * 0.05, cd: 1 - s.cd * 0.03, area: 1 + s.area * 0.04, dur: 1 + s.dur * 0.05 };
+      return { dmg: 1 + s.dmg * 0.05, cd: 1 - s.cd * 0.03, area: 1 + s.area * 0.04, dur: 1 + s.dur * 0.05, proj: 1 };
     }
     function buySkillShopItem(id) {
       const item = SKILL_SHOP_ITEMS.find(s => s.id === id);
@@ -1800,15 +1990,19 @@
       g.fill();
     }
 
+    // (v28) SD 캐릭터 팔레트: armor = 옷, helmet = 모자·후드·고글, hair = 머리카락, trim = 포인트(스카프·벨트), visor = 눈·빛 색
     const HERO_SKINS = {
-      default: { name: "기본 강화복", armor: ["#bfdbfe", "#1d4ed8", "#0b1530"], helmet: ["#dbeafe", "#1e3a8a", "#070d1f"], trim: "#38bdf8", visor: "#22d3ee", gun: ["#e2e8f0", "#475569", "#0f172a"] },
-      silver: { name: "은빛 갑옷", armor: ["#ffffff", "#94a3b8", "#1e293b"], helmet: ["#ffffff", "#64748b", "#0f172a"], trim: "#e2e8f0", visor: "#38bdf8", gun: ["#f8fafc", "#64748b", "#0f172a"] },
-      gold: { name: "황금 갑옷", armor: ["#fef3c7", "#d97706", "#451a03"], helmet: ["#fffbeb", "#b45309", "#3b1d02"], trim: "#fde047", visor: "#f0abfc", gun: ["#fef9c3", "#a16207", "#422006"] },
+      default: { name: "건슬링어 코트", armor: ["#fde2bf", "#a0522d", "#3b1d0c"], helmet: ["#f0c890", "#8b5a2b", "#2a1608"], hair: ["#a16207", "#5b3a1e", "#24140a"], trim: "#ef4444", visor: "#38bdf8", gun: ["#e2e8f0", "#475569", "#0f172a"] },
+      silver: { name: "은빛 코트", armor: ["#ffffff", "#94a3b8", "#1e293b"], helmet: ["#f8fafc", "#64748b", "#0f172a"], hair: ["#f1f5f9", "#94a3b8", "#334155"], trim: "#38bdf8", visor: "#38bdf8", gun: ["#f8fafc", "#64748b", "#0f172a"] },
+      gold: { name: "황금 코트", armor: ["#fef3c7", "#d97706", "#451a03"], helmet: ["#fffbeb", "#b45309", "#3b1d02"], hair: ["#fef08a", "#eab308", "#713f12"], trim: "#f0abfc", visor: "#a855f7", gun: ["#fef9c3", "#a16207", "#422006"] },
       // 캐릭터 고유 외형
-      assassin: { name: "암살자 복장", armor: ["#c4b5fd", "#3b0764", "#0b0118"], helmet: ["#a5b4fc", "#1e1b4b", "#05030f"], trim: "#2dd4bf", visor: "#5eead4", gun: ["#e2e8f0", "#334155", "#020617"] },
-      warrior: { name: "중장갑", armor: ["#fde68a", "#92400e", "#1c0a02"], helmet: ["#fef3c7", "#78350f", "#140701"], trim: "#ef4444", visor: "#fca5a5", gun: ["#d6d3d1", "#57534e", "#1c1917"] },
-      mage: { name: "원소술사 로브", armor: ["#bfdbfe", "#4338ca", "#0c0a3e"], helmet: ["#e0e7ff", "#3730a3", "#09072a"], trim: "#c084fc", visor: "#f0abfc", gun: ["#ede9fe", "#7c3aed", "#1e0b4b"] }
+      warrior: { name: "파이로 방화복", armor: ["#fecaca", "#dc2626", "#450a0a"], helmet: ["#fde68a", "#f97316", "#7c2d12"], hair: ["#fde047", "#f97316", "#9a3412"], trim: "#fbbf24", visor: "#fde047", gun: ["#d6d3d1", "#57534e", "#1c1917"] },
+      assassin: { name: "프로스트 후드", armor: ["#f0f9ff", "#7dd3fc", "#0c4a6e"], helmet: ["#ffffff", "#bae6fd", "#1e3a5f"], hair: ["#ffffff", "#e0f2fe", "#7dd3fc"], trim: "#e0f2fe", visor: "#38bdf8", gun: ["#e0f2fe", "#38bdf8", "#0c4a6e"] },
+      mage: { name: "스파크 후디", armor: ["#ede9fe", "#7c3aed", "#2e1065"], helmet: ["#fef9c3", "#facc15", "#713f12"], hair: ["#fef9c3", "#facc15", "#a16207"], trim: "#facc15", visor: "#fde047", gun: ["#ede9fe", "#7c3aed", "#1e0b4b"] }
     };
+    const SKIN_TONE = ["#fff1e6", "#f9cdb0", "#b97a5c"];
+    // 외형 키 → 캐릭터 종류 (머리 모양·모자·무기)
+    function heroKind(skin) { return ({ warrior: "pyro", assassin: "frost", mage: "spark" })[skin] || "gunslinger"; }
 
     const MONSTER_LOOKS = {
       normal: { body: ["#bbf7d0", "#16a34a", "#052e16"], limb: ["#86efac", "#15803d", "#052e16"], eye: "#ef4444" },
@@ -1817,8 +2011,13 @@
       shooter: { body: ["#fecaca", "#b91c1c", "#2d0606"], limb: ["#fca5a5", "#991b1b", "#2d0606"], eye: "#fde047" },
       boss: { body: ["#fca5a5", "#991b1b", "#1a0303"], limb: ["#f87171", "#7f1d1d", "#1a0303"], eye: "#fef08a" },
       lateBoss: { body: ["#fde68a", "#7f1d1d", "#120202"], limb: ["#fbbf24", "#78350f", "#120202"], eye: "#fef08a" },
-      elite: { body: ["#fbcfe8", "#be185d", "#2a0416"], limb: ["#f9a8d4", "#9d174d", "#2a0416"], eye: "#67e8f9" }
+      elite: { body: ["#fbcfe8", "#be185d", "#2a0416"], limb: ["#f9a8d4", "#9d174d", "#2a0416"], eye: "#67e8f9" },
+      // 보스 러시 전용 보스 3종
+      flameBoss: { body: ["#fed7aa", "#ea580c", "#431407"], limb: ["#fdba74", "#c2410c", "#431407"], eye: "#fef08a" },
+      frostBoss: { body: ["#e0f2fe", "#0ea5e9", "#082f49"], limb: ["#bae6fd", "#0284c7", "#082f49"], eye: "#f0f9ff" },
+      thunderBoss: { body: ["#fef9c3", "#a16207", "#1c1405"], limb: ["#fde68a", "#854d0e", "#1c1405"], eye: "#a78bfa" }
     };
+    const BOSS_LOOKS = new Set(["boss", "lateBoss", "flameBoss", "frostBoss", "thunderBoss"]);
     const METAL = ["#f1f5f9", "#64748b", "#0f172a"];
 
     function metalBar(g, x, y, w, h, pal) {
@@ -1839,7 +2038,6 @@
       const armorCos = equippedCosmetic("armor");
       const p = armorCos ? Object.assign({}, HERO_SKINS[skin], { armor: armorCos.armor, helmet: armorCos.helmet, trim: armorCos.trim }) : HERO_SKINS[skin];
       const weapon = cs().equip.weapon;
-      shadedBall(g, 6, -13, 5.5, 5.5, a, p.armor, "#020617");
       if (weapon === "rifle") {
         metalBar(g, 6, 6.5, 26, 5, ["#d6d3d1", "#57534e", "#1c1917"]);
         metalBar(g, 14, 4.5, 7, 2, METAL); // 조준경
@@ -1856,40 +2054,154 @@
       } else {
         drawSignatureWeapon(g, a, skin, p);
       }
-      shadedBall(g, 11, 10, 5.5, 5.5, a, p.armor, "#020617");
-      shadedBall(g, -1, 0, 12, 16, a, p.armor, "#020617");
-      g.strokeStyle = p.trim;
-      g.lineWidth = 1.6;
+      // (v28) SD 스타일: 작은 몸 + 큰 머리. 위에서 내려다본 모습이지만 앞쪽(+x)에 눈·볼터치가 보이게
+      const kind = heroKind(skin);
+      shadedBall(g, 11, 10, 4.2, 4.2, a, SKIN_TONE, "#5c2e1a");           // 무기를 쥔 손
+      shadedBall(g, -4, 0, 10, 13.5, a, p.armor, "#020617");               // 어깨·몸통
+      shadedBall(g, 2, -12, 3.6, 3.6, a, SKIN_TONE, "#5c2e1a");            // 반대쪽 손
+      if (kind === "frost") shadedBall(g, -7, 0, 9, 14, a, p.helmet, "#0c2440"); // 후드 망토 자락
+      g.strokeStyle = p.trim;                                               // 스카프·벨트 포인트
+      g.lineWidth = 2.2;
       g.beginPath();
-      g.moveTo(-8, -10);
-      g.quadraticCurveTo(5, 0, -8, 10);
+      g.moveTo(-6, -11);
+      g.quadraticCurveTo(-2, 0, -6, 11);
       g.stroke();
-      shadedBall(g, 1, 0, 10, 10, a, p.helmet, "#020617");
-      glowDot(g, 8, 0, 3, p.visor);
-      g.beginPath();
-      g.arc(4, 0, 6, -Math.PI / 2.3, Math.PI / 2.3);
-      g.closePath();
-      g.fillStyle = p.visor;
-      g.fill();
-      g.strokeStyle = "rgba(255, 255, 255, 0.7)";
-      g.lineWidth = 1;
-      g.beginPath();
-      g.arc(4, 0, 4.5, -Math.PI / 3.5, -Math.PI / 10);
-      g.stroke();
-      drawHat(g, a, cs().equip.hat);
+      const hatCos = cs().equip.hat;
+      if (kind === "gunslinger" && !hatCos) shadedBall(g, -1, 0, 17, 16.5, a, p.helmet, "#1c0f06"); // 카우보이 모자 챙
+      shadedBall(g, 3, 0, 13, 13, a, SKIN_TONE, "#5c2e1a");                // 큰 머리
+      // 얼굴: 반짝이는 큰 눈 + 볼터치
+      for (const side of [-1, 1]) {
+        g.fillStyle = "rgba(251, 113, 133, 0.55)";
+        g.beginPath();
+        g.ellipse(10.5, side * 8.5, 2.2, 1.6, 0, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#1e1b2e";
+        g.beginPath();
+        g.ellipse(12, side * 4.6, 2.1, 2.7, 0, 0, Math.PI * 2);
+        g.fill();
+        g.fillStyle = "#ffffff";
+        g.beginPath();
+        g.arc(12.6, side * 4.6 - 1, 0.9, 0, Math.PI * 2);
+        g.fill();
+      }
+      drawHeroHairTop(g, a, kind, p, !!hatCos);
+      if (hatCos) {
+        // 외형 상점 모자: 머리가 커진 만큼 키워서 씌움
+        g.save();
+        g.translate(3, 0);
+        g.scale(1.3, 1.3);
+        g.translate(-1, 0);
+        drawHat(g, a, hatCos);
+        g.restore();
+      }
+    }
+
+    // 위에서 본 머리 모양 (머리 중심 (3, 0), 반지름 13, 앞쪽 +x). plain = 외형 모자를 쓴 경우 머리카락만
+    function drawHeroHairTop(g, a, kind, p, plain) {
+      const backArc = (r, cx, from, to) => { // 머리 뒤쪽을 덮는 반달 모양
+        g.beginPath();
+        g.arc(cx, 0, r, from, to);
+        g.quadraticCurveTo(cx + r * 0.25, 0, cx + Math.cos(from) * r, Math.sin(from) * r);
+        g.closePath();
+      };
+      if (kind === "gunslinger" && !plain) {
+        // 카우보이 모자 윗부분 + 띠
+        shadedBall(g, -2, 0, 10, 10.5, a, [p.helmet[0], p.helmet[1], p.helmet[2]], "#1c0f06");
+        g.strokeStyle = p.trim;
+        g.lineWidth = 2;
+        g.beginPath();
+        g.arc(-2, 0, 10.5, Math.PI * 0.35, Math.PI * 1.65);
+        g.stroke();
+        g.strokeStyle = "rgba(0, 0, 0, 0.35)";
+        g.lineWidth = 1.2;
+        g.beginPath();
+        g.moveTo(-9, 0); g.lineTo(4, 0);
+        g.stroke();
+        return;
+      }
+      const hg = g.createLinearGradient(-12, -12, 12, 12);
+      hg.addColorStop(0, p.hair[0]);
+      hg.addColorStop(0.5, p.hair[1]);
+      hg.addColorStop(1, p.hair[2]);
+      g.fillStyle = hg;
+      if (kind === "pyro" || kind === "spark") {
+        // 뾰족뾰족한 머리 (파이로는 불꽃, 스파크는 번개 모양으로 더 길게)
+        const spikes = kind === "pyro" ? 9 : 8;
+        g.beginPath();
+        for (let k = 0; k <= spikes * 2; k++) {
+          const ang = Math.PI * 0.42 + k / (spikes * 2) * Math.PI * 1.16;
+          const rr = k % 2 === 0 ? (kind === "spark" ? 19 : 17.5) : 11.5;
+          const x = 2 + Math.cos(ang) * rr, y = Math.sin(ang) * rr;
+          if (k === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.quadraticCurveTo(9, 0, 2 + Math.cos(Math.PI * 0.42) * 17, Math.sin(Math.PI * 0.42) * 17);
+        g.closePath();
+        g.fill();
+        g.strokeStyle = rgba(p.hair[2], 0.9);
+        g.lineWidth = 0.9;
+        g.stroke();
+        if (kind === "pyro" && !plain) {
+          // 이마의 고글
+          g.fillStyle = "#292524";
+          g.fillRect(4.5, -10, 2.4, 20);
+          for (const side of [-1, 1]) {
+            shadedBall(g, 6, side * 5, 3.4, 3.4, a, ["#fef9c3", p.visor, "#92400e"], "#1c0a02");
+          }
+        }
+        if (kind === "spark" && !plain) {
+          // 헤드폰 + 번쩍이는 안테나
+          for (const side of [-1, 1]) shadedBall(g, 1, side * 13.5, 4, 4.6, a, p.armor, "#1e0b4b");
+          glowDot(g, -9, 0, 1.6, p.visor);
+        }
+        return;
+      }
+      // 프로스트: 털 달린 흰 후드 + 얼음 결정 장식
+      if (!plain) {
+        shadedBall(g, -1, 0, 14.5, 15, a, p.helmet, "#1e3a5f");
+        g.strokeStyle = "#ffffff";
+        g.lineWidth = 3.2;
+        g.beginPath();
+        g.arc(3, 0, 13, -Math.PI * 0.42, Math.PI * 0.42);
+        g.stroke();
+        g.beginPath(); // 후드 꼭대기의 얼음 결정
+        g.moveTo(-10, 0); g.lineTo(-6, -3.5); g.lineTo(-2, 0); g.lineTo(-6, 3.5);
+        g.closePath();
+        g.fillStyle = "#7dd3fc";
+        g.fill();
+        g.strokeStyle = "#0c4a6e";
+        g.lineWidth = 0.8;
+        g.stroke();
+      } else {
+        backArc(13.5, 2, Math.PI * 0.45, Math.PI * 1.55);
+        g.fill();
+      }
     }
 
     // 캐릭터 고유 무기 (기본 공격에 맞춘 모양). 외형 상점의 무기를 장착하면 그것이 우선
     function drawSignatureWeapon(g, a, skin, p) {
       if (skin === "assassin") {
-        // 저격 소총: 길고 가는 총열 + 조준경 + 소염기
-        metalBar(g, 3, 7.5, 30, 3.5, ["#e2e8f0", "#334155", "#020617"]);
-        metalBar(g, 6, 6, 10, 6.5, ["#94a3b8", "#1e293b", "#020617"]);   // 몸체
-        metalBar(g, 9, 2.5, 9, 3, ["#cbd5e1", "#0f172a", "#000000"]);    // 조준경
-        glowDot(g, 18.5, 4, 1.1, "#5eead4");                              // 조준경 렌즈
-        metalBar(g, 31, 6.8, 3, 5, ["#f1f5f9", "#475569", "#0f172a"]);   // 소염기
-        g.fillStyle = p.trim;
-        g.fillRect(21, 7.8, 2, 3);
+        // 프로스트: 얼음 결정 완드 (흰 손잡이 + 끝의 푸른 얼음 가시)
+        g.strokeStyle = "#e0f2fe";
+        g.lineWidth = 3;
+        g.beginPath();
+        g.moveTo(4, 10); g.lineTo(24, 9);
+        g.stroke();
+        g.strokeStyle = "#38bdf8";
+        g.lineWidth = 1;
+        g.stroke();
+        glowDot(g, 28, 9, 3, "#7dd3fc");
+        g.beginPath();
+        g.moveTo(23, 9); g.lineTo(27, 5.5); g.lineTo(35, 9); g.lineTo(27, 12.5);
+        g.closePath();
+        const ig = g.createLinearGradient(23, 5, 35, 13);
+        ig.addColorStop(0, "#ffffff");
+        ig.addColorStop(0.5, "#7dd3fc");
+        ig.addColorStop(1, "#0c4a6e");
+        g.fillStyle = ig;
+        g.fill();
+        g.strokeStyle = "#0c4a6e";
+        g.lineWidth = 0.8;
+        g.stroke();
       } else if (skin === "warrior") {
         // 화염 방사포: 굵고 짧은 청동 포신 + 연료통 + 달아오른 포구
         shadedBall(g, 5, 15.5, 4.5, 3.5, a, ["#fecaca", "#b91c1c", "#2a0606"], "#000"); // 연료통
@@ -1901,7 +2213,7 @@
         glowDot(g, 29.5, 10, 2.6, "#f97316");
         glowDot(g, 29.5, 10, 1.2, "#fde047");
       } else if (skin === "mage") {
-        // 마법 지팡이: 가는 손잡이 + 끝의 보라 수정 (번개 기운)
+        // 스파크: 테슬라 로드 (보라 손잡이 + 끝에서 번쩍이는 노란 전기 구슬)
         g.strokeStyle = "#3b0764";
         g.lineWidth = 3.4;
         g.beginPath();
@@ -1914,30 +2226,24 @@
         g.moveTo(0, 9.2);
         g.lineTo(26, 8.2);
         g.stroke();
-        g.strokeStyle = "#facc15"; // 금장 고리
+        g.strokeStyle = "#facc15"; // 코일 고리
         g.lineWidth = 1.5;
-        g.beginPath();
-        g.moveTo(23, 6.5);
-        g.lineTo(23, 11.5);
-        g.stroke();
-        glowDot(g, 30, 9, 3.2, "#a78bfa");
-        g.beginPath(); // 수정 (마름모)
-        g.moveTo(26, 9); g.lineTo(30, 4.5); g.lineTo(34, 9); g.lineTo(30, 13.5);
-        g.closePath();
-        const cg = g.createLinearGradient(26, 4.5, 34, 13.5);
-        cg.addColorStop(0, "#f5f3ff");
-        cg.addColorStop(0.5, "#a78bfa");
-        cg.addColorStop(1, "#4c1d95");
-        g.fillStyle = cg;
-        g.fill();
-        g.strokeStyle = "#1e0b4b";
-        g.lineWidth = 0.8;
-        g.stroke();
+        for (const cx of [17, 20, 23]) {
+          g.beginPath();
+          g.moveTo(cx, 6.5);
+          g.lineTo(cx, 11.5);
+          g.stroke();
+        }
+        glowDot(g, 30, 9, 3.6, "#facc15");
+        shadedBall(g, 30, 9, 3.4, 3.4, a, ["#fefce8", "#facc15", "#a16207"], "#422006");
       } else {
-        // 생존자: 기본 에너지 소총
-        metalBar(g, 8, 6.5, 19, 6, p.gun);
+        // 건슬링어: 리볼버 (긴 총열 + 원통 탄창 + 나무 손잡이)
+        metalBar(g, 12, 7.5, 18, 4, p.gun);
+        shadedBall(g, 13, 9.5, 4, 4, a, ["#f1f5f9", "#64748b", "#0f172a"], "#020617");
+        g.fillStyle = "#78350f";
+        g.fillRect(5, 7.5, 6, 5);
         g.fillStyle = p.trim;
-        g.fillRect(25, 8, 4, 3);
+        g.fillRect(28, 8.2, 2.5, 2.6);
       }
     }
 
@@ -2068,109 +2374,254 @@
       g.beginPath();
       g.ellipse(0, 50, 30, 7, 0, 0, Math.PI * 2);
       g.fill();
-      // 다리 + 부츠
+      // (v28) SD 비율: 짧은 다리 + 작은 몸 + 큰 머리
+      const kind = heroKind(skin);
       for (const side of [-1, 1]) {
-        g.fillStyle = frontShade(g, side * 11 - 6, side * 11 + 6, p.armor);
-        roundRect(g, side * 11 - 6, 14, 12, 30, 4);
+        g.fillStyle = frontShade(g, side * 8 - 5, side * 8 + 5, p.armor);
+        roundRect(g, side * 8 - 5, 24, 10, 18, 4);
         g.fill();
-        g.fillStyle = "#0b1220";
-        roundRect(g, side * 11 - 7.5, 40, 15, 10, 4);
+        g.fillStyle = kind === "frost" ? "#e0f2fe" : (kind === "pyro" ? "#292524" : "#3b2412");
+        roundRect(g, side * 8 - 7, 39, 14, 10, 5);
         g.fill();
       }
       g.translate(0, bob);
-      // 원소술사: 다리를 덮는 로브 자락
-      if (skin === "mage") {
+      // 프로스트: 무릎까지 내려오는 코트 자락
+      if (kind === "frost") {
         g.beginPath();
-        g.moveTo(-17, 10); g.lineTo(17, 10); g.lineTo(24, 42); g.lineTo(-24, 42);
+        g.moveTo(-15, 14); g.lineTo(15, 14); g.lineTo(21, 36); g.lineTo(-21, 36);
         g.closePath();
-        g.fillStyle = frontShade(g, -24, 24, p.armor);
+        g.fillStyle = frontShade(g, -21, 21, p.armor);
         g.fill();
-        g.fillStyle = p.trim;
-        g.fillRect(-24, 39, 48, 3);
+        g.fillStyle = "#ffffff";
+        g.fillRect(-21, 33, 42, 3.5);
       }
       // 몸통
-      g.fillStyle = frontShade(g, -18, 18, p.armor);
-      roundRect(g, -18, -16, 36, 34, 10);
+      g.fillStyle = frontShade(g, -16, 16, p.armor);
+      roundRect(g, -16, -4, 32, 32, 11);
       g.fill();
-      g.strokeStyle = "#020617";
+      g.strokeStyle = "#1e1b2e";
       g.lineWidth = 1.2;
       g.stroke();
-      // 가슴 문양 + 허리띠
-      g.fillStyle = p.trim;
-      g.beginPath();
-      g.moveTo(0, -10); g.lineTo(7, -2); g.lineTo(0, 6); g.lineTo(-7, -2);
-      g.closePath();
+      // 캐릭터별 옷 장식
+      if (kind === "gunslinger") {
+        g.fillStyle = rgba(p.armor[2], 0.55);                       // 조끼 앞섶
+        g.beginPath(); g.moveTo(-3, -2); g.lineTo(-10, 26); g.lineTo(-16, 22); g.lineTo(-16, 0); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(3, -2); g.lineTo(10, 26); g.lineTo(16, 22); g.lineTo(16, 0); g.closePath(); g.fill();
+        g.fillStyle = "#3b2412"; g.fillRect(-16, 19, 32, 4.5);       // 벨트 + 버클
+        g.fillStyle = "#fbbf24"; g.fillRect(-3, 18.5, 6, 5.5);
+        g.fillStyle = p.trim;                                        // 목 스카프 (휘날림)
+        roundRect(g, -11, -6, 22, 6, 3); g.fill();
+        g.beginPath(); g.moveTo(6, -3); g.quadraticCurveTo(18, 0 + Math.sin(t / 200) * 2, 22, 8 + Math.sin(t / 200) * 3); g.lineTo(17, 9); g.quadraticCurveTo(14, 2, 4, 0); g.closePath(); g.fill();
+      } else if (kind === "pyro") {
+        g.fillStyle = "#fde68a";                                     // 반사 띠
+        g.fillRect(-16, 15, 32, 3.5);
+        g.fillStyle = "#facc15";
+        g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(7, 6, 3, 13); g.quadraticCurveTo(0, 9, -3, 13); g.quadraticCurveTo(-7, 6, 0, 0); g.fill(); // 불꽃 마크
+      } else if (kind === "frost") {
+        g.fillStyle = "#ffffff";                                     // 털 목도리
+        roundRect(g, -13, -7, 26, 8, 4); g.fill();
+        g.strokeStyle = "#38bdf8"; g.lineWidth = 1.4;                // 눈꽃 문양
+        for (let k = 0; k < 3; k++) { const sa = k * Math.PI / 3; g.beginPath(); g.moveTo(-Math.cos(sa) * 5, 11 - Math.sin(sa) * 5); g.lineTo(Math.cos(sa) * 5, 11 + Math.sin(sa) * 5); g.stroke(); }
+      } else {
+        g.fillStyle = p.trim;                                        // 번개 마크 + 후드 끈
+        g.beginPath(); g.moveTo(2, 0); g.lineTo(-5, 11); g.lineTo(0, 11); g.lineTo(-3, 21); g.lineTo(6, 8); g.lineTo(1, 8); g.closePath(); g.fill();
+        g.strokeStyle = "#f5f3ff"; g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(-5, -2); g.lineTo(-6, 8); g.moveTo(5, -2); g.lineTo(6, 8); g.stroke();
+      }
+      // 왼팔(늘어뜨림) + 손
+      g.fillStyle = frontShade(g, -23, -14, p.armor);
+      roundRect(g, -23, 0, 9, 18, 4.5);
       g.fill();
-      glowDot(g, 0, -2, 2, p.visor);
-      g.fillStyle = "#0f172a";
-      g.fillRect(-18, 12, 36, 5);
-      g.fillStyle = p.trim;
-      g.fillRect(-3, 12, 6, 5);
-      // 암살자: 목에 두른 스카프 (옆으로 휘날림)
-      if (skin === "assassin") {
-        g.fillStyle = p.trim;
-        roundRect(g, -14, -18, 28, 6, 3);
-        g.fill();
-        g.beginPath();
-        g.moveTo(10, -14);
-        g.quadraticCurveTo(26, -10 + Math.sin(t / 200) * 3, 32, -2 + Math.sin(t / 200) * 4);
-        g.lineTo(28, 2);
-        g.quadraticCurveTo(22, -6, 8, -10);
-        g.closePath();
+      shadedBall(g, -18.5, 20, 4.6, 4.6, 0, SKIN_TONE, "#5c2e1a");
+      // 무기 (오른손): 몸이 작아진 만큼 조금 내려서 작게
+      g.save();
+      g.translate(-2, 12);
+      g.scale(0.85, 0.85);
+      drawFrontWeapon(g, equip.weapon || null, skin, p, t);
+      g.restore();
+      // 큰 머리 + 얼굴
+      const hatCos = equip.hat || null;
+      if (kind === "gunslinger" && !hatCos) { // 모자 뒤로 보이는 머리카락
+        g.fillStyle = frontShade(g, -26, 26, p.hair);
+        roundRect(g, -25, -40, 50, 30, 12);
         g.fill();
       }
-      // 어깨 보호대 (전사는 크게)
-      const padR = skin === "warrior" ? 11 : 8;
-      shadedBall(g, -20, -11, padR, padR * 0.8, 0, p.armor, "#020617");
-      shadedBall(g, 20, -11, padR, padR * 0.8, 0, p.armor, "#020617");
-      // 왼팔(늘어뜨림)
-      g.fillStyle = frontShade(g, -27, -17, p.armor);
-      roundRect(g, -27, -6, 10, 24, 5);
-      g.fill();
-      shadedBall(g, -22, 20, 5, 5, 0, p.armor, "#020617");
-      // 무기 (오른손)
-      drawFrontWeapon(g, equip.weapon || null, skin, p, t);
-      // 머리(헬멧) + 바이저
-      shadedBall(g, 0, -34, 17, 16, 0, p.helmet, "#020617");
-      g.fillStyle = p.visor;
-      roundRect(g, -12, -39, 24, 9, 4.5);
-      g.fill();
-      g.globalCompositeOperation = "lighter";
-      g.globalAlpha = 0.6;
-      drawGlow(g, p.visor, 0, -34.5, 16);
-      g.globalAlpha = 1;
-      g.globalCompositeOperation = "source-over";
-      g.fillStyle = "rgba(255, 255, 255, 0.75)";
-      roundRect(g, -9, -38, 8, 2.5, 1.2);
-      g.fill();
-      drawFrontHat(g, equip.hat || null, t);
+      if (kind === "frost" && !hatCos) { // 후드 뒤판
+        shadedBall(g, 0, -30, 31, 30, 0, p.helmet, "#1e3a5f");
+      }
+      shadedBall(g, 0, -28, 25, 23, 0, SKIN_TONE, "#7c4a32");
+      const blink = (t % 3200) < 120; // 가끔 눈을 깜빡임
+      for (const side of [-1, 1]) {
+        g.fillStyle = "rgba(251, 113, 133, 0.5)";
+        g.beginPath(); g.ellipse(side * 14, -19, 4.5, 2.6, 0, 0, Math.PI * 2); g.fill();
+        if (blink) {
+          g.strokeStyle = "#1e1b2e"; g.lineWidth = 2;
+          g.beginPath(); g.moveTo(side * 9 - 4, -25); g.lineTo(side * 9 + 4, -25); g.stroke();
+          continue;
+        }
+        g.fillStyle = "#1e1b2e";
+        g.beginPath(); g.ellipse(side * 9, -25, 4.2, 5.6, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = p.visor;                                        // 눈동자 색 = 캐릭터 포인트 색
+        g.beginPath(); g.ellipse(side * 9, -23.5, 2.8, 3.2, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#ffffff";
+        g.beginPath(); g.arc(side * 9 - 1.4, -27.5, 1.7, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.arc(side * 9 + 1.6, -22.5, 0.8, 0, Math.PI * 2); g.fill();
+      }
+      g.strokeStyle = "#7c2d12";                                       // 작은 웃는 입
+      g.lineWidth = 1.6;
+      g.beginPath(); g.arc(0, -17, 3.2, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+      drawHeroHairFront(g, kind, p, t, !!hatCos);
+      if (hatCos) {
+        // 외형 상점 모자: 커진 머리에 맞게 키워서 씌움 (예전 머리 중심 -34 → 지금 -28, 1.45배)
+        g.save();
+        g.translate(0, -28);
+        g.scale(1.45, 1.45);
+        g.translate(0, 34);
+        drawFrontHat(g, hatCos, t);
+        g.restore();
+      }
       g.restore();
+    }
+
+    // 정면 머리 모양 (머리 중심 (0, -28), 반지름 약 25). plain = 외형 모자를 쓴 경우 머리카락만
+    function drawHeroHairFront(g, kind, p, t, plain) {
+      if (kind === "gunslinger") {
+        if (plain) {
+          g.fillStyle = frontShade(g, -26, 26, p.hair);
+          g.beginPath(); g.ellipse(0, -42, 26, 13, 0, Math.PI, 0); g.lineTo(26, -36); g.quadraticCurveTo(0, -46, -26, -36); g.closePath(); g.fill();
+          return;
+        }
+        // 카우보이 모자: 넓은 챙 + 둥근 윗부분 + 붉은 띠
+        g.fillStyle = frontShade(g, -16, 16, p.helmet);
+        roundRect(g, -16, -66, 32, 24, 9);
+        g.fill();
+        g.strokeStyle = "#1c0f06"; g.lineWidth = 1.2; g.stroke();
+        g.fillStyle = p.trim;
+        g.fillRect(-16, -50, 32, 5);
+        g.fillStyle = frontShade(g, -36, 36, p.helmet);
+        g.beginPath(); g.ellipse(0, -44, 36, 8, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = "#1c0f06"; g.stroke();
+        g.fillStyle = "#fbbf24";                                       // 별 배지
+        g.beginPath();
+        for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 2 : 4.5; g.lineTo(Math.cos(a) * r, -57 + Math.sin(a) * r); }
+        g.closePath(); g.fill();
+        return;
+      }
+      if (kind === "frost") {
+        if (plain) {
+          g.fillStyle = frontShade(g, -26, 26, p.hair);
+          g.beginPath(); g.ellipse(0, -40, 27, 15, 0, Math.PI, 0); g.lineTo(27, -30); g.quadraticCurveTo(10, -44, 0, -38); g.quadraticCurveTo(-10, -44, -27, -30); g.closePath(); g.fill();
+          return;
+        }
+        // 털 달린 후드 앞부분 + 얼음 결정 귀걸이
+        g.strokeStyle = "#ffffff"; g.lineWidth = 6;
+        g.beginPath(); g.ellipse(0, -28, 27, 25, 0, Math.PI * 1.08, Math.PI * 1.92); g.stroke();
+        g.fillStyle = frontShade(g, -20, 20, p.hair);                  // 앞머리
+        g.beginPath(); g.moveTo(-22, -34); g.quadraticCurveTo(-8, -50, 0, -40); g.quadraticCurveTo(8, -50, 22, -34); g.quadraticCurveTo(0, -46, -22, -34); g.fill();
+        for (const side of [-1, 1]) {
+          g.beginPath(); g.moveTo(side * 27, -14); g.lineTo(side * 30, -8); g.lineTo(side * 27, -2); g.lineTo(side * 24, -8); g.closePath();
+          g.fillStyle = "#7dd3fc"; g.fill();
+        }
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.5 + Math.sin(t / 300) * 0.2;
+        drawGlow(g, "#7dd3fc", 0, -58, 10);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        return;
+      }
+      // 파이로·스파크: 뾰족뾰족한 머리 (파이로는 불꽃처럼 일렁임)
+      const hg = g.createLinearGradient(0, -64, 0, -30);
+      hg.addColorStop(0, p.hair[0]);
+      hg.addColorStop(0.55, p.hair[1]);
+      hg.addColorStop(1, p.hair[2]);
+      g.fillStyle = hg;
+      g.beginPath();
+      g.moveTo(-27, -26);
+      const spikes = kind === "pyro" ? 7 : 6;
+      for (let k = 0; k <= spikes; k++) {
+        const x = -26 + k * 52 / spikes;
+        const sway = kind === "pyro" ? Math.sin(t / 120 + k) * 2.5 : 0;
+        const tipY = (kind === "spark" ? -66 : -62) + Math.abs(k - spikes / 2) * 3.4;
+        g.lineTo(x - 52 / spikes / 2 + sway, tipY);
+        g.lineTo(x, -40);
+      }
+      g.lineTo(27, -26);
+      g.quadraticCurveTo(14, -40, 0, -38);
+      g.quadraticCurveTo(-14, -40, -27, -26);
+      g.closePath();
+      g.fill();
+      g.strokeStyle = rgba(p.hair[2], 0.9);
+      g.lineWidth = 1;
+      g.stroke();
+      if (plain) return;
+      if (kind === "pyro") {
+        // 이마의 고글
+        g.fillStyle = "#292524";
+        g.fillRect(-25, -44, 50, 5);
+        for (const side of [-1, 1]) {
+          shadedBall(g, side * 10, -42, 7, 6, 0, ["#fef9c3", p.visor, "#92400e"], "#1c0a02");
+          g.fillStyle = "rgba(255, 255, 255, 0.7)";
+          g.fillRect(side * 10 - 4, -45, 3, 2);
+        }
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.45 + Math.sin(t / 150) * 0.15;
+        drawGlow(g, "#f97316", 0, -58, 18);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      } else {
+        // 헤드폰 + 번개 안테나
+        g.strokeStyle = p.armor[1]; g.lineWidth = 3;
+        g.beginPath(); g.arc(0, -28, 27, Math.PI * 1.1, Math.PI * 1.9); g.stroke();
+        for (const side of [-1, 1]) shadedBall(g, side * 26, -26, 6, 8, 0, p.armor, "#1e0b4b");
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.6 + Math.sin(t / 90) * 0.3;
+        drawGlow(g, "#facc15", 26, -26, 9);
+        drawGlow(g, "#facc15", -26, -26, 9);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      }
     }
 
     // 정면 무기: 외형 상점 무기가 있으면 그것, 없으면 캐릭터 고유 무기 (평타와 같은 모양)
     function drawFrontWeapon(g, cosWeapon, skin, p, t) {
-      const kind = cosWeapon || ({ assassin: "sniper", warrior: "flame", mage: "staff" })[skin] || "energy";
+      const kind = cosWeapon || ({ assassin: "icewand", warrior: "flame", mage: "staff" })[skin] || "revolver";
       g.save();
-      if (kind === "staff") {
-        // 지팡이: 오른손에 세워 든 모양 + 위쪽 보라 수정
-        g.fillStyle = "#3b0764";
+      if (kind === "staff" || kind === "icewand") {
+        // 스파크 테슬라 로드(노란 전기 구슬) / 프로스트 얼음 완드(푸른 결정): 오른손에 세워 든 모양
+        const ice = kind === "icewand";
+        g.fillStyle = ice ? "#e0f2fe" : "#3b0764";
         roundRect(g, 25, -44, 4, 84, 2);
         g.fill();
-        g.fillStyle = "#facc15";
-        g.fillRect(24, -36, 6, 3);
+        g.fillStyle = ice ? "#38bdf8" : "#facc15";
+        for (const yy of ice ? [-36] : [-36, -30, -24]) g.fillRect(24, yy, 6, 3);
         g.globalCompositeOperation = "lighter";
-        g.globalAlpha = 0.6 + Math.sin(t / 180) * 0.2;
-        drawGlow(g, "#a78bfa", 27, -52, 18);
+        g.globalAlpha = 0.6 + Math.sin(t / (ice ? 260 : 90)) * 0.25;
+        drawGlow(g, ice ? "#7dd3fc" : "#facc15", 27, -52, 20);
         g.globalAlpha = 1;
         g.globalCompositeOperation = "source-over";
-        g.beginPath();
-        g.moveTo(27, -64); g.lineTo(33, -52); g.lineTo(27, -40); g.lineTo(21, -52);
-        g.closePath();
-        g.fillStyle = frontShade(g, 21, 33, ["#f5f3ff", "#a78bfa", "#4c1d95"]);
-        g.fill();
-        g.strokeStyle = "#1e0b4b";
-        g.lineWidth = 1;
-        g.stroke();
+        if (ice) {
+          g.beginPath();
+          g.moveTo(27, -68); g.lineTo(33, -52); g.lineTo(27, -40); g.lineTo(21, -52);
+          g.closePath();
+          g.fillStyle = frontShade(g, 21, 33, ["#ffffff", "#7dd3fc", "#0c4a6e"]);
+          g.fill();
+          g.strokeStyle = "#0c4a6e";
+          g.lineWidth = 1;
+          g.stroke();
+        } else {
+          shadedBall(g, 27, -52, 7.5, 7.5, 0, ["#fefce8", "#facc15", "#a16207"], "#422006");
+          // 구슬 주위로 튀는 작은 전기
+          g.strokeStyle = "rgba(254, 240, 138, 0.9)";
+          g.lineWidth = 1.4;
+          for (let k = 0; k < 3; k++) {
+            const a = t / 140 + k * 2.1;
+            g.beginPath();
+            g.moveTo(27 + Math.cos(a) * 8, -52 + Math.sin(a) * 8);
+            g.lineTo(27 + Math.cos(a + 0.3) * 13, -52 + Math.sin(a + 0.3) * 13);
+            g.lineTo(27 + Math.cos(a) * 16, -52 + Math.sin(a) * 16);
+            g.stroke();
+          }
+        }
       } else {
         // 총류: 몸 앞에서 비스듬히 위로 든 모양
         g.translate(18, 8);
@@ -2202,9 +2653,14 @@
           g.fillStyle = "#fde047";
           g.fillRect(29, -3, 6, 6);
         } else {
-          metalBar(g, -4, -4, 34, 8, p.gun);
+          // 건슬링어 리볼버: 원통 탄창 + 긴 총열 + 나무 손잡이
+          metalBar(g, 4, -3, 30, 6, p.gun);
+          shadedBall(g, 6, 0, 6, 6, 0, ["#f1f5f9", "#64748b", "#0f172a"], "#020617");
+          g.fillStyle = "#78350f";
+          roundRect(g, -8, -2, 10, 12, 3);
+          g.fill();
           g.fillStyle = p.trim;
-          g.fillRect(28, -2, 5, 4);
+          g.fillRect(31, -2, 3, 4);
         }
       }
       g.restore();
@@ -2212,7 +2668,7 @@
       g.fillStyle = frontShade(g, 17, 27, p.armor);
       roundRect(g, 17, -6, 10, 20, 5);
       g.fill();
-      shadedBall(g, 23, 13, 5.5, 5.5, 0, p.armor, "#020617");
+      shadedBall(g, 23, 13, 5.5, 5.5, 0, SKIN_TONE, "#5c2e1a");
     }
 
     // 정면 모자
@@ -2273,7 +2729,7 @@
 
     function drawMonsterShape(g, a, type, r) {
       const L = MONSTER_LOOKS[type];
-      const isBoss = type === "boss" || type === "lateBoss";
+      const isBoss = BOSS_LOOKS.has(type);
       shadedBall(g, r * 0.55, -r * 0.45, r * 0.24, r * 0.24, a, L.limb, "#000");
       shadedBall(g, r * 0.55, r * 0.45, r * 0.24, r * 0.24, a, L.limb, "#000");
       if (type === "shooter") metalBar(g, r * 0.3, -r * 0.1, r * 0.8, r * 0.22, METAL);
@@ -2286,7 +2742,8 @@
       shadedBall(g, r * 0.12, 0, r * 0.44, r * 0.44, a, L.body, "#000");
       if (isBoss) {
         // 뿔 (후반 보스는 황금 왕관 장식)
-        const horn = type === "lateBoss" ? ["#fef9c3", "#eab308", "#713f12"] : ["#fafaf9", "#d6d3d1", "#44403c"];
+        const horn = type === "lateBoss" || type === "thunderBoss" ? ["#fef9c3", "#eab308", "#713f12"] :
+          type === "frostBoss" ? ["#ffffff", "#7dd3fc", "#0c4a6e"] : type === "flameBoss" ? ["#fde68a", "#f97316", "#7c2d12"] : ["#fafaf9", "#d6d3d1", "#44403c"];
         for (const side of [-1, 1]) {
           const grad = g.createLinearGradient(r * 0.1, side * r * 0.3, r * 0.6, side * r * 0.75);
           grad.addColorStop(0, horn[2]);
@@ -2319,7 +2776,7 @@
 
     function monsterSprite(type, r, angle) {
       const d = dirIndex(angle);
-      const isBoss = type === "boss" || type === "lateBoss";
+      const isBoss = BOSS_LOOKS.has(type);
       return getSprite(`m_${type}_${r}_${d}`, r * 3, isBoss ? 1.5 : 2, g => {
         const a = d * Math.PI * 2 / SPRITE_DIRS;
         g.rotate(a);
@@ -2645,6 +3102,7 @@
     window.addEventListener("resize", resizeCanvas);
 
     let gameState = "lobby"; // lobby: 메인 화면 / playing: 플레이 중 / result: 결과 팝업
+    let bonus = null;        // 보너스 스테이지 진행 상태 (일반 층 플레이 중에는 null)
     let isPaused = false;
     let kills = 0;
     let reviveCount = 0;
@@ -2681,6 +3139,9 @@
       magnetRange: 120,
 
       bulletCaliberLevel: 0,
+      caliberMult: 1,    // 대구경 탄환 누적 배율 (기본 탄환에 그대로, 스킬에는 25%)
+      hasteLevel: 0,     // 발사 속도 증폭을 고른 횟수
+      fusions: [],       // 레벨업으로 얻은 융합(시너지) 스킬 id
       isMoving: false,
       chargeTime: 0,
       chargeThreshold: 800,
@@ -2706,7 +3167,6 @@
 
       fireNovaLevel: 0,
       fireNovaTimer: 0,
-      fireNovaInterval: 3000,
 
       lightningLevel: 0,
       lightningTimer: 0,
@@ -2813,7 +3273,7 @@
     let chainHits = new WeakMap(); // 사슬 회전날: 몬스터별 마지막 타격 시각
 
     // 업그레이드 선택지 풀 (Lv.15 이후 보유 스킬 최우선 등장 가중치 적용)
-    function getAvailableUpgrades() {
+    function getAvailableUpgrades(all) {
       const allUpgrades = [];
 
       // 기본 스탯형 업그레이드
@@ -2824,12 +3284,19 @@
         desc: "이동속도가 20% 빨라집니다.",
         apply: () => { player.speed = +(player.speed * 1.2).toFixed(2); }
       });
+      // 🚀 발사 속도 증폭 (전역): 기본 탄환 쿨타임 -20% + 모든 공격 스킬의 발사 주기 -6% · 투사체 속도 +10% (전역 효과는 5회까지 누적)
+      const hasteFull = player.hasteLevel >= HASTE_MAX;
       allUpgrades.push({
         id: "fireRate",
         isOwned: true,
-        title: "🚀 발사 속도 증폭",
-        desc: "기본 탄환 쿨타임이 20% 단축됩니다.",
-        apply: () => { player.fireRate = Math.max(120, Math.floor(player.fireRate * 0.8)); }
+        title: `🚀 발사 속도 증폭${player.hasteLevel ? ` [${Math.min(player.hasteLevel, HASTE_MAX)}/${HASTE_MAX}]` : ""}`,
+        desc: hasteFull ? "기본 탄환 쿨타임이 20% 단축됩니다. (전역 효과는 이미 최대)"
+          : `기본 탄환 쿨타임 20% 단축 + <b>모든 공격 스킬</b>의 발사 주기 6% 단축 · 투사체 속도 10% 증가`,
+        apply: () => {
+          player.fireRate = Math.max(120, Math.floor(player.fireRate * 0.8));
+          if (player.hasteLevel < HASTE_MAX) { skillUp.cd *= HASTE_CD; skillUp.proj *= HASTE_PROJ; }
+          player.hasteLevel++;
+        }
       });
       allUpgrades.push({
         id: "multishot",
@@ -2852,24 +3319,26 @@
           id: "bulletCaliber",
           isOwned: player.bulletCaliberLevel > 0,
           title: `💥 대구경 탄환 강화 [Lv. ${player.bulletCaliberLevel} ➔ Lv. ${nextLv}]`,
-          desc: `기본 총알의 굵기가 굵어지고 데미지가 45% 대폭 증가합니다.`,
+          desc: `기본 총알이 굵어지고 피해 +45% · <b>모든 공격 스킬</b> 피해도 함께 증가 (효율 25% → +11%)`,
           apply: () => {
+            const before = caliberSkillMult();
             player.bulletCaliberLevel++;
-            player.damage = Math.floor(player.damage * 1.45);
+            player.caliberMult *= CALIBER_STEP;
+            skillPower *= caliberSkillMult() / before; // 스킬 쪽은 25% 효율로만 반영
           }
         });
       }
 
       if (player.boomerangLevel < 5) {
         const nextLv = player.boomerangLevel + 1;
-        let descText = nextLv === 1 ? "360도 전방위 3방향(120°)으로 회전 부메랑을 동시에 던집니다." :
-                       nextLv === 5 ? "★ 최종 진화: 3개 부메랑이 끝까지 날아간 후 플레이어에게 되돌아오며 관통!" :
+        let descText = nextLv === 1 ? "360도 전방위 5방향(72°)으로 커다란 회전 부메랑을 동시에 던집니다." :
+                       nextLv === 5 ? "★ 최종 진화: 5개 부메랑이 끝까지 날아간 후 플레이어에게 되돌아오며 관통!" :
                        "부메랑 크기 거대화, 쿨타임 단축 및 피해량 증가!";
 
         allUpgrades.push({
           id: "boomerang",
           isOwned: player.boomerangLevel > 0,
-          title: `🪃 3중 회전 부메랑 [Lv. ${player.boomerangLevel} ➔ Lv. ${nextLv}]`,
+          title: `🪃 회전 부메랑 [Lv. ${player.boomerangLevel} ➔ Lv. ${nextLv}]`,
           desc: descText,
           apply: () => {
             player.boomerangLevel++;
@@ -2927,7 +3396,8 @@
           id: "fireNova",
           isOwned: player.fireNovaLevel > 0,
           title: `🔥 플레임 노바 [Lv. ${player.fireNovaLevel} ➔ Lv. ${nextLv}]`,
-          desc: `3초마다 내 주변으로 거대한 화염 충격파가 퍼져나가며 적들을 태웁니다.`,
+          desc: nextLv >= 5 ? `★ 최종 진화: ${(fireNovaCooldown(5) / 1000).toFixed(1)}초마다 <b>화면 전체</b>를 뒤덮는 거대 화염 파동 + 지나간 자리에 잔류 불길!`
+            : `${(fireNovaCooldown(nextLv) / 1000).toFixed(1)}초마다 내 주변으로 거대한 화염 충격파가 퍼져나가며 적들을 태웁니다.`,
           apply: () => { player.fireNovaLevel++; }
         });
       }
@@ -3077,9 +3547,9 @@
 
       if (player.poisonLevel < 5) {
         const nextLv = player.poisonLevel + 1;
-        let descText = nextLv === 1 ? "적이 많이 모인 곳에 독 안개를 퍼뜨려 안에 있는 적에게 지속 피해를 줍니다." :
-                       nextLv === 5 ? "★ 최종 진화: 독 안개 2개 동시 생성 + 범위·지속시간 대폭 증가!" :
-                       "독 안개 범위·지속시간·피해 증가, 쿨타임 감소";
+        let descText = nextLv === 1 ? "적이 많이 모인 곳에 독 안개를 퍼뜨립니다. 안에 들어온 적은 <b>중독 + 완전히 멈춤(마비)</b> (보스·중간 보스는 50% 둔화)" :
+                       nextLv === 5 ? "★ 최종 진화: 독 안개 5개 동시 유지 + 범위·지속시간 증가!" :
+                       `독 안개 ${nextLv}개 동시 유지 (같은 자리에 겹치지 않음) · 범위·피해 증가, 쿨타임 감소`;
         allUpgrades.push({
           id: "poison",
           isOwned: player.poisonLevel > 0,
@@ -3159,8 +3629,21 @@
         });
       }
 
-      // 레벨 15 이상: 보유 중인 스킬(isOwned === true) 우선 선별
-      if (player.level >= 15) {
+      // 🔗 융합 스킬: 선행 스킬 2개를 모두 Lv3 이상으로 올리면 레벨업 카드로 등장 (고르면 영구 발동)
+      for (const s of SYNERGIES) {
+        if (!s.fusion || player.fusions.includes(s.id) || !fusionReady(s)) continue;
+        allUpgrades.push({
+          id: "fusion:" + s.id,
+          isOwned: true,
+          fusion: true,
+          title: `🔗 융합 스킬: ${s.name}`,
+          desc: `[시너지 조합: ${s.needs.map(needLabel).join(" + ")}] ${s.desc}`,
+          apply: () => { if (!player.fusions.includes(s.id)) player.fusions.push(s.id); }
+        });
+      }
+
+      // 레벨 15 이상: 보유 중인 스킬(isOwned === true) 우선 선별 (개발자 전체 목록 all=true 는 제외)
+      if (player.level >= 15 && !all) {
         const ownedPool = allUpgrades.filter(u => u.isOwned);
         if (ownedPool.length >= 3) {
           return ownedPool;
@@ -3189,8 +3672,7 @@
     window.addEventListener("touchstart", e => {
       if ((gameState !== "playing" && gameState !== "preview") || isPaused || joystick.active) return;
       if (e.target.closest && e.target.closest("#preview-panel, #btn-pause, #btn-dash")) return; // 버튼·조작 패널은 터치 그대로 통과
-      const touch = e.changedTouches[0];
-      if (touch.clientY > window.innerHeight - 60) return;
+      const touch = e.changedTouches[0]; // (v28) 하단 배너가 없어져서 화면 맨 아래까지 조이스틱 사용 가능
       e.preventDefault();
       joystick.active = true;
       joystick.touchId = touch.identifier;
@@ -3222,13 +3704,19 @@
     window.addEventListener("blur", () => { joystick.active = false; });
 
     function handleMonsterSpawns(timestamp) {
-      // 진행 중인 보스전이 끝나면 최종 보스 등장
-      if (finalBossPending && !bossArena.active) {
+      // 진행 중인 보스전이 끝나면 최종 보스 등장 (등장 연출 → 사운드가 끝나면 실제 소환)
+      if (finalBossPending && !bossArena.active && !bossIntro) {
         finalBossPending = false;
-        spawnBoss(true);
+        bossIntroQueued = null;
+        startBossIntro(true);
         return;
       }
-      if (bossArena.active || finalBossDefeated) return;
+      // 레벨업 카드를 고른 뒤(게임이 다시 흐를 때) 보스 등장 연출 시작
+      if (bossIntroQueued && !bossArena.active && !bossIntro) {
+        bossIntroQueued = null;
+        startBossIntro(false);
+      }
+      if (bossArena.active || finalBossDefeated || bossIntro) return;
       const spawnInterval = Math.max(260, 920 - (player.level - 1) * 55);
       if (timestamp - lastSpawnTime > spawnInterval) {
         const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3), MAX_MONSTERS - monsters.length);
@@ -3301,7 +3789,7 @@
     // ===== 중간 보스(엘리트): Lv4부터 50초마다 1마리. 체력이 높고 8방향 탄막 + 돌진, 처치 시 보석 다량 =====
     const ELITE_INTERVAL = 50000;
     function handleEliteSpawns() {
-      if (player.level < 4 || bossArena.active || finalBossDefeated) return;
+      if (player.level < 4 || bossArena.active || finalBossDefeated || bossIntro) return;
       if (playTimeMs - lastEliteSpawn < ELITE_INTERVAL) return;
       if (eliteSummons.length || monsters.some(m => m.type === "elite")) return;
       lastEliteSpawn = playTimeMs;
@@ -3414,8 +3902,123 @@
       }
     }
 
-    // 보스 소환 (Lv.15 이상 난이도 대폭 강화)
-    function spawnBoss(isFinal) {
+    // ===== 보스 등장 연출: 웅장한 팡파르(약 3초) + 소환진·빛기둥·번개·화면 흔들림 → 소리가 끝나는 순간 보스 등장 =====
+    const BOSS_INTRO_MS = 3000; // Sound.bossIntro 의 마지막 타격음(2.95초)과 맞춤
+    let bossIntro = null;        // 진행 중인 연출 { t, isFinal, x, y, onSpawn }
+    let bossIntroQueued = null;  // 레벨업 카드를 고른 뒤 시작할 연출
+    function startBossIntro(isFinal, onSpawn) {
+      const a = Math.random() * Math.PI * 2;
+      bossIntro = { t: playTimeMs, isFinal: !!isFinal, x: player.x + Math.cos(a) * 340, y: player.y + Math.sin(a) * 340, onSpawn: onSpawn || null, bolts: [] };
+      if (onSpawn) { bossIntro.x = player.x; bossIntro.y = player.y - 300; }
+      // 잡몹과 탄환은 붉은 빛과 함께 사라짐 (연출 동안 새 몹도 나오지 않음, 경험치 없음)
+      for (const m of monsters) {
+        if (!m.isBoss) addHitEffect({ x: m.x, y: m.y, radius: 14, life: 10, maxLife: 10, color: "#ef4444" });
+      }
+      monsters = monsters.filter(m => m.isBoss);
+      enemyBullets = [];
+      Sound.bossIntro();
+      vibrate(120, true);
+    }
+    function updateBossIntro() {
+      if (!bossIntro) return;
+      const it = bossIntro;
+      const p = (playTimeMs - it.t) / BOSS_INTRO_MS;
+      // 점점 강해지는 흔들림 + 소환진으로 빨려 드는 불씨 + 주변에 내리꽂히는 번개
+      addShake(0.8 + p * 4.5);
+      if (particles.length < MAX_PARTICLES && Math.random() < 0.6) {
+        const a = Math.random() * Math.PI * 2, d = 220 + Math.random() * 120;
+        particles.push({ x: it.x + Math.cos(a) * d, y: it.y + Math.sin(a) * d, vx: -Math.cos(a) * 9, vy: -Math.sin(a) * 9, life: 22, maxLife: 22, color: it.isFinal ? "#fde047" : "#f87171", size: 4 + Math.random() * 4 });
+      }
+      if (Math.random() < 0.05 + p * 0.12) {
+        const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 200;
+        const tx = it.x + Math.cos(a) * d, ty = it.y + Math.sin(a) * d;
+        lightningBolts.push({ nodes: [{ x: tx + (Math.random() - 0.5) * 60, y: ty - 700 }, { x: tx, y: ty }], points: jaggedPath([{ x: tx, y: ty - 700 }, { x: tx, y: ty }], 26), life: 14, maxLife: 14, width: 3.5, lv: 0, color: it.isFinal ? "#facc15" : "#f87171" });
+      }
+      if (p < 1) return;
+      bossIntro = null;
+      if (it.onSpawn) it.onSpawn(it); else spawnBoss(it.isFinal, it);
+      // 등장 순간: 거대한 충격파 + 섬광 + 강한 흔들림
+      explosions.push({ x: it.x, y: it.y, radius: 260, life: 34, maxLife: 34, lv: 5, color: it.isFinal ? "#facc15" : "#ef4444" });
+      explosions.push({ x: it.x, y: it.y, radius: 150, life: 24, maxLife: 24, lv: 5, color: "#ffffff" });
+      spawnBurst(it.x, it.y, it.isFinal ? "#fde047" : "#fb7185", 36, 11);
+      addShake(16);
+      nukeFlash.style.opacity = "0.55";
+      setTimeout(() => { nukeFlash.style.opacity = "0"; }, 160);
+      vibrate(260, true);
+    }
+    // 소환진(월드 좌표): 회전하는 2겹 마법진 + 별 + 룬, 하늘로 솟는 빛기둥
+    function drawBossIntroWorld(g, timestamp) {
+      if (!bossIntro) return;
+      const it = bossIntro;
+      const p = Math.min(1, (playTimeMs - it.t) / BOSS_INTRO_MS);
+      const R = 70 + p * 150;
+      const main = it.isFinal ? "#facc15" : "#ef4444", sub = it.isFinal ? "#fef3c7" : "#f472b6";
+      g.globalCompositeOperation = "lighter";
+      g.globalAlpha = 0.35 + p * 0.55;
+      drawGlow(g, main, it.x, it.y, R * 2);
+      g.globalAlpha = 1;
+      g.save();
+      g.translate(it.x, it.y);
+      g.scale(1, 0.72);
+      for (let ring = 0; ring < 3; ring++) {
+        g.save();
+        g.rotate((ring % 2 ? -1 : 1) * timestamp / (420 + ring * 160));
+        g.strokeStyle = rgba(ring === 1 ? sub : main, 0.5 + p * 0.5);
+        g.lineWidth = 4 - ring;
+        const rr = R * (1 - ring * 0.28);
+        g.beginPath();
+        g.arc(0, 0, rr, 0, Math.PI * 2 * Math.min(1, p * 1.5));
+        g.stroke();
+        g.beginPath();
+        const pts = ring === 0 ? 6 : 5;
+        for (let k = 0; k <= pts; k++) {
+          const a = k * Math.PI * 2 * (pts === 5 ? 2 : 1) / pts - Math.PI / 2;
+          if (k === 0) g.moveTo(Math.cos(a) * rr * 0.92, Math.sin(a) * rr * 0.92);
+          else g.lineTo(Math.cos(a) * rr * 0.92, Math.sin(a) * rr * 0.92);
+        }
+        g.stroke();
+        g.fillStyle = sub;
+        for (let k = 0; k < 12; k++) {
+          if (k / 12 > p * 1.3) break;
+          const a = k * Math.PI / 6;
+          g.beginPath();
+          g.arc(Math.cos(a) * rr * 1.08, Math.sin(a) * rr * 1.08, 3, 0, Math.PI * 2);
+          g.fill();
+        }
+        g.restore();
+      }
+      g.restore();
+      // 빛기둥 (뒤로 갈수록 굵어짐)
+      const w = 20 + p * 70;
+      const beam = g.createLinearGradient(it.x - w, 0, it.x + w, 0);
+      beam.addColorStop(0, rgba(main, 0));
+      beam.addColorStop(0.5, rgba(sub, 0.25 + p * 0.45));
+      beam.addColorStop(1, rgba(main, 0));
+      g.fillStyle = beam;
+      g.fillRect(it.x - w, it.y - 1400, w * 2, 1400);
+      g.globalCompositeOperation = "source-over";
+    }
+    // 화면 연출(화면 좌표): 어두워지는 화면 + 붉은 맥동 + 위아래 시네마틱 띠
+    function drawBossIntroScreen(timestamp) {
+      if (!bossIntro) return;
+      const p = Math.min(1, (playTimeMs - bossIntro.t) / BOSS_INTRO_MS);
+      const W = canvas.width, H = canvas.height;
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.12 + p * 0.25})`;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = (0.25 + p * 0.45) * (0.6 + Math.sin(timestamp / (180 - p * 100)) * 0.4);
+      drawBossEdge(timestamp, true);
+      ctx.globalAlpha = 1;
+      const bar = H * 0.075 * Math.min(1, p * 3);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, bar);
+      ctx.fillRect(0, H - bar, W, bar);
+      ctx.fillStyle = bossIntro.isFinal ? "rgba(250, 204, 21, 0.85)" : "rgba(239, 68, 68, 0.85)";
+      ctx.fillRect(0, bar - 2, W * p, 2);
+      ctx.fillRect(W * (1 - p), H - bar, W * p, 2);
+    }
+
+    // 보스 소환 (Lv.15 이상 난이도 대폭 강화). at: 등장 연출 위치 (소환진 자리에 나타남)
+    function spawnBoss(isFinal, at) {
       bossArena.active = true;
       bossArena.x = player.x;
       bossArena.y = player.y;
@@ -3442,8 +4045,8 @@
       const now = performance.now();
 
       monsters.push({
-        x: player.x + Math.cos(angle) * bossDist,
-        y: player.y + Math.sin(angle) * bossDist,
+        x: at ? at.x : player.x + Math.cos(angle) * bossDist,
+        y: at ? at.y : player.y + Math.sin(angle) * bossDist,
         radius: isFinal ? 72 : (isLateBoss ? 62 : 54),
         isFinalBoss: !!isFinal,
         speed: bossSpeed,
@@ -3517,7 +4120,7 @@
     // 탄환이 장애물에 막힘 → 금이 가기 시작
     function hitObstacle(ob) {
       if (ob.crumbleAt) return;
-      ob.crumbleAt = playTimeMs + OB_CRUMBLE_MS;
+      ob.crumbleAt = playTimeMs + (hasTrap("volatile") ? VOLATILE_CRUMBLE_MS : OB_CRUMBLE_MS);
       obstacleState.set(ob.id, { crumbleAt: ob.crumbleAt, brokenUntil: 0 });
     }
 
@@ -3539,7 +4142,8 @@
         obstacles.splice(i, 1);
         spawnBurst(ob.x, ob.y, "#a8a29e", 14, 6);
         addHitEffect({ x: ob.x, y: ob.y, radius: ob.r * 1.2, life: 14, maxLife: 14, color: "#d6d3d1" });
-        Sound.blast();
+        if (hasTrap("volatile")) obstacleExplode(ob);
+        else Sound.blast();
       }
       // 3초마다 재생성 시간이 지난 자리가 있으면 구역을 다시 만듦
       if (playTimeMs - lastObstacleCheck > 3000) {
@@ -3609,8 +4213,28 @@
       wind:    { name: "🌬️ 돌풍", desc: "몇 초마다 한 방향으로 강풍이 불어요. 바람을 거슬러 가면 이동속도 최대 35% 감소, 바람 방향으로 살짝 밀림" },
       gravity: { name: "🌀 중력 왜곡", desc: "근처에 중력장이 생겨 플레이어와 모든 탄환을 서서히 끌어당겨요" },
       bog:     { name: "🕸️ 속박 늪", desc: "주변에 늪이 생겨요. 들어가면 1.2초 동안 발이 묶이고(대시로 탈출 가능), 늪 안에서는 이동속도 70% 감소" },
-      hazard:  { name: "🪨 낙석", lavaName: "🌋 화염 분출", desc: "붉은 경고 원이 생기고 1.2초 뒤 그 자리에 피해" }
+      hazard:  { name: "🪨 낙석", lavaName: "🌋 화염 분출", desc: "붉은 경고 원이 생기고 1.2초 뒤 그 자리에 피해" },
+      volatile: { name: "💥 폭발 장애물", desc: "장애물 속에 폭약이 차 있어요. 탄환을 막아 금이 가면 3초 뒤 큰 폭발 (주변 적에게 큰 피해, 가까이 있으면 나도 피해)" }
     };
+    // 💥 폭발 장애물: 부서질 때까지 3초, 폭발 반경 = 장애물 크기 + 120
+    const VOLATILE_CRUMBLE_MS = 3000;
+    function obstacleExplode(ob) {
+      const R = ob.r + 120;
+      explosions.push({ x: ob.x, y: ob.y, radius: R, life: 26, maxLife: 26, lv: 5, color: "#f97316" });
+      explosions.push({ x: ob.x, y: ob.y, radius: R * 0.6, life: 18, maxLife: 18, lv: 0, color: "#fde047" });
+      spawnBurst(ob.x, ob.y, "#fb923c", 22, 9);
+      addShake(9);
+      Sound.explosion();
+      const dmg = Math.max(60, player.damage * 6) * Math.max(1, currentStage().hp);
+      for (let j = monsters.length - 1; j >= 0; j--) {
+        const m = monsters[j];
+        if (fastHypot(m.x - ob.x, m.y - ob.y) < R + m.radius) {
+          m.hp -= hurt(m, m.isBoss ? dmg * 0.3 : dmg, "trap");
+          if (m.hp <= 0) handleMonsterDeath(m, j);
+        }
+      }
+      if (fastHypot(player.x - ob.x, player.y - ob.y) < R * 0.75 + player.radius) takeDamage(monsterDmg(22));
+    }
     function floorTraps(floor) {
       const ids = Object.keys(TRAP_TYPES);
       let h = (Math.imul(floor, 2654435761) ^ 0x5bd1e995) >>> 0;
@@ -3906,12 +4530,14 @@
       heal:  { name: "치유의 신단", icon: "✚", color: "#4ade80", duration: 10000, desc: "10초 동안 매초 최대 체력의 6%씩 회복 (총 60%)" },
       speed: { name: "질풍의 신단", icon: "»", color: "#2dd4bf", duration: 12000, desc: "12초 동안 이동속도 +60%" },
       power: { name: "전투의 신단", icon: "⚔", color: "#fb923c", duration: 15000, desc: "15초 동안 공격력 ×1.5" },
-      clone: { name: "환영의 신단", icon: "◈", color: "#c084fc", duration: 15000, desc: "15초 동안 분신 2기가 따라다니며 함께 공격 (본체 공격력의 40%)" }
+      clone: { name: "환영의 신단", icon: "◈", color: "#c084fc", duration: 15000, desc: "15초 동안 분신 2기가 따라다니며 평타(본체의 40%) + 내가 가진 주요 액티브 스킬까지 함께 시전 (스킬 위력 본체의 35%)" }
     };
     const POWER_BUFF_MULT = 1.5;
     const SPEED_BUFF_MULT = 1.6;
     const HEAL_PER_SEC = 0.06;
     const CLONE_DAMAGE = 0.4;
+    const CLONE_SKILL_MULT = 0.35;  // 분신이 시전하는 스킬의 위력 (본체 대비)
+    const CLONE_SKILL_MS = 1800;    // 분신 1기가 스킬을 시전하는 간격
 
     function handleShrineSpawns() {
       if (playTimeMs - lastShrineSpawn < SHRINE_INTERVAL) return;
@@ -3981,6 +4607,15 @@
         c.x = player.x + Math.cos(c.angle) * 60;
         c.y = player.y + Math.sin(c.angle) * 60;
       }
+      // 분신 스킬 시전: 분신마다 엇갈려 가며 본체가 가진 액티브 스킬 중 하나를 35% 위력으로
+      for (let k = 0; k < player.clones.length; k++) {
+        const c = player.clones[k];
+        if (c.skillAt === undefined) c.skillAt = playTimeMs + 400 + k * CLONE_SKILL_MS / 2;
+        if (playTimeMs >= c.skillAt) {
+          c.skillAt = playTimeMs + CLONE_SKILL_MS;
+          cloneCastSkill(c, timestamp);
+        }
+      }
       if (timestamp - player.cloneShotTimer < Math.max(300, player.fireRate)) return;
       player.cloneShotTimer = timestamp;
       for (const c of player.clones) {
@@ -3992,11 +4627,39 @@
         if (!target) continue;
         c.facing = Math.atan2(target.y - c.y, target.x - c.x);
         bullets.push({
-          x: c.x, y: c.y, dx: Math.cos(c.facing) * 11, dy: Math.sin(c.facing) * 11,
-          radius: 7, damage: player.damage * CLONE_DAMAGE, isCharged: false, bounces: 0, lastHit: null, isClone: true
+          x: c.x, y: c.y, dx: Math.cos(c.facing) * 11 * skillUp.proj, dy: Math.sin(c.facing) * 11 * skillUp.proj,
+          radius: 7, damage: player.damage * player.caliberMult * CLONE_DAMAGE, isCharged: false, bounces: 0, lastHit: null, isClone: true
         });
       }
     }
+
+    // 분신이 쓸 수 있는 액티브 스킬: 본체의 시전 함수를 분신 위치·35% 위력으로 잠깐 바꿔서 그대로 호출
+    const CLONE_CASTABLE = {
+      lightning: () => castChainLightning(),
+      meteor: () => castMeteors(),
+      thunder: () => castThunder(),
+      fireNova: () => castFireNova(),
+      boomerang: () => fireBoomerang(),
+      homing: () => fireHomingMissiles(true),
+      vortex: () => castVortex(performance.now()),
+      sniper: () => castSniper(performance.now())
+    };
+    function cloneCastSkill(c, timestamp) {
+      const ids = Object.keys(CLONE_CASTABLE).filter(id => hasSkill(id));
+      if (!ids.length || c.x === undefined) return;
+      const id = ids[Math.floor(Math.random() * ids.length)];
+      const saved = { x: player.x, y: player.y, angle: player.angle, power: skillPower };
+      player.x = c.x; player.y = c.y;
+      if (c.facing !== undefined) player.angle = c.facing;
+      skillPower *= CLONE_SKILL_MULT;
+      cloneCasting = true;
+      try { CLONE_CASTABLE[id](); } finally {
+        cloneCasting = false;
+        player.x = saved.x; player.y = saved.y; player.angle = saved.angle; skillPower = saved.power;
+      }
+      addHitEffect({ x: c.x, y: c.y, radius: 30, life: 12, maxLife: 12, color: "#c084fc" });
+    }
+    let cloneCasting = false; // 분신이 시전 중인 동안 true (영구 미사일·타이머 같은 본체 상태는 건드리지 않음)
 
     // ===== 동료(펫/용병): 플레이어 뒤를 따라다니며 보조 공격 + 주기적 특수 버프 =====
     // 체력이 0이 되면 쓰러지지 않고 '방전' 구체로 따라다니다가, 보석 18개 또는 15초 뒤 자동 재가동 (횟수 제한 없음)
@@ -4115,7 +4778,7 @@
       if (pet.flash > 0) pet.flash -= step;
 
       if (pet.offline) {
-        if (playTimeMs - pet.offlineAt >= PET_RECHARGE_MS || pet.gems >= PET_RECHARGE_GEMS) rebootPet();
+        if (pet.gems >= PET_RECHARGE_GEMS) rebootPet(); // 자동 복구 없음: 보석 100개를 모아야만 재가동
       } else {
         // 피격: 적 탄환은 동료가 대신 맞고 사라짐, 몸통 접촉은 플레이어가 받는 피해의 절반
         const pr = 16;
@@ -4317,12 +4980,14 @@
           angle = baseAngle + (i - (player.bulletCount - 1) / 2) * spread;
         }
         const crit = critChance > 0 && Math.random() < critChance;
+        const spd = atk.speed * skillUp.proj;
         bullets.push({
           x: player.x, y: player.y,
-          dx: Math.cos(angle) * atk.speed, dy: Math.sin(angle) * atk.speed,
-          speed: atk.speed, range: atk.range, kind: kind, crit: crit,
-          radius: bRadius, damage: player.damage * atk.dmgMult * (crit ? 2 : 1), isCharged: false,
+          dx: Math.cos(angle) * spd, dy: Math.sin(angle) * spd,
+          speed: spd, range: atk.range, kind: kind, crit: crit,
+          radius: bRadius, damage: player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1), isCharged: false,
           bounces: player.ricochetLevel >= 5 ? 5 : (player.ricochetLevel > 0 ? 3 : 0),
+          pierceLeft: atk.pierce || 0,
           lastHit: null
         });
       }
@@ -4339,14 +5004,14 @@
         x: player.x, y: player.y,
         dx: Math.cos(angle) * 14, dy: Math.sin(angle) * 14,
         radius: 24 + player.bulletCaliberLevel * 2,
-        damage: player.damage * 5.5,
+        damage: player.damage * player.caliberMult * 5.5,
         isCharged: true, pierce: 6
       });
     }
 
-    function fireHomingMissiles() {
-      const isPermanent = player.homingLevel >= 5;
-      let count = player.homingLevel;
+    function fireHomingMissiles(fromClone) {
+      const isPermanent = player.homingLevel >= 5 && !fromClone; // 분신이 쏜 미사일은 영구 순환하지 않음
+      let count = Math.min(player.homingLevel, fromClone ? 3 : 5);
       // 만렙 영구 미사일은 최대 5발만 유지 (계속 쌓이면 심한 렉 발생)
       if (isPermanent) {
         const existing = homingMissiles.filter(hm => hm.isPermanent).length;
@@ -4363,7 +5028,7 @@
 
         homingMissiles.push({
           x: player.x, y: player.y, angle: startAngle,
-          speed: (8.0 + player.homingLevel * 0.4) * skillUp.dur,
+          speed: (8.0 + player.homingLevel * 0.4) * skillUp.dur * skillUp.proj,
           radius: missileRadius, damage: baseDamage,
           life: isPermanent ? 99999 : 200, // 만렙 시 영구 생존
           level: player.homingLevel,
@@ -4374,19 +5039,21 @@
       }
     }
 
-    // 360도 3방향(120° 간격) 회전 부메랑 발사
+    // 🪃 회전 부메랑: 360도 5방향(72° 간격) 발사
+    const BOOMERANG_COUNT = 5;
     function fireBoomerang() {
       const target = findNearestMonster(950);
       const baseAngle = target ? Math.atan2(target.y - player.y, target.x - player.x) : player.angle;
       Sound.boomerang();
 
-      // 기본 크기를 키움 (예전 Lv1 18 → 34, Lv5 34 → 58). 스킬 범위 강화도 적용
-      const bSize = (28 + player.boomerangLevel * 6) * skillUp.area;
+      // (v28) 크기 증가: Lv1 41 → Lv5 69 (예전 34 → 58). 스킬 범위 강화도 적용
+      const bSize = (34 + player.boomerangLevel * 7) * skillUp.area;
       const bDamage = (16 + player.boomerangLevel * 9) * skillScale();
       const isMaxLevel = player.boomerangLevel >= 5;
 
-      // 가장 가까운 적 방향을 기준으로 120° 간격 3방향 발사
-      const angles = [baseAngle, baseAngle + Math.PI * 2 / 3, baseAngle + Math.PI * 4 / 3];
+      // 가장 가까운 적 방향을 기준으로 72° 간격 5방향 발사
+      const angles = [];
+      for (let k = 0; k < BOOMERANG_COUNT; k++) angles.push(baseAngle + k * Math.PI * 2 / BOOMERANG_COUNT);
 
       angles.forEach(ang => {
         boomerangs.push({
@@ -4396,7 +5063,7 @@
           startY: player.y,
           angle: ang,
           rotation: 0,
-          speed: 7.4 * skillUp.dur,
+          speed: 7.4 * skillUp.dur * skillUp.proj,
           size: bSize,
           damage: bDamage,
           maxDist: 350 + player.boomerangLevel * 40,
@@ -4408,10 +5075,32 @@
       });
     }
 
+    // 🔥 플레임 노바 시전: Lv1~4는 내 주변 화염 고리, Lv5는 화면 구석까지 뒤덮는 거대 화염 파동 (+ 잔류 불길)
+    function castFireNova() {
+      const lv = player.fireNovaLevel;
+      const mega = lv >= 5 && !cloneCasting;
+      const screenR = fastHypot(canvas.width / currentViewScale, canvas.height / currentViewScale) / 2 + 40;
+      fireWaves.push({
+        x: player.x, y: player.y, currentRadius: 10,
+        maxRadius: mega ? Math.max(screenR, 520) : (160 + lv * 45) * skillUp.area,
+        speed: mega ? 9 : 4.0, damage: (10 + lv * 6) * skillScale(), mega: mega,
+        hitMonsters: new Set()
+      });
+      Sound.fireWave();
+      if (mega) {
+        if (sfxReady("megaNova", 400)) {
+          sfxTone({ freq: 70, freqEnd: 30, dur: 0.9, vol: 0.4 });
+          sfxNoise({ filter: "lowpass", freq: 600, freqEnd: 3800, dur: 0.8, vol: 0.28, attack: 0.05, wet: 0.5 });
+        }
+        addShake(6);
+        spawnBurst(player.x, player.y, "#fde047", 18, 9);
+      }
+    }
+
     // ===== 스킬별 전투 통계 (딜미터기) =====
     // 피해를 줄 때 hurt(m, dmg, 출처)를 거치면 출처별 총 피해량을 쌓고, 막타 출처를 몬스터에 기록 → 처치 시 집계
     const STAT_NAMES = {
-      basic: "🔫 기본 공격", charged: "💠 차지샷", clone: "👥 분신", nuke: "💣 폭탄 아이템", revive: "📺 부활 충격파", pet: "🤖 동료"
+      basic: "🔫 기본 공격", charged: "💠 차지샷", clone: "👥 분신", nuke: "💣 폭탄 아이템", revive: "📺 부활 충격파", pet: "🤖 동료", trap: "💥 폭발 장애물"
     };
     let combatStats = {};
     function statOf(src) {
@@ -4652,15 +5341,13 @@
         shurikens.push({ x: player.x, y: player.y, dx: Math.cos(a) * 7, dy: Math.sin(a) * 7, spin: 0, hits: new WeakMap() });
       }
       const viewW = canvas.width / currentViewScale, viewH = canvas.height / currentViewScale;
-      // 하단 배너 광고가 화면 아래를 가리므로 배너 윗선을 바닥으로 사용
-      const bannerEl = document.getElementById("banner-ad");
-      const bannerH = bannerEl && bannerEl.offsetHeight != null ? bannerEl.offsetHeight : 52;
-      const left = camera.x, top = camera.y, right = camera.x + viewW, bottom = camera.y + viewH - bannerH / currentViewScale;
+      // (v28) 하단 배너가 없어져서 화면 맨 아래까지가 튕기는 경계
+      const left = camera.x, top = camera.y, right = camera.x + viewW, bottom = camera.y + viewH;
       const step = frameDtMs / 16.67;
       for (const s of shurikens) {
         s.size = size;
-        s.x += s.dx * step * skillUp.dur;
-        s.y += s.dy * step * skillUp.dur;
+        s.x += s.dx * step * skillUp.dur * skillUp.proj;
+        s.y += s.dy * step * skillUp.dur * skillUp.proj;
         s.spin += 0.35 * step;
         // 화면 밖으로 나가려 하면 안쪽으로 반사 (플레이어가 움직여 화면이 밀려도 다시 들어옴)
         let bounced = false;
@@ -4686,6 +5373,10 @@
           if (timestamp - (s.hits.get(m) || 0) < 350) continue;
           s.hits.set(m, timestamp);
           m.hp -= hurt(m, dmg, "shuriken");
+          if (synOn("toxicShuriken")) { // 🧪 맹독 수리검: 3초 중독
+            m.toxicUntil = playTimeMs + 3000;
+            m.toxicDmg = player.damage * (0.3 + player.poisonLevel * 0.1) * skillPower;
+          }
           addHitEffect({ x: m.x, y: m.y, radius: 12, life: 7, maxLife: 7, color: lv >= 5 ? "#facc15" : "#e2e8f0" });
           if (m.hp <= 0) handleMonsterDeath(m, j);
         }
@@ -4697,6 +5388,13 @@
       const lv = player.thunderLevel;
       if (lv > 0 && timestamp - player.thunderTimer > (2600 - (lv - 1) * 200) * skillUp.cd) {
         player.thunderTimer = timestamp;
+        castThunder();
+      }
+      updateThunderStrikes();
+    }
+    function castThunder() {
+      const lv = player.thunderLevel;
+      {
         const count = lv >= 5 ? 6 : lv;
         const dmg = player.damage * (2.2 + lv * 0.6) * skillPower;
         const splash = (55 + lv * 10 + (lv >= 5 ? 20 : 0)) * skillUp.area;
@@ -4717,6 +5415,8 @@
           thunderStrikes.push({ x: tx, y: ty, delay: i * 4, life: 32, maxLife: 32, lv: lv, splash: splash * (sup ? 1.3 : 1), dmg: dmg * (sup ? 1.6 : 1), done: false, sup: sup });
         }
       }
+    }
+    function updateThunderStrikes() {
       for (let i = thunderStrikes.length - 1; i >= 0; i--) {
         const st = thunderStrikes[i];
         if (st.delay > 0) { st.delay--; continue; }
@@ -4760,11 +5460,16 @@
     }
     function updateVortex(timestamp) {
       const lv = player.vortexLevel;
-      if (lv > 0 && timestamp - player.vortexTimer > (6500 - (lv - 1) * 500) * skillUp.cd) {
+      if (lv > 0 && timestamp - player.vortexTimer > (6500 - (lv - 1) * 500) * skillUp.cd) castVortex(timestamp);
+      updateVortices();
+    }
+    function castVortex(timestamp) {
+      const lv = player.vortexLevel;
+      {
         const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
         // 레벨 = 블랙홀 개수 (Lv1 1개 → Lv5 5개), 레벨이 오를수록 하나하나도 커짐 (반경 120 → 185)
         // 개수가 늘어나는 만큼 블랙홀 1개당 피해는 조금 낮춤. 시너지(화염 중력장·역병 소용돌이)도 블랙홀마다 적용
-        const count = lv;
+        const count = cloneCasting ? 1 : lv; // 분신은 블랙홀 1개만
         const radius = (105 + lv * 15 + (lv >= 5 ? 5 : 0)) * skillUp.area;
         const used = [];
         for (let k = 0; k < count; k++) {
@@ -4782,7 +5487,7 @@
               if (gapNow > bestGap) { bestGap = gapNow; spot = cand; }
             }
           }
-          player.vortexTimer = timestamp;
+          if (!cloneCasting) player.vortexTimer = timestamp;
           used.push(spot);
           vortices.push({
             x: spot.x, y: spot.y, life: VORTEX_LIFE, lv: lv, spin: Math.random() * 6,
@@ -4794,6 +5499,8 @@
         }
         if (used.length) sfxReady("vortex", 0) && sfxTone({ freq: 70, freqEnd: 40, dur: 2.4, vol: 0.18, wet: 0.5, attack: 0.3 });
       }
+    }
+    function updateVortices() {
       for (let i = vortices.length - 1; i >= 0; i--) {
         const v = vortices[i];
         v.life--;
@@ -4890,28 +5597,48 @@
       }
     }
 
-    // ☠️ 독 안개: 적이 가장 많이 모인 곳에 독 구름 → 0.5초마다 안의 적에게 피해
+    // ☠️ 독 안개 (v28): 레벨 = 동시에 유지되는 안개 수 (Lv1 1개 → Lv5 5개), 크기는 예전보다 작게
+    //   - 같은 자리에 겹쳐 쌓이지 않음: 이미 있는 안개 근처(반경 1.6배)는 후보에서 빼고, 자리가 없으면 가장 오래된 안개를 새 자리로 옮김
+    //   - 안에 들어온 적은 0.5초마다 중독 피해 + 완전히 멈춤(마비, 원거리 몹은 사격도 멈춤). 보스·중간 보스는 50% 둔화만
+    function poisonRadius(lv) { return (60 + lv * 8 + (lv >= 5 ? 10 : 0)) * skillUp.area; }
     function updatePoison(timestamp) {
       const lv = player.poisonLevel;
       if (lv > 0 && timestamp - player.poisonTimer > (5200 - (lv - 1) * 400) * skillUp.cd) {
         const viewR = Math.min(canvas.width, canvas.height) / currentViewScale * 0.5;
-        const count = lv >= 5 ? 2 : 1;
-        for (let k = 0; k < count; k++) {
-          let spot = findDensestSpot(viewR);
+        const r = poisonRadius(lv);
+        const life = Math.round((4 + lv * 0.6 + (lv >= 5 ? 1 : 0)) * 60 * skillUp.dur);
+        const tick = player.damage * (0.35 + lv * 0.15) * skillPower;
+        const used = poisonClouds.map(c => ({ x: c.x, y: c.y }));
+        let made = 0;
+        for (let k = 0; k < lv; k++) {
+          const spot = findDensestSpot(viewR, used, r * 1.6);
           if (!spot) break;
-          if (k > 0) spot = { x: spot.x + (Math.random() - 0.5) * 260, y: spot.y + (Math.random() - 0.5) * 260 };
-          player.poisonTimer = timestamp;
-          const life = Math.round((4 + lv * 0.6 + (lv >= 5 ? 1 : 0)) * 60 * skillUp.dur);
-          poisonClouds.push({
-            x: spot.x, y: spot.y, r: (85 + lv * 14 + (lv >= 5 ? 25 : 0)) * skillUp.area,
-            life: life, maxLife: life, lv: lv, seed: Math.random() * 10,
-            tick: player.damage * (0.35 + lv * 0.15) * skillPower
-          });
+          used.push({ x: spot.x, y: spot.y });
+          const cloud = { x: spot.x, y: spot.y, r: r, life: life, maxLife: life, lv: lv, seed: Math.random() * 10, tick: tick };
+          if (poisonClouds.length >= lv) {
+            // 최대 개수에 도달: 가장 오래된(남은 시간이 가장 짧은) 안개를 새 자리로 갱신
+            let old = poisonClouds[0];
+            for (const c of poisonClouds) if (c.life < old.life) old = c;
+            Object.assign(old, cloud);
+          } else {
+            poisonClouds.push(cloud);
+          }
+          made++;
         }
+        // 이미 있는 안개 위치에 적이 몰려 있으면 그 안개의 시간만 갱신 (새로 겹쳐 만들지 않음)
+        if (!made) for (const c of poisonClouds) c.life = Math.max(c.life, Math.round(life * 0.6));
+        if (made || poisonClouds.length) player.poisonTimer = timestamp;
       }
       for (let i = poisonClouds.length - 1; i >= 0; i--) {
         const c = poisonClouds[i];
         c.life--;
+        // 마비: 안에 있는 동안 계속 갱신 (나오면 0.25초 뒤 풀림)
+        for (const m of monsters) {
+          const dx = m.x - c.x, dy = m.y - c.y, rr = c.r + m.radius * 0.5;
+          if (dx * dx + dy * dy > rr * rr) continue;
+          if (m.isBoss || m.isElite) { m.speed = Math.min(m.speed, m.baseSpeed * 0.5); m.slowTimer = Math.max(m.slowTimer || 0, 6); }
+          else m.stunUntil = playTimeMs + 250;
+        }
         // ☠️ 역병 소용돌이 시너지: 블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독은 피해 1.5배
         let boosted = false;
         if (synOn("plagueVortex")) {
@@ -4949,7 +5676,20 @@
       { id: "toxicBlaze", name: "☣️ 독가스 폭발", needs: ["poison", "fireNova"],
         desc: "플레임 노바 불길이 독 안개에 닿으면 안개가 대폭발" },
       { id: "plagueVortex", name: "🌀 역병 소용돌이", needs: ["poison", "vortex"],
-        desc: "블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독 피해 1.5배" }
+        desc: "블랙홀이 독 안개를 빨아들이고, 블랙홀 안의 독 피해 1.5배" },
+      // ===== (v28) 융합 스킬: 선행 스킬 2개를 모두 Lv3 이상 → 레벨업 카드로 획득 (fusion: true) =====
+      { id: "thunderBoomerang", name: "⚡ 뇌전 부메랑", needs: ["lightning", "boomerang"], fusion: true,
+        desc: "부메랑이 적에게 맞을 때마다 주변 적 3명에게 번개가 연쇄로 튐" },
+      { id: "volcano", name: "🌋 화산 폭발", needs: ["meteor", "fireNova"], fusion: true,
+        desc: "메테오가 떨어진 자리에서 작은 플레임 노바가 퍼져 나가고 화염 장판이 1.5배 커짐" },
+      { id: "frostBlade", name: "🧊 빙결 칼날", needs: ["blade", "frostAura"], fusion: true,
+        desc: "회전 칼날에 베인 적이 0.8초 동안 완전히 얼어붙고 칼날 피해 1.3배" },
+      { id: "railSniper", name: "🎯 레일 저격", needs: ["sniper", "laser"], fusion: true,
+        desc: "저격탄이 레이저로 조준 중인 적에게 맞으면 피해 1.6배 + 레이저 증폭이 즉시 최대" },
+      { id: "orbitMissile", name: "🛰️ 궤도 포격", needs: ["orbit", "homing"], fusion: true,
+        desc: "궤도 구체가 1.6초마다 각자 작은 유도 미사일을 1발씩 발사" },
+      { id: "toxicShuriken", name: "🧪 맹독 수리검", needs: ["shuriken", "poison"], fusion: true,
+        desc: "수리검에 맞은 적이 3초 동안 중독 (0.5초마다 피해) · 중독된 적은 이동속도 40% 감소" }
     ];
     let activeSynergies = [];
     const synOn = id => activeSynergies.includes(id);
@@ -4957,6 +5697,15 @@
       const s = PREVIEW_SKILLS.find(p => p.id === id);
       return !!s && player[s.key] > 0;
     }
+    function skillLevelOf(id) {
+      const s = PREVIEW_SKILLS.find(p => p.id === id);
+      return s ? player[s.key] : 0;
+    }
+    // 융합 카드 등장 조건: 필요한 스킬을 모두 Lv3 이상 ("또는" 조건은 그중 가장 높은 레벨)
+    const FUSION_NEED_LV = 3;
+    const fusionReady = s => s.needs.every(n => (Array.isArray(n) ? Math.max(...n.map(skillLevelOf)) : skillLevelOf(n)) >= FUSION_NEED_LV);
+    // 개발자 미리보기·도감용: "[시너지 조합: A + B]" 문구
+    const synComboText = s => `[시너지 조합: ${s.needs.map(needLabel).join(" + ")}]`;
     function skillLabel(id) {
       const s = PREVIEW_SKILLS.find(p => p.id === id);
       return s ? s.name : id;
@@ -4966,7 +5715,7 @@
     const needHas = (n, id) => Array.isArray(n) ? n.includes(id) : n === id;
     // 보유 스킬이 바뀔 때마다 호출. 새로 발동된 시너지는 화면에 알림
     function updateSynergies() {
-      const now = SYNERGIES.filter(s => s.needs.every(needMet)).map(s => s.id);
+      const now = SYNERGIES.filter(s => s.needs.every(needMet) && (!s.fusion || player.fusions.includes(s.id))).map(s => s.id);
       const fresh = now.filter(id => !activeSynergies.includes(id));
       activeSynergies = now;
       if (gameState === "playing") for (const id of fresh) showSynergyToast(SYNERGIES.find(s => s.id === id));
@@ -5005,7 +5754,7 @@
     const DASH_COOLDOWN = 5000;  // 기본 대시 쿨타임 (ms, 플레이 시간 기준)
     const DASH_COOLDOWN_MIN = 3000; // 상점 강화 + 레벨업 스킬을 모두 최대로 해도 3초 밑으로는 안 떨어짐
     const DASH_TIME = 220;       // 대시 이동 시간
-    const DASH_INVULN = 400;     // 대시 시작부터 무적 시간
+    const DASH_INVULN = 500;     // 대시 시작부터 무적 시간 (v28: 0.4 → 0.5초, 무적 중에는 탄환이 몸을 통과)
     // 대시 쿨타임 = 5초 - 상점 강화(단계당 0.1초, 최대 0.5초) - 레벨업 스킬 '대시 쿨타임 감소'(레벨당 0.3초, 최대 1.5초), 최소 3초
     function dashCooldown() {
       return Math.max(DASH_COOLDOWN_MIN, DASH_COOLDOWN - (cs().shop.dash || 0) * 100 - player.dashSkillLevel * 300);
@@ -5014,7 +5763,7 @@
     function barrierReady() { return player.barrierLevel > 0 && playTimeMs >= player.barrierReadyAt; }
 
     function tryDash() {
-      if (gameState !== "playing" || isPaused || playTimeMs < player.dashReadyAt) return;
+      if ((gameState !== "playing" && gameState !== "preview") || isPaused || playTimeMs < player.dashReadyAt) return;
       // 이동 중이면 이동 방향, 멈춰 있으면 바라보는 방향으로
       let ang = player.angle;
       if (joystick.active) {
@@ -5059,9 +5808,14 @@
     }
 
     function takeDamage(rawDamage) {
-      if (gameState === "preview" || finalBossDefeated) return;
       if (playTimeMs < player.invulnUntil) return; // 대시 중 무적
-      if (playTimeMs < player.levelInvulnUntil) return; // 레벨업 카드를 고른 직후 무적
+      if (gameState === "preview") {
+        // 스킬 미리보기: 피해는 없고, 탄환·큰 공격에 맞은 횟수만 셈 (회피 테스트용)
+        if (rawDamage >= 5) { previewHits++; addHitEffect({ x: player.x, y: player.y, radius: 26, life: 8, maxLife: 8, color: "#f87171" }); }
+        return;
+      }
+      if (finalBossDefeated || (bonus && bonus.done)) return;
+      if (playTimeMs < player.levelInvulnUntil) return; // 레벨업 카드를 고른 직후 무적 (보너스 모드 부활 무적도 같이 사용)
       // 에너지 방벽: 탄환·돌진 같은 큰 피해만 1번 막음 (몸통 접촉의 작은 지속 피해에는 소모되지 않음)
       if (rawDamage >= 5 && barrierReady()) {
         player.barrierReadyAt = playTimeMs + barrierCooldown(player.barrierLevel);
@@ -5107,7 +5861,9 @@
       }
       if (player.hp <= 0) {
         deathCount++;
-        if (godMode) {
+        if (bonus && !godMode) {
+          bonusPlayerDown(); // 보너스 스테이지: 목숨 차감 → 다 쓰면 광고 부활 1회
+        } else if (godMode) {
           // 테스트용: 그 자리에서 즉시 부활 (+ 잠깐 보호막)
           player.hp = player.maxHp;
           player.shieldHits = 3;
@@ -5142,7 +5898,7 @@
     }
 
     function addExp(amount) {
-      if (gameState === "preview") return;
+      if (gameState === "preview" || bonus) return; // 보너스 스테이지는 레벨업 없음
       if (player.level >= CLEAR_LEVEL) return; // 최종 레벨 이후로는 경험치를 더 쌓지 않음
       player.exp += amount;
       if (player.exp >= player.nextExp) {
@@ -5160,10 +5916,11 @@
         targetViewScale = Math.max(0.45, 0.68 - (player.level - 1) * 0.022);
 
         // 최종 레벨 도달 → 최종 보스 등장 (처치하면 게임 클리어)
+        // 보스 등장 연출은 레벨업 카드를 고른 뒤 시작 (사운드와 연출 시간이 어긋나지 않게)
         if (player.level >= CLEAR_LEVEL) {
           finalBossPending = true;
-        } else if (player.level % 5 === 0 && !bossArena.active) {
-          spawnBoss();
+        } else if (player.level % 5 === 0 && !bossArena.active && !bossIntro) {
+          bossIntroQueued = true;
         }
         openLevelUpModal();
       }
@@ -5224,12 +5981,20 @@
       const fresh = pool.filter(u => !shownUpgradeIds.includes(u.id));
       const source = fresh.length >= 3 ? fresh : pool;
       currentChoices = [...source].sort(() => Math.random() - 0.5).slice(0, 3);
+      // 🔗 융합 카드가 열려 있으면 선택지 하나는 반드시 융합 카드
+      const fusion = pool.find(u => u.fusion);
+      if (fusion && !currentChoices.some(u => u.fusion)) currentChoices[0] = fusion;
       shownUpgradeIds = currentChoices.map(u => u.id);
       showUpgradeChoices();
     }
 
     // 현재 뽑힌 선택지를 그대로 다시 표시 (스킬 교체 화면에서 취소하고 돌아올 때)
     function showUpgradeChoices() {
+      const devBtn = document.getElementById("btn-dev-full");
+      devBtn.style.display = IS_DEV_MODE ? "block" : "none";
+      devBtn.innerText = devFullPick ? "🎲 [DEV] 일반 랜덤 3개 선택지로 보기" : "🛠️ [DEV] 전체 스킬 목록에서 고르기";
+      if (IS_DEV_MODE && devFullPick) { renderDevFullPick(); return; }
+      levelupModal.classList.remove("dev-full");
       levelupTitle.innerText = "⚡ 레벨 업! 특성 선택";
       upgradeList.innerHTML = "";
       updateRerollButton();
@@ -5237,18 +6002,64 @@
       currentChoices.forEach(item => {
         addChoiceButton(item.title, item.desc + synergyHint(item.id), () => {
           item.apply();
-          levelupModal.style.display = "none";
-          isPaused = false;
-          player.levelInvulnUntil = playTimeMs + LEVELUP_INVULN_MS;
-          updateSynergies();
-          updateUI();
-        });
+          closeLevelUp();
+        }, item.fusion);
       });
     }
+    function closeLevelUp() {
+      levelupModal.style.display = "none";
+      levelupModal.classList.remove("dev-full");
+      isPaused = false;
+      player.levelInvulnUntil = playTimeMs + LEVELUP_INVULN_MS;
+      updateSynergies();
+      updateUI();
+    }
 
-    function addChoiceButton(title, desc, onClick) {
+    // ===== [DEV] 레벨업 프리패스: 랜덤 선택지와 상관없이 모든 스킬 중 원하는 것을 바로 배움 =====
+    let devFullPick = IS_DEV_MODE; // 개발자 모드는 기본으로 전체 목록 (버튼으로 일반 랜덤 3개와 전환)
+    function toggleDevFullPick() {
+      devFullPick = !devFullPick;
+      if (!devFullPick && !currentChoices.length) renderUpgradeChoices();
+      else showUpgradeChoices();
+    }
+    function renderDevFullPick() {
+      levelupModal.classList.add("dev-full");
+      levelupTitle.innerText = "🛠️ [DEV] 레벨업 프리패스 — 원하는 스킬을 바로 배우기";
+      document.getElementById("btn-reroll").style.display = "none";
+      document.getElementById("btn-swap").style.display = "none";
+      upgradeList.innerHTML = "";
+      // 융합 카드 → 아직 없는 스킬 → 보유 스킬 → 기본 능력치 순
+      const pool = getAvailableUpgrades(true);
+      const rank = u => u.fusion ? 0 : (!u.isOwned ? 1 : (PREVIEW_SKILLS.some(s => s.id === u.id) ? 2 : 3));
+      pool.sort((a, b) => rank(a) - rank(b));
+      for (const u of pool) {
+        const row = document.createElement("div");
+        row.className = "dev-pick-row";
+        const btn = document.createElement("button");
+        btn.className = "upgrade-btn" + (u.fusion ? " fusion" : "");
+        btn.innerHTML = `${u.title}<span>${u.desc}</span>`;
+        btn.onclick = () => { u.apply(); closeLevelUp(); };
+        row.appendChild(btn);
+        const max = document.createElement("button");
+        max.className = "max-btn";
+        max.innerText = "MAX";
+        max.onclick = () => {
+          // 같은 선택지를 고를 수 없을 때까지(최대 5번) 반복 적용
+          for (let k = 0; k < 5; k++) {
+            const again = getAvailableUpgrades(true).find(x => x.id === u.id);
+            if (!again) break;
+            again.apply();
+          }
+          closeLevelUp();
+        };
+        row.appendChild(max);
+        upgradeList.appendChild(row);
+      }
+    }
+
+    function addChoiceButton(title, desc, onClick, fusion) {
       const btn = document.createElement("button");
-      btn.className = "upgrade-btn";
+      btn.className = "upgrade-btn" + (fusion ? " fusion" : "");
       btn.innerHTML = `${title}<span>${desc}</span>`;
       btn.onclick = onClick;
       upgradeList.appendChild(btn);
@@ -5343,6 +6154,7 @@
 
     function renderUI() {
       uiDirty = false;
+      if (bonus) { renderBonusUI(); return; }
       levelDisplay.innerText = player.level >= CLEAR_LEVEL ? `Lv. ${player.level} · 👑 최종 보스전` : `Lv. ${player.level} / ${CLEAR_LEVEL}`;
       killDisplay.innerText = `처치: ${kills}`;
       if (deathCount === 0) {
@@ -5378,7 +6190,8 @@
       joystick.active = false;
       const stars = lv => "★".repeat(lv) + `<i>${"★".repeat(5 - lv)}</i>`;
       const rows = ownedAttackSkills().map(s => ({ name: s.name, lv: player[s.key] }));
-      if (player.bulletCaliberLevel > 0) rows.push({ name: "💥 대구경 탄환", lv: player.bulletCaliberLevel });
+      if (player.bulletCaliberLevel > 0) rows.push({ name: `💥 대구경 탄환 (평타 ×${player.caliberMult.toFixed(2)} · 스킬 ×${caliberSkillMult().toFixed(2)})`, lv: player.bulletCaliberLevel });
+      if (player.hasteLevel > 0) rows.push({ name: `🚀 발사 속도 증폭 (스킬 주기 ×${Math.pow(HASTE_CD, Math.min(HASTE_MAX, player.hasteLevel)).toFixed(2)})`, lv: Math.min(5, player.hasteLevel) });
       if (player.armorLevel > 0) rows.push({ name: "🦾 나노 강화 장갑", lv: player.armorLevel });
       if (player.barrierLevel > 0) rows.push({ name: "🔰 에너지 방벽", lv: player.barrierLevel });
       if (player.dashSkillLevel > 0) rows.push({ name: `💨 대시 쿨타임 감소 (대시 ${(dashCooldown() / 1000).toFixed(1)}초)`, lv: player.dashSkillLevel });
@@ -5388,7 +6201,8 @@
           activeSynergies.map(id => { const s = SYNERGIES.find(x => x.id === id); return `<div class="syn-row">🔗 ${s.name}<small>${s.desc}</small></div>`; }).join("")
         : "아직 배운 스킬이 없어요";
       document.getElementById("pause-summary").innerText =
-        `${currentStage().name} · ${currentCharacter().name}\nLv.${player.level} / ${CLEAR_LEVEL} · ⏱️ ${formatPlayTime(playTimeMs)}\n처치 ${kills} · 체력 ${Math.ceil(player.hp)} / ${player.maxHp} · 사망 ${deathCount}회` +
+        (bonus ? `🎁 ${BONUS_MODES[bonus.mode].name} · ${currentCharacter().name}\n⏱️ ${formatPlayTime(playTimeMs)} / ${BONUS_MODES[bonus.mode].timeMs / 1000}초 · ❤️ 목숨 ${bonus.lives}\n체력 ${Math.ceil(player.hp)} / ${player.maxHp} · 사망 ${deathCount}회`
+          : `${currentStage().name} · ${currentCharacter().name}\nLv.${player.level} / ${CLEAR_LEVEL} · ⏱️ ${formatPlayTime(playTimeMs)}\n처치 ${kills} · 체력 ${Math.ceil(player.hp)} / ${player.maxHp} · 사망 ${deathCount}회`) +
         (IS_DEV_MODE && activeTraps.length ? `\n⚠️ 환경 함정: ${activeTraps.map(id => trapName(id, currentFloor)).join(" · ")}` : "") +
         `\n${GAME_VERSION} · ${IS_DEV_MODE ? "개발 버전" : "배포 버전"}`;
       document.getElementById("pause-dev").style.display = IS_DEV_MODE ? "block" : "none";
@@ -5398,7 +6212,7 @@
       document.getElementById("pause-dmg-box").style.display = IS_DEV_MODE ? "block" : "none";
       if (IS_DEV_MODE) document.getElementById("pause-dmg").innerHTML = renderStatsHtml();
       document.getElementById("pause-stats").innerHTML = [
-        `⚔️ 공격력 ${Math.round(player.damage)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
+        `⚔️ 공격력 ${Math.round(player.damage)} · 평타 1발 ${Math.round(player.damage * player.caliberMult * currentAttack().dmgMult)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
         `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초`,
         `👟 이동속도 ${player.speed.toFixed(1)} · 🧲 자석 범위 ${player.magnetRange}`,
         petStatusText()
@@ -5467,10 +6281,11 @@
       joystick.active = false;
       Sound.gameOver();
       vibrate(400, true);
-      const final = reviveCount >= 2;
+      // 보너스 스테이지: 목숨을 다 쓰면 광고 부활 1회
+      const final = bonus ? bonus.adUsed : reviveCount >= 2;
       if (!final) {
-        gameoverTitle.innerText = "💀 쓰러졌습니다!";
-        reviveLabel.innerText = `📺 5초 광고 보고 부활하기 (${reviveCount + 1}/2)`;
+        gameoverTitle.innerText = bonus ? "💔 목숨을 모두 잃었습니다!" : "💀 쓰러졌습니다!";
+        reviveLabel.innerText = bonus ? "📺 5초 광고 보고 1회 추가 부활" : `📺 5초 광고 보고 부활하기 (${reviveCount + 1}/2)`;
         btnRevive.style.display = "flex";
       } else {
         gameoverTitle.innerText = "☠️ 최종 게임 오버";
@@ -5500,6 +6315,7 @@
           clearInterval(interval);
           adVideoOverlay.style.display = "none";
           reviveCount++;
+          if (bonus) { bonus.adUsed = true; bonus.lives = 1; player.levelInvulnUntil = playTimeMs + 2000; }
           player.hp = player.maxHp;
           player.shieldHits = 3;
           enemyBullets = [];
@@ -5529,6 +6345,8 @@
       pauseModal.style.display = "none";
       btnPause.style.display = "none"; btnDash.style.display = "none";
       bossAlert.style.display = "none";
+      bossIntro = null; bossIntroQueued = null;
+      if (bonus) { finishBonus(cleared); return; }
 
       const noDeath = cleared && deathCount === 0;
       const before = getBonusStats();
@@ -5564,6 +6382,20 @@
         save.selectedFloor = currentFloor + 1;
         rewards.push(`🔓 ${getStage(currentFloor + 1).name} 개방! 메인 화면에서 선택할 수 있어요`);
       }
+      // 📈 슬롯머신 아이템: 판 종료 골드 +10%씩
+      const goldUp = relicCount("goldUp");
+      if (goldUp && gold > 0) {
+        const g2 = Math.round(gold * (1 + goldUp * 0.1));
+        rewards.push(`📈 영구 아이템 골드 +${goldUp * 10}%: ${gold} → ${g2}`);
+        gold = g2;
+      }
+      // ⭐ 캐릭터 경험치: 층을 클리어해야 받음 (높은 층일수록 많이)
+      if (cleared) {
+        const xp = floorClearXp(currentFloor);
+        const ups = addCharXp(xp);
+        rewards.push(`⭐ ${currentCharacter().name} 경험치 +${xp}` + (ups.length ? ` → 캐릭터 Lv.${cs().lvl} 달성!` : ` (Lv.${cs().lvl} · ${Math.round(cs().xp)}/${charXpNeed(cs().lvl)})`));
+        if (ups.some(l => l % 10 === 0)) rewards.push(`🎰 ${ups.filter(l => l % 10 === 0).join("·")}레벨 보상: 슬롯머신 기회 획득! (메인 화면에서 바로 돌릴 수 있어요)`);
+      }
       save.gold += gold;
       save.plays++;
       save.bestLevel = Math.max(save.bestLevel, player.level);
@@ -5597,7 +6429,15 @@
     function renderLobby() {
       const b = getBonusStats();
       const skin = getSkin();
-      document.getElementById("st-best").innerText = save.bestLevel;
+      // 메인 화면: 최고 레벨 대신 지금 고른 캐릭터의 레벨 + 경험치 바
+      const c = cs();
+      document.getElementById("st-best").innerText = c.lvl;
+      document.getElementById("char-xp-fill").style.width = `${Math.min(100, c.xp / charXpNeed(c.lvl) * 100)}%`;
+      document.getElementById("char-xp-text").innerText = `⭐ 캐릭터 Lv.${c.lvl} · ${Math.round(c.xp)} / ${charXpNeed(c.lvl)} EXP · 다음 슬롯 Lv.${Math.floor(c.lvl / 10) * 10 + 10}`;
+      document.getElementById("menu-slot-sub").innerText = c.slotTickets ? `🎟️ ${c.slotTickets}회 돌릴 수 있음!` : "10레벨마다 아이템 3개";
+      document.getElementById("btn-slot-menu").className = "menu-btn gold" + (c.slotTickets ? " ready" : "");
+      document.getElementById("relic-list").innerHTML = relicListHtml();
+      renderBonusPanel();
       document.getElementById("st-clears").innerText = save.clears;
       document.getElementById("st-nodeath").innerText = save.noDeathClears;
       document.getElementById("st-gold").innerText = save.gold.toLocaleString();
@@ -5609,6 +6449,7 @@
         `클리어 보상: ⚔️ 공격력 +${b.damagePct}% · ❤️ 체력 +${b.hp}<br>` +
         `상점 강화: ⚔️ +${cs().shop.atk * 4}% · ❤️ +${cs().shop.hp * 10} · 👟 +${cs().shop.spd * 3}% · 💨 대시 -${+(cs().shop.dash * 0.1).toFixed(1)}초<br>` +
         `스킬 강화: 💥 +${cs().skillShop.dmg * 5}% · ⏱️ -${cs().skillShop.cd * 3}% · 🎯 +${cs().skillShop.area * 4}% · 🚀 +${cs().skillShop.dur * 5}%<br>` +
+        `슬롯 아이템: ⚔️ +${relicCount("atk") * 5} · ❤️ +${relicCount("hp") * 20} · 👟 +${relicCount("spd") * 5}% · 🧲 +${relicCount("magnet") * 15}% · ✨ +${relicCount("skill") * 5}%<br>` +
         `<b>이번 캐릭터 시작 능력치</b>: 공격력 ${st.damage} · 체력 ${st.maxHp} · 이동속도 ${st.speed}`;
       renderCharacterPicker();
       renderFloorPicker();
@@ -5981,7 +6822,7 @@
       if (!pet.id) return "";
       const def = PETS[pet.id];
       const state = pet.offline
-        ? `🪫 방전 (보석 ${pet.gems}/${PET_RECHARGE_GEMS} · ${Math.max(0, Math.ceil((PET_RECHARGE_MS - (playTimeMs - pet.offlineAt)) / 1000))}초 뒤 재가동)`
+        ? `🪫 방전 · REPAIR 보석 ${pet.gems}/${PET_RECHARGE_GEMS}개 (다 모으면 재가동)`
         : `❤️ ${Math.ceil(pet.hp)} / ${pet.maxHp}`;
       return `${def.name}${pet.level ? ` Lv.${pet.level}` : ""} · ${state}`;
     }
@@ -6060,7 +6901,13 @@
 
       document.getElementById("codex-body").innerHTML =
         sec("⛩️ 신단 (22초마다 등장 · 30초 후 사라짐)", Object.values(SHRINE_TYPES).map(d => [`${d.icon} ${d.name}`, d.desc])) +
-        sec("🔗 스킬 시너지 (조합 스킬을 모두 배우면 자동 발동)", SYNERGIES.map(s => [s.name, `${s.needs.map(needLabel).join(" + ")}<br>${s.desc}`])) +
+        sec("🔗 스킬 시너지 (조합 스킬을 모두 배우면 자동 발동)", SYNERGIES.filter(s => !s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
+        sec(`🔗 융합 스킬 (두 스킬 모두 Lv${FUSION_NEED_LV} 이상 → 레벨업 카드로 획득)`, SYNERGIES.filter(s => s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
+        sec("🎁 보너스 스테이지 (목숨 2개 · 광고 부활 1회 · 무사망 보너스)", Object.values(BONUS_MODES).map(d => [`${d.name} (${d.diffName})`, `${d.desc}<br>💰 클리어 ${d.gold}G · 무사망 +${d.noDeathGold}G`])) +
+        sec("⭐ 캐릭터 레벨 · 🎰 슬롯머신", [
+          ["캐릭터 레벨", `층을 클리어하면 경험치 (1층 ${floorClearXp(1)} → 층마다 +25%, 10층 ${floorClearXp(10)}). 레벨업 필요량 60 + 30×(Lv−1). 캐릭터마다 따로 오름`],
+          ["슬롯머신", "캐릭터 10·20·30…레벨마다 1회. 3칸을 돌려 나온 아이템 3개가 그 캐릭터에게 영구 귀속 (골드 아이템은 즉시 지급)"]
+        ].concat(RELICS.map(r => [`${r.icon} ${r.name}`, `확률 ${r.weight}%`]))) +
         sec("⚠️ 환경 함정 (1~9층 1종 · 10층부터 2종 동시)", Object.keys(TRAP_TYPES).map(id =>
           [TRAP_TYPES[id].name + (TRAP_TYPES[id].lavaName ? ` / ${TRAP_TYPES[id].lavaName}(용암 층)` : ""), TRAP_TYPES[id].desc])) +
         sec("💎 경험치 보석", [
@@ -6075,7 +6922,7 @@
           ["🧲 자석", "맵의 모든 경험치 보석을 끌어당김"]
         ]) +
         sec("🛡️ 탄환 방어 수단", [
-          ["💨 대시 (오른쪽 아래 버튼 · PC는 스페이스)", "이동 방향으로 짧게 돌진하며 0.4초 무적. 쿨타임 5초 (상점 강화 최대 -0.5초, 레벨업 '💨 대시 쿨타임 감소' 최대 -1.5초, 최소 3초)"],
+          ["💨 대시 (오른쪽 아래 버튼 · PC는 스페이스)", "이동 방향으로 짧게 돌진하며 0.5초 무적 (무적 중에는 탄환이 몸을 통과). 쿨타임 5초 (상점 강화 최대 -0.5초, 레벨업 '💨 대시 쿨타임 감소' 최대 -1.5초, 최소 3초)"],
           ["🔰 에너지 방벽 (레벨업 선택지)", "탄환·돌진 같은 큰 피해 1회 막기. Lv1 14초 → Lv5 6초마다 재생성, Lv5는 깨질 때 주변 탄환도 지움"],
           ["⛰️ 장애물 엄폐", "장애물은 적 탄환과 내 탄환 모두 막고, 나와 적 모두 돌아서 지나가야 함. 탄환을 처음 막으면 금이 가서 8초 뒤 부서지고, 45초 뒤 다시 생김"],
           ["⚔️ 회전 칼날 · 🔥 플레임 노바 · ⛓️ 사슬 · 🌀 궤도 구체 · 🪃 부메랑 · ✴️ 수리검 · 🚀 유도 미사일", "닿거나 지나가는 경로의 일반 몹 탄환 제거 (보스 탄은 못 막음)"],
@@ -6083,7 +6930,7 @@
           ["🛡️ 보호막 아이템", "피해 3회 막기"]
         ]) +
         sec("⚔️ 공격 스킬", skillRows) +
-        sec("🤖 동료" + (IS_DEV_MODE ? ` (방전되면 보석 ${PET_RECHARGE_GEMS}개 또는 ${PET_RECHARGE_MS / 1000}초 뒤 재가동)` : ""), Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
+        sec("🤖 동료" + (IS_DEV_MODE ? ` (방전되면 자동 복구 없음 · 보석 ${PET_RECHARGE_GEMS}개를 모아야 재가동)` : ""), Object.values(PETS).map(p => [p.name, `⚔️ ${p.attackDesc}<br>✨ ${p.specialDesc}`])
           .concat([["🤝 동료 강화 (레벨업 카드)", "레벨당 동료 공격력 +50% · 공격 속도 +10% · 체력 +15% · 특수 능력 주기 -8%, Lv2·Lv4에 공격 갈래 +1 (최대 Lv5: 공격력 ×3.5)"]])) +
         sec("🧑 캐릭터 (기본 공격 · 특성)", Object.values(CHARACTERS).map(c => [c.name, `${ATTACK_TYPES[c.attack].name}: ${ATTACK_TYPES[c.attack].desc}<br>${c.passive}`])) +
         sec("🏯 층 (끝없이 이어짐 · 맵 테마 5종 순환)", [1, 2, 3, 4, 5, 10, 20].map(f => [getStage(f).name, getStage(f).desc])) +
@@ -6101,6 +6948,7 @@
 
     function startGame() {
       initAudio();
+      bonus = null;
       currentFloor = Math.min(save.selectedFloor, save.unlockedFloor);
       restartGame();
       hideLobbyPanels();
@@ -6120,12 +6968,626 @@
       uiLayer.style.display = "block";
       isPaused = true;
       gameState = "lobby";
+      bonus = null;
+      bossIntro = null;
       renderLobby();
       lobbyEl.style.display = "block";
       if (lobbyReturnPanel) {
         openLobbyPanel(lobbyReturnPanel);
         lobbyReturnPanel = null;
       }
+      // 10레벨 달성으로 새 슬롯 기회가 생겼으면 메인 화면에서 바로 슬롯머신 창
+      if (slotAutoPending && cs().slotTickets > 0) { slotAutoPending = false; openSlot(false); }
+    }
+
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║  🎁 보너스 스테이지 (골드 파밍 미니게임 3종)                       ║
+    // ║  공통: 목숨 2개 · 목숨을 다 쓰면 광고 부활 1회 · 무사망 클리어 시 보너스 골드 ║
+    // ╚══════════════════════════════════════════════════════════════╝
+    const BONUS_MODES = {
+      run: { name: "🏃 도주전 - 서바이벌 런", diff: "normal", diffName: "보통", timeMs: 60000, gold: 400, noDeathGold: 600, speedMult: 1.6, floor: 1,
+        desc: "공격 완전 불가 · 이동속도 ×1.6. 사방에서 쏟아지는 잡몹 떼와 일직선으로 돌진하는 몰이 떼를 회피만으로 60초 버티기" },
+      bossrush: { name: "⚔️ 보스 러시 - 결전", diff: "hard", diffName: "어려움", timeMs: 120000, gold: 900, noDeathGold: 1200, killAllGold: 600, speedMult: 1, floor: 10,
+        desc: "원하는 스킬 5개를 만렙으로 받고 시작. 고유 패턴의 보스 3마리(🔥 화염 군주 · ❄️ 서리 마녀 · ⚡ 뇌전 거인)가 동시에 등장 — 모두 격파하거나 120초 생존" },
+      meteor: { name: "☄️ 재앙 회피 - 메테오 스톰", diff: "hell", diffName: "지옥", timeMs: 75000, gold: 1500, noDeathGold: 2000, speedMult: 1.25, floor: 3,
+        desc: "공격 불가. 하늘에서 불규칙하게 떨어지는 거대 운석 + 끊임없이 발동하는 바닥 함정(낙석·속박 늪·돌풍·중력장)을 75초 동안 피하기" }
+    };
+    const BONUS_LIVES = 2;
+    function bonusSpeedMult() { return bonus ? BONUS_MODES[bonus.mode].speedMult : 1; }
+    function bonusCanAttack() { return !bonus || bonus.mode === "bossrush"; }
+    function bonusStat(mode) { return save.bonusStats[mode] || (save.bonusStats[mode] = { plays: 0, clears: 0, perfect: 0, bestMs: 0 }); }
+
+    function renderBonusPanel() {
+      const box = document.getElementById("bonus-list");
+      if (!box) return;
+      box.innerHTML = "";
+      for (const id in BONUS_MODES) {
+        const d = BONUS_MODES[id], st = save.bonusStats[id] || {};
+        const card = document.createElement("div");
+        card.className = "bonus-card";
+        card.innerHTML = `<h4>${d.name}<span class="diff ${d.diff}">${d.diffName}</span></h4><p>${d.desc}</p>` +
+          `<p style="color:#fde68a">💰 클리어 ${d.gold.toLocaleString()}G` + (d.killAllGold ? ` · 보스 전멸 +${d.killAllGold}G` : "") + ` · 👑 무사망 +${d.noDeathGold.toLocaleString()}G</p>` +
+          `<p>기록: 도전 ${st.plays || 0} · 클리어 ${st.clears || 0} · 무사망 ${st.perfect || 0}` + (st.bestMs ? ` · 최장 생존 ${formatPlayTime(st.bestMs)}` : "") + `</p>`;
+        const btn = document.createElement("button");
+        btn.className = "start-btn";
+        btn.innerText = "도전하기";
+        btn.onclick = () => startBonus(id);
+        card.appendChild(btn);
+        box.appendChild(card);
+      }
+    }
+
+    function startBonus(mode) {
+      if (!BONUS_MODES[mode]) return;
+      initAudio();
+      if (mode === "bossrush") { openRushPick(); return; }
+      beginBonus(mode, []);
+    }
+    function beginBonus(mode, skills) {
+      const def = BONUS_MODES[mode];
+      currentFloor = def.floor;
+      bonus = null;
+      restartGame();
+      bonus = { mode: mode, lives: BONUS_LIVES, adUsed: false, done: false, nextSpawn: 0, nextWave: 5000, wave: null,
+        nextMeteor: 1200, storm: [], fires: [], marks: [], bossKills: 0, bossesSpawned: false, killedAll: false, uiAt: 0, fireTickAt: 0 };
+      resetPet(""); // 보너스 스테이지는 동료 없이 혼자
+      if (mode === "meteor") {
+        // 바닥 함정 4종 동시 + 운석
+        activeTraps = ["hazard", "bog", "wind", "gravity"];
+        Object.assign(trap, { nextWind: 3000, nextWell: 4000, nextBog: 2500, nextHazard: 2000 });
+      } else {
+        activeTraps = [];
+      }
+      updateTrapHud();
+      if (mode === "bossrush") {
+        // 고른 스킬 5개를 만렙으로 + 후반 레벨 수준의 기본기 (공격력 ×1.6, 체력 ×1.5)
+        for (const id of skills) {
+          const s = PREVIEW_SKILLS.find(p => p.id === id);
+          if (!s) continue;
+          player[s.key] = 5;
+          if (s.after) s.after(5);
+        }
+        player.damage *= 1.6;
+        player.maxHp = Math.round(player.maxHp * 1.5);
+        player.hp = player.maxHp;
+        updateSynergies();
+        startBossIntro(false, spawnRushBosses);
+      }
+      hideLobbyPanels();
+      lobbyEl.style.display = "none";
+      btnPause.style.display = "block"; btnDash.style.display = "block";
+      applyDashPos();
+      gameState = "playing";
+      bonusStat(mode).plays++;
+      writeSave();
+      updateUI();
+    }
+
+    function updateBonus(timestamp) {
+      const def = BONUS_MODES[bonus.mode];
+      if (bonus.done) return;
+      const t = Math.min(1, playTimeMs / def.timeMs); // 진행도 0 → 1 (점점 어려워짐)
+      if (bonus.mode === "run") updateRunMode(t);
+      else if (bonus.mode === "meteor") updateStormMode(t);
+      else updateRushMode();
+      updateBonusHazards();
+      if (!bonus.done && playTimeMs >= def.timeMs) bonusClear();
+      if (playTimeMs >= bonus.uiAt) { bonus.uiAt = playTimeMs + 200; updateUI(); }
+    }
+    function bonusClear() {
+      bonus.done = true;
+      enemyBullets = [];
+      Sound.clear();
+      spawnBurst(player.x, player.y, "#fde047", 40, 9);
+      addShake(6);
+      setTimeout(() => { if (gameState === "playing" && bonus) finishRun(true); }, 1200);
+    }
+    // 목숨 1개 소모: 그 자리에서 즉시 부활 + 2초 무적 + 주변 탄환 제거. 목숨을 다 쓰면 광고 부활 창
+    function bonusPlayerDown() {
+      bonus.lives--;
+      if (bonus.lives > 0) {
+        player.hp = player.maxHp;
+        player.levelInvulnUntil = playTimeMs + 2000;
+        enemyBullets = enemyBullets.filter(eb => eb && fastHypot(eb.x - player.x, eb.y - player.y) > 260);
+        addHitEffect({ x: player.x, y: player.y, radius: 80, life: 22, maxLife: 22, color: "#f87171" });
+        spawnBurst(player.x, player.y, "#fca5a5", 24, 7);
+        Sound.gameOver();
+        vibrate(220, true);
+        updateUI();
+      } else {
+        player.hp = 0;
+        triggerGameOver();
+      }
+    }
+    function renderBonusUI() {
+      const def = BONUS_MODES[bonus.mode];
+      const left = Math.max(0, def.timeMs - playTimeMs);
+      const sec = Math.ceil(left / 1000);
+      levelDisplay.innerText = `${def.name.split(" - ")[0]} · ⏱️ ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+      killDisplay.innerText = "❤️".repeat(Math.max(0, bonus.lives)) + (bonus.adUsed ? " (광고 부활 사용)" : "") +
+        (bonus.mode === "bossrush" ? ` · 보스 ${bonus.bossKills}/3` : "");
+      expFill.style.width = `${Math.min(100, playTimeMs / def.timeMs * 100)}%`;
+      hpFill.style.width = `${Math.max(0, player.hp / player.maxHp * 100)}%`;
+      deathDisplay.innerHTML = deathCount === 0 ? `🛡️ 무사망 도전 중 · ${def.diffName}` : `💀 사망 ${deathCount}회 (무사망 보너스 없음)`;
+      deathDisplay.classList[deathCount ? "add" : "remove"]("dead");
+      buffDisplay.style.display = "none";
+    }
+
+    // 🏃 도주전: 사방에서 몰려오는 잡몹 + 경고 후 일직선으로 지나가는 몰이 떼 (점점 빨라지고 많아짐)
+    function updateRunMode(t) {
+      const viewHalf = fastHypot(canvas.width / currentViewScale, canvas.height / currentViewScale) / 2;
+      if (playTimeMs >= bonus.nextSpawn) {
+        bonus.nextSpawn = playTimeMs + 430 - 230 * t;
+        const n = Math.min(3 + Math.floor(t * 4), MAX_MONSTERS - monsters.length);
+        for (let k = 0; k < n; k++) {
+          const a = Math.random() * Math.PI * 2;
+          const fast = Math.random() < 0.35 + t * 0.3;
+          const sp = (fast ? 2.3 : 1.5) * (1 + t * 0.5) + Math.random() * 0.4;
+          monsters.push({ x: player.x + Math.cos(a) * (viewHalf + 60), y: player.y + Math.sin(a) * (viewHalf + 60), type: fast ? "runner" : "normal",
+            radius: fast ? 16 : 20, speed: sp, baseSpeed: sp, walkCycle: Math.random() * 10, hp: 99999, maxHp: 99999, slowTimer: 0, shootTimer: 0, shootInterval: 1e9, isBoss: false });
+        }
+      }
+      // 몰이 떼: 0.9초 동안 붉은 경고 띠 → 그 방향으로 일렬 돌진
+      if (!bonus.wave && playTimeMs >= bonus.nextWave) {
+        bonus.wave = { a: Math.random() * Math.PI * 2, x: player.x, y: player.y, at: playTimeMs + 900 };
+        if (sfxReady("waveWarn", 300)) sfxTone({ type: "square", freq: 520, freqEnd: 760, dur: 0.25, vol: 0.06 });
+      }
+      if (bonus.wave && playTimeMs >= bonus.wave.at) {
+        const w = bonus.wave;
+        bonus.wave = null;
+        bonus.nextWave = playTimeMs + 5200 - 2400 * t;
+        const ca = Math.cos(w.a), sa = Math.sin(w.a);
+        const rows = 9 + Math.floor(t * 6);
+        for (let k = 0; k < rows && monsters.length < MAX_MONSTERS; k++) {
+          const off = (k - (rows - 1) / 2) * 40;
+          const sp = 5.5 + t * 2;
+          monsters.push({ x: w.x - ca * (viewHalf + 80) - sa * off, y: w.y - sa * (viewHalf + 80) + ca * off, type: "runner", radius: 17,
+            speed: sp, baseSpeed: sp, walkCycle: 0, hp: 99999, maxHp: 99999, slowTimer: 0, shootTimer: 0, shootInterval: 1e9, isBoss: false,
+            straight: { dx: ca * sp, dy: sa * sp } });
+        }
+        Sound.boomerang();
+      }
+    }
+
+    // ☄️ 메테오 스톰: 경고 원(1.3초) 후 운석 낙하 → 폭발 + 2.5초 화염 장판. 함정도 쉴 새 없이 발동
+    function updateStormMode(t) {
+      if (playTimeMs >= bonus.nextMeteor) {
+        bonus.nextMeteor = playTimeMs + (750 - 380 * t) * (0.7 + Math.random() * 0.6);
+        const n = 1 + (Math.random() < 0.3 + t * 0.5 ? 1 : 0) + (t > 0.6 && Math.random() < 0.3 ? 1 : 0);
+        for (let k = 0; k < n; k++) {
+          const aimed = k === 0 && Math.random() < 0.45; // 내가 가는 방향을 노림
+          const a = Math.random() * Math.PI * 2, d = aimed ? 0 : 80 + Math.random() * 420;
+          const lead = aimed && player.isMoving ? 60 : 0;
+          const r = (80 + Math.random() * 80) * (1 + t * 0.3);
+          bonus.storm.push({ x: player.x + Math.cos(player.angle) * lead + Math.cos(a) * d, y: player.y + Math.sin(player.angle) * lead + Math.sin(a) * d,
+            r: r, born: playTimeMs, hitAt: playTimeMs + 1300 - 250 * t, done: false });
+        }
+      }
+      // 함정이 쉴 틈 없이 이어지도록 다음 발동을 앞당김
+      trap.nextHazard = Math.min(trap.nextHazard, playTimeMs + 2600 - 1000 * t);
+      trap.nextBog = Math.min(trap.nextBog, playTimeMs + 5200);
+      for (let i = bonus.storm.length - 1; i >= 0; i--) {
+        const s = bonus.storm[i];
+        if (!s.done && playTimeMs >= s.hitAt) {
+          s.done = true;
+          explosions.push({ x: s.x, y: s.y, radius: s.r, life: 26, maxLife: 26, lv: 5 });
+          spawnBurst(s.x, s.y, "#fb923c", 10, 8);
+          addShake(6);
+          Sound.explosion();
+          if (fastHypot(player.x - s.x, player.y - s.y) < s.r + player.radius * 0.5) takeDamage(30);
+          bonus.fires.push({ x: s.x, y: s.y, r: s.r * 0.55, until: playTimeMs + 2500, seed: Math.random() * 100 });
+        }
+        if (s.done) bonus.storm.splice(i, 1);
+      }
+    }
+
+    // ⚔️ 보스 러시: 3마리가 모두 쓰러지면 즉시 클리어
+    function updateRushMode() {
+      if (bonus.bossesSpawned && !monsters.some(m => m.rush)) {
+        bonus.killedAll = true;
+        bonusClear();
+      }
+    }
+    const RUSH_BOSSES = [
+      // 체력: 강한 조합은 1분 안팎에 전멸, 약한 조합은 120초 생존으로 클리어 (시뮬레이션 기준)
+      { kind: "flame", name: "🔥 화염 군주", look: "flameBoss", color: "#f97316", hp: 90000, speed: 1.35, radius: 54 },
+      { kind: "frost", name: "❄️ 서리 마녀", look: "frostBoss", color: "#38bdf8", hp: 74000, speed: 1.2, radius: 48 },
+      { kind: "thunder", name: "⚡ 뇌전 거인", look: "thunderBoss", color: "#facc15", hp: 108000, speed: 0.95, radius: 60 }
+    ];
+    function spawnRushBosses(at) {
+      bossArena.active = true;
+      bossArena.x = player.x;
+      bossArena.y = player.y;
+      const now = performance.now();
+      RUSH_BOSSES.forEach((b, k) => {
+        const a = -Math.PI / 2 + (k - 1) * 0.9;
+        monsters.push({
+          x: player.x + Math.cos(a) * 320, y: player.y + Math.sin(a) * 320, radius: b.radius, isBoss: true, rush: true,
+          rushKind: b.kind, rushName: b.name, rushColor: b.color, lookType: b.look, isLateBoss: true,
+          speed: b.speed, baseSpeed: b.speed, walkCycle: 0, hp: b.hp, maxHp: b.hp, enraged: false,
+          t1: now + 1500 + k * 400, t2: now + 3000 + k * 500, t3: now + 6000, dashState: "none", dashTimer: now + 4000 + k * 700, dashAngle: 0, spiralAngle: 0
+        });
+      });
+      bonus.bossesSpawned = true;
+    }
+    // 보스별 고유 패턴 (체력 50% 이하에서 광란: 패턴 간격 ×0.75, 속도 ×1.15)
+    function updateRushBoss(m, timestamp, angle) {
+      if (!m.enraged && m.hp <= m.maxHp * 0.5) {
+        m.enraged = true;
+        m.baseSpeed *= 1.15;
+        m.speed = m.baseSpeed;
+        addHitEffect({ x: m.x, y: m.y, radius: 90, life: 20, maxLife: 20, color: m.rushColor });
+      }
+      const rage = m.enraged ? 0.75 : 1;
+      const dist = fastHypot(player.x - m.x, player.y - m.y);
+      const shoot = (a, sp, r, dmg, color, extra) => enemyBullets.push(Object.assign({ x: m.x, y: m.y, dx: Math.cos(a) * sp, dy: Math.sin(a) * sp, radius: r, damage: dmg, color: color, life: 300, isBossBullet: true }, extra || {}));
+      if (m.rushKind === "flame") {
+        // 🔥 화염 군주: 추격 + 원형 화염탄 + 조준 후 돌진하며 불길을 남김
+        if (m.dashState === "windup") {
+          if (timestamp - m.dashTimer > 650) { m.dashState = "dash"; m.dashTimer = timestamp; }
+        } else if (m.dashState === "dash") {
+          m.x += Math.cos(m.dashAngle) * 10;
+          m.y += Math.sin(m.dashAngle) * 10;
+          if (Math.random() < 0.5) bonus.fires.push({ x: m.x, y: m.y, r: 38, until: playTimeMs + 2600, seed: Math.random() * 100 });
+          if (timestamp - m.dashTimer > 450) { m.dashState = "none"; m.dashTimer = timestamp; }
+        } else {
+          m.x += Math.cos(angle) * m.speed;
+          m.y += Math.sin(angle) * m.speed;
+          if (timestamp - m.dashTimer > 5200 * rage) { m.dashState = "windup"; m.dashTimer = timestamp; m.dashAngle = angle; }
+        }
+        if (timestamp > m.t1) {
+          m.t1 = timestamp + 2400 * rage;
+          const off = Math.random() * Math.PI;
+          for (let k = 0; k < 14; k++) shoot(off + k * Math.PI * 2 / 14, 4.2, 9, 14, "#fb923c");
+        }
+      } else if (m.rushKind === "frost") {
+        // ❄️ 서리 마녀: 거리를 두고 맴돌며 나선 얼음탄(맞으면 둔화) + 커다란 얼음 구슬 고리
+        const side = angle + Math.PI / 2;
+        const back = dist < 360 ? -0.8 : (dist > 460 ? 0.8 : 0);
+        m.x += Math.cos(side) * m.speed * 0.8 + Math.cos(angle) * m.speed * back;
+        m.y += Math.sin(side) * m.speed * 0.8 + Math.sin(angle) * m.speed * back;
+        if (timestamp > m.t1) {
+          m.t1 = timestamp + 210 * rage;
+          m.spiralAngle += 0.33;
+          for (let k = 0; k < 2; k++) shoot(m.spiralAngle + k * Math.PI, 3.2, 8, 9, "#7dd3fc", { slow: true });
+        }
+        if (timestamp > m.t2) {
+          m.t2 = timestamp + 4600 * rage;
+          const off = Math.random() * Math.PI;
+          for (let k = 0; k < 10; k++) shoot(off + k * Math.PI / 5, 2.4, 15, 16, "#e0f2fe", { slow: true });
+        }
+      } else {
+        // ⚡ 뇌전 거인: 천천히 다가오며 낙뢰 표식(1초 뒤 낙뢰) + 조준 3갈래 고속탄 + 졸개 소환
+        m.x += Math.cos(angle) * m.speed;
+        m.y += Math.sin(angle) * m.speed;
+        if (timestamp > m.t1) {
+          m.t1 = timestamp + 3200 * rage;
+          for (let k = 0; k < 4; k++) {
+            const a = Math.random() * Math.PI * 2, d = k === 0 ? 0 : 80 + Math.random() * 160;
+            bonus.marks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 70, born: playTimeMs, hitAt: playTimeMs + 1000 });
+          }
+        }
+        if (timestamp > m.t2) {
+          m.t2 = timestamp + 2600 * rage;
+          for (let s = -1; s <= 1; s++) shoot(angle + s * 0.16, 6.5, 11, 16, "#fde047");
+        }
+        if (timestamp > m.t3) {
+          m.t3 = timestamp + 9000;
+          for (let k = 0; k < 3 && monsters.length < MAX_MONSTERS; k++) {
+            const sa = Math.random() * Math.PI * 2;
+            spawnMonster(m.x + Math.cos(sa) * 90, m.y + Math.sin(sa) * 90, 0.75);
+          }
+        }
+      }
+    }
+    // 보너스 공통 위험 요소: 화염 장판(0.5초마다 피해) · 낙뢰 표식
+    function updateBonusHazards() {
+      for (let i = bonus.fires.length - 1; i >= 0; i--) if (playTimeMs >= bonus.fires[i].until) bonus.fires.splice(i, 1);
+      if (playTimeMs >= bonus.fireTickAt && bonus.fires.some(f => fastHypot(player.x - f.x, player.y - f.y) < f.r + player.radius * 0.4)) {
+        bonus.fireTickAt = playTimeMs + 500;
+        takeDamage(7);
+      }
+      for (let i = bonus.marks.length - 1; i >= 0; i--) {
+        const mk = bonus.marks[i];
+        if (playTimeMs < mk.hitAt) continue;
+        bonus.marks.splice(i, 1);
+        thunderStrikes.push({ x: mk.x, y: mk.y, delay: 0, life: 24, maxLife: 24, lv: 5, splash: mk.r, dmg: 0, done: true,
+          points: jaggedPath([{ x: mk.x + (Math.random() - 0.5) * 80, y: mk.y - 900 }, { x: mk.x, y: mk.y }], 26) });
+        Sound.lightning();
+        addShake(4);
+        if (fastHypot(player.x - mk.x, player.y - mk.y) < mk.r + player.radius * 0.4) takeDamage(22);
+      }
+    }
+    // 보너스 바닥 그림: 운석 경고 원 + 낙하 운석, 화염 장판, 낙뢰 표식, 몰이 떼 경고 띠
+    function drawBonusWorld(g, timestamp) {
+      if (!bonus) return;
+      for (const f of bonus.fires) {
+        const fade = Math.min(1, (f.until - playTimeMs) / 400);
+        g.globalAlpha = 0.45 * fade;
+        g.fillStyle = "#1c0a03";
+        g.beginPath(); g.arc(f.x, f.y, f.r, 0, Math.PI * 2); g.fill();
+        g.globalCompositeOperation = "lighter";
+        for (let k = 0; k < 5; k++) {
+          const a = f.seed + k * 2.4, d = f.r * 0.45 * ((k * 0.37) % 1);
+          g.globalAlpha = (0.4 + Math.sin(timestamp / 70 + k + f.seed) * 0.2) * fade;
+          drawGlow(g, k % 2 ? "#fb923c" : "#fde047", f.x + Math.cos(a) * d, f.y + Math.sin(a) * d, f.r * 0.6);
+        }
+        g.globalCompositeOperation = "source-over";
+        g.globalAlpha = 1;
+      }
+      for (const s of bonus.storm) {
+        const p = Math.max(0, Math.min(1, (playTimeMs - s.born) / (s.hitAt - s.born)));
+        g.fillStyle = `rgba(239, 68, 68, ${0.12 + p * 0.25})`;
+        g.beginPath(); g.arc(s.x, s.y, s.r, 0, Math.PI * 2); g.fill();
+        g.lineWidth = 3;
+        g.strokeStyle = `rgba(254, 202, 202, ${0.45 + p * 0.5})`;
+        g.stroke();
+        g.beginPath(); g.arc(s.x, s.y, s.r * (1 - p), 0, Math.PI * 2); g.stroke();
+        const fx = s.x - (1 - p) * 220, fy = s.y - (1 - p) * 560, rr = s.r * 0.28;
+        g.globalCompositeOperation = "lighter";
+        g.strokeStyle = "rgba(251, 146, 60, 0.45)";
+        g.lineWidth = rr * 1.5;
+        g.lineCap = "round";
+        g.beginPath(); g.moveTo(fx - 90, fy - 230); g.lineTo(fx, fy); g.stroke();
+        g.lineCap = "butt";
+        drawGlow(g, "#f97316", fx, fy, rr * 3);
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, fx, fy, rr, rr, 0, ["#fed7aa", "#9a3412", "#1c0a03"], "#1c0a03");
+      }
+      for (const mk of bonus.marks) {
+        const p = Math.max(0, Math.min(1, (playTimeMs - mk.born) / (mk.hitAt - mk.born)));
+        g.fillStyle = `rgba(250, 204, 21, ${0.1 + p * 0.25})`;
+        g.beginPath(); g.arc(mk.x, mk.y, mk.r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = `rgba(254, 240, 138, ${0.5 + p * 0.5})`;
+        g.lineWidth = 2.5;
+        g.setLineDash([8, 6]);
+        g.stroke();
+        g.setLineDash([]);
+      }
+      if (bonus.wave) {
+        const w = bonus.wave, ca = Math.cos(w.a), sa = Math.sin(w.a);
+        const blink = Math.floor(timestamp / 110) % 2 === 0;
+        g.save();
+        g.translate(w.x, w.y);
+        g.rotate(w.a);
+        g.fillStyle = blink ? "rgba(239, 68, 68, 0.28)" : "rgba(239, 68, 68, 0.14)";
+        g.fillRect(-1400, -200, 2800, 400);
+        g.fillStyle = "rgba(254, 202, 202, 0.7)";
+        for (let k = -3; k <= 3; k++) { // 진행 방향 화살표
+          g.beginPath(); g.moveTo(k * 200 + 40, 0); g.lineTo(k * 200 - 20, -40); g.lineTo(k * 200 - 20, 40); g.closePath(); g.fill();
+        }
+        g.restore();
+      }
+    }
+
+    // ===== 보스 러시: 스킬 5개 고르기 =====
+    let rushSel = [];
+    function openRushPick() {
+      rushSel = [];
+      renderRushPick();
+      document.getElementById("rush-modal").style.display = "flex";
+    }
+    function closeRushPick() { document.getElementById("rush-modal").style.display = "none"; }
+    function renderRushPick() {
+      const list = document.getElementById("rush-list");
+      list.innerHTML = "";
+      for (const s of PREVIEW_SKILLS) {
+        const btn = document.createElement("button");
+        btn.className = "pick-btn" + (rushSel.includes(s.id) ? " on" : "");
+        btn.innerText = s.name;
+        btn.onclick = () => {
+          if (rushSel.includes(s.id)) rushSel = rushSel.filter(x => x !== s.id);
+          else if (rushSel.length < 5) rushSel.push(s.id);
+          renderRushPick();
+        };
+        list.appendChild(btn);
+      }
+      document.getElementById("rush-info").innerText = `만렙(MAX)으로 바로 장착할 스킬 5개를 고르세요 · ${rushSel.length}/5`;
+      const start = document.getElementById("rush-start");
+      start.disabled = rushSel.length !== 5;
+      start.style.opacity = rushSel.length === 5 ? "1" : "0.45";
+    }
+    function rushRandomPick() {
+      rushSel = PREVIEW_SKILLS.map(s => s.id).sort(() => Math.random() - 0.5).slice(0, 5);
+      renderRushPick();
+    }
+    function confirmRushPick() {
+      if (rushSel.length !== 5) return;
+      closeRushPick();
+      beginBonus("bossrush", rushSel.slice());
+    }
+
+    // 보너스 스테이지 종료: 클리어 보상 + 무사망 보너스 (실패해도 버틴 시간만큼 조금)
+    function finishBonus(cleared) {
+      const def = BONUS_MODES[bonus.mode], st = bonusStat(bonus.mode);
+      const noDeath = cleared && deathCount === 0;
+      const rewards = [];
+      let gold = 0;
+      if (cleared) {
+        gold += def.gold;
+        rewards.push(`🏁 ${bonus.mode === "bossrush" && !bonus.killedAll ? "120초 생존" : "클리어"} 보상: 골드 +${def.gold}`);
+        st.clears++;
+      } else {
+        const part = Math.round(def.gold * 0.25 * Math.min(1, playTimeMs / def.timeMs));
+        gold += part;
+        rewards.push(`⏱️ 버틴 시간 보상 (${formatPlayTime(playTimeMs)}): 골드 +${part}`);
+      }
+      if (bonus.mode === "bossrush") {
+        if (bonus.killedAll) { gold += def.killAllGold; rewards.push(`⚔️ 보스 3마리 전멸 보너스: 골드 +${def.killAllGold}`); }
+        else if (bonus.bossKills) { gold += bonus.bossKills * 150; rewards.push(`⚔️ 보스 ${bonus.bossKills}마리 격파: 골드 +${bonus.bossKills * 150}`); }
+      }
+      if (noDeath) {
+        gold += def.noDeathGold;
+        st.perfect++;
+        rewards.push(`👑 무사망 클리어 보너스: 골드 +${def.noDeathGold.toLocaleString()}`);
+      } else if (cleared) {
+        rewards.push(`💀 사망 ${deathCount}회 — 무사망 보너스는 받지 못했어요`);
+      }
+      const goldUp = relicCount("goldUp");
+      if (goldUp) {
+        const g2 = Math.round(gold * (1 + goldUp * 0.1));
+        rewards.push(`📈 영구 아이템 골드 +${goldUp * 10}%: ${gold} → ${g2}`);
+        gold = g2;
+      }
+      st.bestMs = Math.max(st.bestMs || 0, Math.round(Math.min(playTimeMs, def.timeMs)));
+      save.gold += gold;
+      writeSave();
+      const title = document.getElementById("result-title");
+      title.innerText = cleared ? (noDeath ? "👑 PERFECT BONUS!" : "🎉 BONUS CLEAR!") : "💀 보너스 도전 실패";
+      title.style.color = cleared ? "#fbbf24" : "#ef4444";
+      document.getElementById("result-summary").innerText = `${def.name} (${def.diffName})\n⏱️ ${formatPlayTime(playTimeMs)} · 사망 ${deathCount}회 · 💰 +${gold.toLocaleString()}`;
+      document.getElementById("result-rewards").innerHTML = rewards.map(r => `<li>${r}</li>`).join("");
+      document.getElementById("result-key").innerHTML =
+        `<div><b>${formatPlayTime(Math.min(playTimeMs, def.timeMs))}</b><span>생존 시간</span></div>` +
+        `<div><b>${deathCount}</b><span>사망</span></div>` +
+        `<div><b>${gold.toLocaleString()}</b><span>획득 골드</span></div>`;
+      document.getElementById("result-dmg").innerHTML = bonus.mode === "bossrush" ? renderStatsHtml() : '<div class="stat-empty">공격 없이 회피만 하는 모드예요</div>';
+      resultModal.style.display = "flex";
+      if (cleared) Sound.clear();
+    }
+
+    // ╔══════════════════════════════════════════════════════════════╗
+    // ║  🎰 슬롯머신: 캐릭터 10레벨마다 1회 · 아이템 3개 (캐릭터에 영구 귀속)   ║
+    // ╚══════════════════════════════════════════════════════════════╝
+    let slotTest = false, slotSpinning = false, slotShownOnLoad = false;
+    function openSlot(test) {
+      if (test && !IS_DEV_MODE) return;
+      slotTest = !!test;
+      document.getElementById("slot-title").innerText = slotTest ? "🎰 [DEV] 슬롯머신 테스트" : "🎰 레벨 보상 슬롯머신";
+      for (let i = 0; i < 3; i++) setReel(i, null, "");
+      updateSlotInfo();
+      document.getElementById("slot-modal").style.display = "flex";
+    }
+    function setReel(i, relic, cls) {
+      const el = document.getElementById("reel-" + i);
+      el.className = "slot-reel" + (cls ? " " + cls : "");
+      el.innerHTML = relic ? `<b>${relic.icon}</b><span>${relic.name}</span>` : "<b>❔</b><span></span>";
+    }
+    function updateSlotInfo(text) {
+      const c = cs(), t = c.slotTickets;
+      const spin = document.getElementById("slot-spin");
+      spin.disabled = slotSpinning || (!slotTest && t <= 0);
+      spin.style.opacity = spin.disabled ? "0.45" : "1";
+      spin.innerText = slotTest ? "🎰 테스트로 돌리기 (보상 없음)" : (t ? `🎰 돌리기 (남은 기회 ${t}회)` : "기회 없음");
+      document.getElementById("slot-info").innerHTML = text || (slotTest
+        ? "배포판과 <b>같은 확률</b>로 3칸을 뽑아 봅니다 (아이템·골드는 지급되지 않아요)"
+        : t ? `캐릭터 Lv.${Math.floor(c.lvl / 10) * 10} 달성 보상!<br>뽑힌 아이템 3개는 <b>${currentCharacter().name}</b>에게 영구 귀속돼요`
+            : `다음 기회: 캐릭터 Lv.${Math.floor(c.lvl / 10) * 10 + 10} (지금 Lv.${c.lvl})`);
+      document.getElementById("slot-skip").innerText = !slotTest && t > 0 ? "나중에 돌리기 (메인 화면 🎰 버튼으로 언제든 가능)" : "닫기";
+    }
+    function spinSlot() {
+      if (slotSpinning || (!slotTest && cs().slotTickets <= 0)) return;
+      initAudio();
+      slotSpinning = true;
+      const results = [rollRelic(), rollRelic(), rollRelic()];
+      // 실제 기회는 돌리는 순간 차감 + 지급 (연출 도중 창을 닫거나 게임을 꺼도 보상이 사라지지 않게)
+      if (!slotTest) {
+        cs().slotTickets--;
+        for (const r of results) {
+          if (r.instant) save.gold += r.instant;
+          else cs().relics[r.id] = (cs().relics[r.id] || 0) + 1;
+        }
+        writeSave();
+      }
+      updateSlotInfo("두근두근…");
+      const stopped = [false, false, false];
+      for (let i = 0; i < 3; i++) setReel(i, RELICS[i], "spin");
+      const iv = setInterval(() => {
+        for (let i = 0; i < 3; i++) if (!stopped[i]) setReel(i, RELICS[Math.floor(Math.random() * RELICS.length)], "spin");
+        Sound.slotTick();
+      }, 70);
+      results.forEach((r, i) => setTimeout(() => {
+        stopped[i] = true;
+        setReel(i, r, "win");
+        Sound.slotStop();
+        if (i < 2) return;
+        clearInterval(iv);
+        slotSpinning = false;
+        Sound.levelUp();
+        const gold = results.reduce((a, x) => a + (x.instant || 0), 0);
+        updateSlotInfo((slotTest ? "🧪 테스트 결과: " : "🎉 획득: ") + results.map(x => x.icon).join(" ") +
+          (slotTest ? "" : `<br>${results.filter(x => !x.instant).length}개 영구 귀속` + (gold ? ` · 💰 +${gold.toLocaleString()}G` : "")));
+        if (!slotTest) renderLobby();
+      }, 900 + i * 500));
+    }
+    function closeSlot() {
+      if (slotSpinning) return;
+      document.getElementById("slot-modal").style.display = "none";
+      renderLobby();
+    }
+    function relicListHtml(charId) {
+      const rows = RELICS.filter(r => !r.instant && relicCount(r.id, charId) > 0).map(r => `${r.icon} ${r.name} × ${relicCount(r.id, charId)}`);
+      return rows.length ? rows.join("<br>") : "아직 없음 · 캐릭터 10레벨마다 슬롯머신으로 3개 획득";
+    }
+    // [DEV] 슬롯 확률표 · 1만 회 검증 · 기회/경험치 추가
+    function slotOddsHtml(counts, n) {
+      const total = RELICS.reduce((a, r) => a + r.weight, 0);
+      return '<div class="odds-row" style="color:#94a3b8"><span>아이템</span><span>' + (counts ? "실측" : "확률") + "</span></div>" +
+        RELICS.map(r => `<div class="odds-row"><span>${r.icon} ${r.name}</span><span>${counts ? (counts[r.id] / n * 100).toFixed(1) : (r.weight / total * 100).toFixed(0)}%</span></div>`).join("");
+    }
+    function devSlotStats() {
+      if (!IS_DEV_MODE) return;
+      const counts = {}, n = 10000;
+      for (const r of RELICS) counts[r.id] = 0;
+      for (let i = 0; i < n; i++) counts[rollRelic().id]++;
+      document.getElementById("dev-slot-odds").innerHTML = `<b>설정 확률</b>${slotOddsHtml()}<br><b>1만 회 실측</b>${slotOddsHtml(counts, n)}`;
+    }
+    function devAddSlotTicket() {
+      if (!IS_DEV_MODE) return;
+      cs().slotTickets++;
+      writeSave();
+      renderLobby();
+    }
+    function devAddCharXp() {
+      if (!IS_DEV_MODE) return;
+      addCharXp(500);
+      writeSave();
+      renderLobby();
+      if (slotAutoPending) { slotAutoPending = false; openSlot(false); }
+    }
+
+    // ===== [DEV] 층별 데이터 뷰어: 스폰 수 · 탄막 기준치 · 몹 체력/스탯 배율 =====
+    function renderFloorData(f) {
+      f = Math.max(1, Math.round(+f || 1));
+      document.getElementById("dev-data-label").innerText = `${f}F`;
+      const st = getStage(f);
+      const lvs = [1, 5, 10, 15, 20, 25];
+      const spawnIv = lv => Math.max(260, 920 - (lv - 1) * 55);
+      const spawnN = lv => Math.min(5, 1 + Math.floor((lv - 1) / 3));
+      const perMin = lv => 60000 / spawnIv(lv) * spawnN(lv);
+      const normalHp = lv => Math.floor((10 + (lv - 1) * 1.6) * st.hp * (1 + Math.max(0, lv - 12) * 0.16));
+      const shooterRamp = lv => lv < st.shooterLv ? 0 : Math.min(1, 0.5 + (lv - st.shooterLv) * 0.085);
+      const dmgAt = (base, lv) => (base * st.dmg * (1 + Math.max(0, lv - 15) * 0.04)).toFixed(1);
+      const bossHp = lv => { const tier = lv / 5; return Math.floor(1600 * tier * (1 + tier * 0.5) * (tier < 2 ? 0.7 : 1) * st.boss); };
+      // 예상 총 스폰: 약 8분 클리어 기준, Lv1~24 를 고르게 지나간다고 가정 (보스전 중 스폰 정지는 반영 안 함)
+      let total = 0;
+      for (let lv = 1; lv < CLEAR_LEVEL; lv++) total += perMin(lv) * (480 / (CLEAR_LEVEL - 1)) / 60;
+      const shotsPerMin = 60000 / st.shooterInterval * st.shooterSpread;
+      const row = (name, fn) => `<tr><td>${name}</td>${lvs.map(lv => `<td>${fn(lv)}</td>`).join("")}</tr>`;
+      const head = `<tr><th></th>${lvs.map(lv => `<th>Lv${lv}</th>`).join("")}</tr>`;
+      document.getElementById("dev-floor-data").innerHTML =
+        `<div class="pick-desc" style="color:#e2e8f0">${st.name} · 함정: ${floorTraps(f).map(id => trapName(id, f)).join(", ")}</div>` +
+        `<h5>👾 스폰</h5><table class="floor-table">${head}` +
+        row("스폰 간격(초)", lv => (spawnIv(lv) / 1000).toFixed(2)) +
+        row("1회 마리 수", spawnN) +
+        row("분당 스폰", lv => Math.round(perMin(lv))) +
+        row("원거리 비율", lv => Math.round(st.shooterChance * shooterRamp(lv) * 100) + "%") +
+        `</table><div class="pick-desc">예상 총 스폰 ≈ <b>${Math.round(total).toLocaleString()}마리</b> (약 8분 클리어 기준 추정) · 동시 최대 ${MAX_MONSTERS}마리 · 원거리 동시 최대 ${st.shooterCap}마리</div>` +
+        `<h5>🔫 탄막 기준치 (원거리 몹)</h5><div class="pick-desc">` +
+        `${st.shooterSpread}갈래 · 탄속 ${st.shotSpeed} · 발사 간격 ${(st.shooterInterval / 1000).toFixed(2)}초(±15%) · 탄 크기 ${st.shotRadius || 6}<br>` +
+        `1마리 분당 ${shotsPerMin.toFixed(1)}발 · 최대 수(${st.shooterCap}) 기준 분당 약 <b>${Math.round(shotsPerMin * st.shooterCap)}발</b> · 등장 Lv${st.shooterLv}부터</div>` +
+        `<h5>❤️ 몹 체력 · 공격력</h5><table class="floor-table">${head}` +
+        row("일반", normalHp) +
+        row("돌격(×0.65)", lv => Math.floor(normalHp(lv) * 0.65)) +
+        row("탱커(×2.6)", lv => Math.floor(normalHp(lv) * 2.6)) +
+        row("원거리(×1.3)", lv => Math.floor(normalHp(lv) * 1.3)) +
+        row("중간보스(×14)", lv => lv >= 4 ? fmtNum(normalHp(lv) * 14) : "-") +
+        row("보스", lv => lv % 5 === 0 ? fmtNum(bossHp(lv)) : "-") +
+        row("탄 피해", lv => dmgAt(14, lv)) +
+        row("접촉 피해/초", lv => (dmgAt(0.38, lv) * 60).toFixed(0)) +
+        `</table><div class="pick-desc">스케일링: 층 체력 ×${st.hp} · 이동속도 ×${st.mobSpeed} · 공격력 ×${st.dmg} · 골드 ×${st.reward}<br>` +
+        `체력 = (10 + (Lv−1)×1.6) × 층 배율 × (Lv12부터 레벨당 +16%) × 시간 보정(분당 +3%, 최대 +45%, 표에는 미포함)<br>` +
+        `공격력 = 기본 × 층 배율 × (Lv15부터 레벨당 +4%) · 보스 체력은 층 배율 ×${st.boss}</div>`;
     }
 
     // ===== 개발자 모드: 스킬 미리보기 =====
@@ -6143,7 +7605,7 @@
       { id: "meteor", name: "☄️ 메테오 폭격", key: "meteorLevel" },
       { id: "laser", name: "🔴 집중 레이저", key: "laserLevel" },
       { id: "homing", name: "🚀 유도 미사일", key: "homingLevel", after: lv => { player.homingInterval = Math.max(700, 1400 - (lv - 1) * 150); } },
-      { id: "boomerang", name: "🪃 3중 회전 부메랑", key: "boomerangLevel", after: lv => { player.boomerangInterval = Math.max(900, 2200 - (lv - 1) * 260); } },
+      { id: "boomerang", name: "🪃 회전 부메랑", key: "boomerangLevel", after: lv => { player.boomerangInterval = Math.max(900, 2200 - (lv - 1) * 260); } },
       { id: "fireNova", name: "🔥 플레임 노바", key: "fireNovaLevel" },
       { id: "frost", name: "❄️ 프로스트 트레일", key: "frostLevel", walk: true },
       { id: "shuriken", name: "✴️ 바운드 수리검", key: "shurikenLevel" },
@@ -6155,7 +7617,7 @@
     let previewDef = PREVIEW_SKILLS[0];
 
     // ===== 로비 메뉴 창 열기/닫기 =====
-    const LOBBY_PANELS = ["char", "pet", "floor", "shop", "dev"];
+    const LOBBY_PANELS = ["char", "pet", "floor", "shop", "dev", "bonus"];
     function openLobbyPanel(name) {
       if (name === "dev" && !IS_DEV_MODE) return;
       for (const p of LOBBY_PANELS) document.getElementById("panel-" + p).style.display = p === name ? "block" : "none";
@@ -6197,15 +7659,30 @@
           devSkill.add(new Option(s.name, s.id));
           pvSkill.add(new Option(s.name, s.id));
         }
-        // 시너지 미리보기: 조합 스킬을 함께 켬
+        // 시너지 미리보기: 조합 스킬을 함께 켬 (목록에도 어떤 두 스킬의 조합인지 표시)
         for (const s of SYNERGIES) {
-          devSkill.add(new Option(`🔗 ${s.name} (시너지)`, "syn:" + s.id));
-          pvSkill.add(new Option(`🔗 ${s.name} (시너지)`, "syn:" + s.id));
+          const label = `🔗 ${s.name} ${s.fusion ? "(융합)" : "(시너지)"} = ${s.needs.map(n => needLabel(n).replace(/^\S+\s/, "")).join(" + ")}`;
+          devSkill.add(new Option(label, "syn:" + s.id));
+          pvSkill.add(new Option(label, "syn:" + s.id));
         }
         // 미리보기 중에는 스킬을 바꾸는 즉시 반영
         pvSkill.onchange = () => applyPreviewSkill();
+        devSkill.onchange = () => showSynInfo(devSkill.value);
+        renderFloorData(1);
+        document.getElementById("dev-slot-odds").innerHTML = slotOddsHtml();
       }
+      showSynInfo(devSkill.value);
       renderLevelButtons();
+    }
+    // [DEV] 시너지 항목을 고르면 "[시너지 조합: A + B]" 안내 (로비 개발자 창 · 미리보기 화면)
+    function showSynInfo(value) {
+      const syn = value && value.startsWith("syn:") ? SYNERGIES.find(s => "syn:" + s.id === value) : null;
+      for (const id of ["dev-syn-info", "pv-syn-info"]) {
+        const el = document.getElementById(id);
+        el.style.display = syn && IS_DEV_MODE ? "block" : "none";
+        el.innerHTML = syn ? `${synComboText(syn)}<br><span style="font-weight:600;color:#e2e8f0">${syn.name}: ${syn.desc}</span>` +
+          `<br><span style="font-weight:600;color:#94a3b8">${syn.fusion ? `획득: 두 스킬 모두 Lv${FUSION_NEED_LV} 이상 → 레벨업 융합 카드` : "획득: 두 스킬을 모두 배우면 자동 발동"}</span>` : "";
+      }
     }
 
     // 스킬 레벨 선택 버튼 (Lv1 ~ Lv5): 로비의 개발자 옵션과 미리보기 화면 공용
@@ -6263,16 +7740,19 @@
         player[d.key] = lv;
         if (d.after) d.after(lv);
       }
+      player.fusions = syn && syn.fusion ? [syn.id] : []; // 융합 스킬 미리보기는 카드를 고른 것으로 처리
       poisonClouds = [];
       player.poisonTimer = 0;
       updateSynergies();
+      showSynInfo(id);
       document.getElementById("pv-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       document.getElementById("dev-skill").value = id;
       document.getElementById("dev-level").value = lv;
       document.getElementById("dev-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       // 이전 스킬의 투사체·장판 정리 후 바로 발동되도록 타이머 초기화
-      bullets = []; homingMissiles = []; boomerangs = []; trails = []; fireWaves = [];
+      bullets = []; homingMissiles = []; boomerangs = []; trails = []; fireWaves = []; enemyBullets = [];
       meteors = []; meteorFires = []; lightningBolts = []; sniperShots = []; explosions = []; killPops = []; shurikens = []; thunderStrikes = []; vortices = [];
+      previewHits = 0; previewHitsShown = -1;
       player.thunderTimer = 0;
       player.vortexTimer = 0;
       player.laserTarget = null;
@@ -6285,16 +7765,45 @@
     }
 
     // 미리보기용 더미 몬스터를 일정 수 유지 (느리게 다가오고, 처치 연출을 볼 수 있도록 적당한 체력)
+    // + 실제로 탄을 쏘는 원거리 몹 4마리 (회피·탄 상쇄 테스트용, 맞아도 피해 없음 · 맞은 횟수만 표시)
+    let previewShooters = true;
+    let previewHits = 0, previewHitsShown = -1;
+    const PREVIEW_SHOOTERS = 4;
     function previewTick() {
       player.hp = player.maxHp;
       let guard = 0;
-      while (monsters.length < 12 && guard++ < 12) {
+      const dummies = () => monsters.filter(m => !m.previewShooter).length;
+      while (dummies() < 12 && guard++ < 12) {
         const a = Math.random() * Math.PI * 2, d = 200 + Math.random() * 200;
         spawnMonster(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, Math.random() < 0.25 ? 0.95 : 0.3);
         const m = monsters[monsters.length - 1];
         m.speed = m.baseSpeed = 0.35;
         m.hp = m.maxHp = m.type === "tanker" ? 900 : 300;
       }
+      guard = 0;
+      while (previewShooters && monsters.filter(m => m.previewShooter).length < PREVIEW_SHOOTERS && guard++ < 4) {
+        const a = Math.random() * Math.PI * 2, d = 340 + Math.random() * 80;
+        spawnMonster(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, 0.3);
+        const m = monsters[monsters.length - 1];
+        Object.assign(m, { type: "shooter", radius: 21, color: "#b91c1c", previewShooter: true, speed: 0.4, baseSpeed: 0.4, hp: 600, maxHp: 600,
+          shootInterval: 1300 + Math.random() * 500, shootTimer: performance.now() + Math.random() * 1000 });
+      }
+      if (previewHits !== previewHitsShown) {
+        previewHitsShown = previewHits;
+        document.getElementById("pv-hint").innerText = previewShooters
+          ? `🎯 원거리 몹 탄에 맞은 횟수: ${previewHits}회 (피해 없음) · 대시 무적 0.5초로 피해 보세요`
+          : "레벨 버튼을 누르면 즉시 반영됩니다 · 화면을 드래그하면 이동";
+      }
+    }
+    function togglePreviewShooters() {
+      previewShooters = !previewShooters;
+      if (!previewShooters) {
+        monsters = monsters.filter(m => !m.previewShooter);
+        enemyBullets = [];
+      }
+      previewHits = 0;
+      previewHitsShown = -1;
+      document.getElementById("pv-shooter").innerText = previewShooters ? "🔫 원거리 몹 ON" : "🔫 원거리 몹 OFF";
     }
 
     // 시작 능력치 = 기본값 × 캐릭터 특성 + 클리어 영구 보너스 + 상점 강화
@@ -6302,10 +7811,11 @@
       const bonus = getBonusStats();
       const ch = currentCharacter();
       const shop = cs().shop;
+      // 슬롯머신 영구 아이템: 공격력 +5(고정), 체력 +20, 이동속도 +5%
       return {
-        maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult),
-        damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100)),
-        speed: +(2.5 * ch.speedMult * (1 + shop.spd * 0.03)).toFixed(2),
+        maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult) + relicCount("hp") * 20,
+        damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100)) + relicCount("atk") * 5,
+        speed: +(2.5 * ch.speedMult * (1 + shop.spd * 0.03 + relicCount("spd") * 0.05)).toFixed(2),
         fireRate: Math.round(620 * ch.fireRateMult)
       };
     }
@@ -6315,8 +7825,16 @@
       const start = getStartStats();
       const ch = currentCharacter();
       skillUp = computeSkillUp();
-      skillPower = SKILL_POWER * ch.skillMult * skillUp.dmg;
+      skillPower = SKILL_POWER * ch.skillMult * skillUp.dmg * (1 + relicCount("skill") * 0.05);
       combatStats = {};
+      player.caliberMult = 1;
+      player.hasteLevel = 0;
+      player.fusions = [];
+      player.slowUntil = 0;
+      player.orbitMissileAt = 0;
+      bossIntro = null;
+      bossIntroQueued = null;
+      previewHits = 0;
       player.maxHp = start.maxHp;
       player.x = 0;
       player.y = 0;
@@ -6329,7 +7847,7 @@
       player.bulletCount = 1;
       player.damage = start.damage;
       player.fireRate = start.fireRate;
-      player.magnetRange = 120;
+      player.magnetRange = Math.round(120 * (1 + relicCount("magnet") * 0.15));
       player.bulletCaliberLevel = 0;
       player.homingLevel = 0;
       player.bladeLevel = 0;
@@ -6435,10 +7953,15 @@
         drawLobbyPreview(timestamp);
       } else {
         if (gameState === "playing" && !isPaused) {
-          handleMonsterSpawns(timestamp);
-          handleItemSpawns(timestamp);
-          handleShrineSpawns();
-          handleEliteSpawns();
+          if (bonus) {
+            updateBonus(timestamp); // 보너스 스테이지: 전용 스폰·시간 제한 (아이템·신단·중간 보스 없음)
+          } else {
+            handleMonsterSpawns(timestamp);
+            handleItemSpawns(timestamp);
+            handleShrineSpawns();
+            handleEliteSpawns();
+          }
+          updateBossIntro();
           updateEliteSummons();
           refreshObstacles();
           updateObstacles();
@@ -6493,7 +8016,8 @@
       if (moveX !== 0 || moveY !== 0) {
         player.isMoving = true;
         const len = fastHypot(moveX, moveY);
-        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * petSpeedMult() * trapMoveMult(moveX / len, moveY / len);
+        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * petSpeedMult() * trapMoveMult(moveX / len, moveY / len) *
+          (playTimeMs < (player.slowUntil || 0) ? 0.6 : 1) * bonusSpeedMult();
         player.x += (moveX / len) * spd;
         player.y += (moveY / len) * spd;
         pushOutOfObstacles(player, player.radius, 0);
@@ -6513,7 +8037,7 @@
         }
 
         if (player.isFullyCharged) {
-          fireChargedShot();
+          if (bonusCanAttack()) fireChargedShot();
           player.isFullyCharged = false;
         }
         player.chargeTime = 0;
@@ -6532,12 +8056,12 @@
         }
       }
 
-      if (gameState === "playing") updateDash();
+      if (gameState === "playing" || gameState === "preview") updateDash();
       camera.x = player.x - (canvas.width / currentViewScale) / 2;
       camera.y = player.y - (canvas.height / currentViewScale) / 2;
 
-      // 발사
-      if (timestamp - player.lastFired > player.fireRate && (gameState !== "preview" || previewDef.gun)) {
+      // 발사 (도주전·메테오 스톰 보너스 모드는 공격 없음)
+      if (timestamp - player.lastFired > player.fireRate && (gameState !== "preview" || previewDef.gun) && bonusCanAttack()) {
         shootBullet();
         player.lastFired = timestamp;
       }
@@ -6563,27 +8087,32 @@
         }
       }
 
-      // 플레임 노바
-      if (player.fireNovaLevel > 0 && timestamp - player.fireNovaTimer > player.fireNovaInterval * skillUp.cd) {
+      // 플레임 노바 (v28: 쿨타임 대폭 단축, Lv5는 화면 전체 파동 + 잔류 불길)
+      if (player.fireNovaLevel > 0 && timestamp - player.fireNovaTimer > fireNovaCooldown(player.fireNovaLevel) * skillUp.cd) {
         player.fireNovaTimer = timestamp;
-        Sound.fireWave();
-        fireWaves.push({
-          x: player.x, y: player.y, currentRadius: 10,
-          maxRadius: (160 + player.fireNovaLevel * 45) * skillUp.area,
-          speed: 4.0, damage: (10 + player.fireNovaLevel * 6) * skillScale(),
-          hitMonsters: new Set()
-        });
+        castFireNova();
       }
 
       for (let i = fireWaves.length - 1; i >= 0; i--) {
         const wave = fireWaves[i];
-        wave.currentRadius += wave.speed;
+        wave.currentRadius += wave.speed * frameDtMs / 16.67;
+        // 만렙 거대 파동: 지나간 자리에 잔류 불길(작은 화염 장판)을 흩뿌림
+        if (wave.mega && wave.currentRadius - (wave.lastEmber || 0) > 70) {
+          wave.lastEmber = wave.currentRadius;
+          const n = Math.min(10, 3 + Math.floor(wave.currentRadius / 110));
+          for (let k = 0; k < n && meteorFires.length < 46; k++) {
+            const a = Math.random() * Math.PI * 2;
+            const fl = Math.round(80 * skillUp.dur);
+            meteorFires.push({ x: wave.x + Math.cos(a) * wave.currentRadius, y: wave.y + Math.sin(a) * wave.currentRadius, radius: 34 + Math.random() * 18,
+              life: fl, maxLife: fl, dps: player.damage * 0.9 * skillPower, lv: 5, seed: Math.random() * 100, src: "fireNova" });
+          }
+        }
 
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (!wave.hitMonsters.has(m)) {
-            if (Math.abs(fastHypot(m.x - wave.x, m.y - wave.y) - wave.currentRadius) < 26) {
-              m.hp -= hurt(m, wave.damage, "fireNova");
+            if (Math.abs(fastHypot(m.x - wave.x, m.y - wave.y) - wave.currentRadius) < (wave.mega ? 40 : 26)) {
+              m.hp -= hurt(m, wave.damage, wave.src || "fireNova");
               wave.hitMonsters.add(m);
               addHitEffect({ x: m.x, y: m.y, radius: 14, life: 8, maxLife: 8, color: "#f97316" });
               if (m.hp <= 0) handleMonsterDeath(m, j);
@@ -6593,7 +8122,7 @@
 
         for (let b = enemyBullets.length - 1; b >= 0; b--) {
           const eb = enemyBullets[b];
-          if (!eb.isBossBullet && Math.abs(fastHypot(eb.x - wave.x, eb.y - wave.y) - wave.currentRadius) < 24) {
+          if (eb && !eb.isBossBullet && Math.abs(fastHypot(eb.x - wave.x, eb.y - wave.y) - wave.currentRadius) < 24) {
             addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: "#f97316" });
             enemyBullets.splice(b, 1);
           }
@@ -6652,8 +8181,14 @@
         explosions.push({ x: mt.x, y: mt.y, radius: mt.radius, life: 28, maxLife: 28, lv: mt.lv });
         // 떨어진 자리에 화염 장판: 레벨이 오를수록 지속 피해·지속 시간 증가 (Lv1 2.5초 → Lv5 5.5초)
         const fireLife = Math.round((2 + mt.lv * 0.6 + (mt.lv >= 5 ? 0.5 : 0)) * 60 * skillUp.dur);
-        meteorFires.push({ x: mt.x, y: mt.y, radius: mt.radius * 0.8, life: fireLife, maxLife: fireLife,
+        const volcano = synOn("volcano");
+        meteorFires.push({ x: mt.x, y: mt.y, radius: mt.radius * 0.8 * (volcano ? 1.5 : 1), life: fireLife, maxLife: fireLife,
           dps: player.damage * (0.5 + mt.lv * 0.3) * skillPower, lv: mt.lv, seed: Math.random() * 100 });
+        // 🌋 화산 폭발 융합: 착탄 지점에서 작은 플레임 노바가 퍼짐
+        if (volcano && fireWaves.length < 12) {
+          fireWaves.push({ x: mt.x, y: mt.y, currentRadius: 10, maxRadius: mt.radius * 2.4, speed: 5,
+            damage: (8 + player.fireNovaLevel * 5) * skillScale(), hitMonsters: new Set(), src: "volcano" });
+        }
         meteors.splice(i, 1);
       }
       // 화염 장판: 0.25초마다 안에 있는 적에게 피해
@@ -6665,7 +8200,7 @@
             const m = monsters[j];
             const dx = m.x - fz.x, dy = m.y - fz.y, rr = fz.radius + m.radius * 0.5;
             if (dx * dx + dy * dy < rr * rr) {
-              m.hp -= hurt(m, fz.dps / 4, "meteor");
+              m.hp -= hurt(m, fz.dps / 4, fz.src || "meteor");
               if (m.hp <= 0) handleMonsterDeath(m, j);
             }
           }
@@ -6675,9 +8210,29 @@
 
       // 🎯 저격 (보스 우선)
       if (player.sniperLevel > 0 && timestamp - player.sniperTimer > (2600 - (player.sniperLevel - 1) * 250) * skillUp.cd) {
+        if (castSniper()) player.sniperTimer = timestamp;
+      }
+      updateSniperShots();
+
+      // 🔴 집중 레이저: 같은 대상을 오래 맞출수록 피해 증폭 (3초에 걸쳐 최대치)
+      updateLaser();
+
+      // 🌀 궤도 구체 · ⛓️ 사슬 회전날
+      updateOrbitAndChain(timestamp);
+
+      updateShurikens(timestamp);
+      updateThunder(timestamp);
+      updateVortex(timestamp);
+      updateFrostAura();
+      updatePoison(timestamp);
+      updateToxins();
+      updateRestOfSkills(timestamp);
+    }
+
+    // 🎯 저격 1발 (보스 우선). 쏠 대상이 없으면 false
+    function castSniper() {
         const target = findStrongestMonster(1100);
         if (target) {
-          player.sniperTimer = timestamp;
           const lv = player.sniperLevel;
           let dmg = player.damage * (6 + lv * 2.5) * skillPower;
           const crit = Math.random() < 0.1 + lv * 0.05;
@@ -6687,13 +8242,17 @@
           sniperShots.push({
             x: player.x, y: player.y, angle: Math.atan2(target.y - player.y, target.x - player.x),
             target: target, tx: target.x, ty: target.y,
-            speed: 30, radius: 3 + lv * 1.6, damage: Math.floor(dmg), crit: crit, lv: lv, trail: []
+            speed: 30 * skillUp.proj, radius: 3 + lv * 1.6, damage: Math.floor(dmg), crit: crit, lv: lv, trail: []
           });
           player.angle = Math.atan2(target.y - player.y, target.x - player.x);
           addHitEffect({ x: player.x + Math.cos(player.angle) * 28, y: player.y + Math.sin(player.angle) * 28, radius: 10 + lv * 3, life: 6, maxLife: 6, color: "#e0f2fe" });
           Sound.snipe();
+          return true;
         }
-      }
+        return false;
+    }
+
+    function updateSniperShots() {
       for (let i = sniperShots.length - 1; i >= 0; i--) {
         const s = sniperShots[i];
         if (s.target && !s.target.dead) {
@@ -6704,8 +8263,12 @@
         if (s.trail.length > 9) s.trail.shift();
         const dx = s.tx - s.x, dy = s.ty - s.y, d = fastHypot(dx, dy);
         if (d <= s.speed) {
-          // 명중
-          if (s.target && !s.target.dead) damageMonster(s.target, s.damage, null, "sniper");
+          // 명중 (🎯 레일 저격 융합: 레이저로 조준 중인 적이면 1.6배 + 레이저 증폭 즉시 최대)
+          if (s.target && !s.target.dead) {
+            const rail = synOn("railSniper") && s.target === player.laserTarget;
+            if (rail) { player.laserRamp = 180; addHitEffect({ x: s.tx, y: s.ty, radius: 44, life: 14, maxLife: 14, color: "#f0abfc" }); }
+            damageMonster(s.target, rail ? s.damage * 1.6 : s.damage, null, rail ? "railSniper" : "sniper");
+          }
           addHitEffect({ x: s.tx, y: s.ty, radius: s.crit ? 36 : 18 + s.lv * 3, life: 12, maxLife: 12, color: s.crit ? "#fde047" : "#f8fafc" });
           spawnBurst(s.tx, s.ty, s.crit ? "#fde047" : "#e0f2fe", 6 + s.lv, 6);
           if (s.crit) sniperTracers.push({ x2: s.tx, y2: s.ty, life: 24, maxLife: 24, crit: true, lv: s.lv });
@@ -6724,8 +8287,9 @@
           }
         }
       }
+    }
 
-      // 🔴 집중 레이저: 같은 대상을 오래 맞출수록 피해 증폭 (3초에 걸쳐 최대치)
+    function updateLaser() {
       if (player.laserLevel > 0) {
         const lv = player.laserLevel;
         let t = player.laserTarget;
@@ -6749,7 +8313,9 @@
           damageMonster(t, dps / 60, null, "laser");
         }
       }
+    }
 
+    function updateOrbitAndChain(timestamp) {
       // 🌀 궤도 구체: 일정 간격으로 계속 회전 (레벨업마다 개수·크기 증가, 만렙은 회전 반경 확장)
       player.orbitPos = [];
       if (player.orbitLevel > 0) {
@@ -6766,6 +8332,16 @@
         }
         hitWithOrbiters(player.orbitPos, orbitHits, 260, dmg, lv >= 5 ? "#fde047" : "#a78bfa", timestamp, "orbit");
         for (const p of player.orbitPos) blockEnemyBullets(p.x, p.y, p.size, "#a78bfa");
+        // 🛰️ 궤도 포격 융합: 구체마다 1.6초에 한 번 작은 유도 미사일
+        if (synOn("orbitMissile") && playTimeMs - (player.orbitMissileAt || 0) > 1600 * skillUp.cd) {
+          player.orbitMissileAt = playTimeMs;
+          const md = Math.floor(player.damage * (0.7 + player.homingLevel * 0.15) * skillPower);
+          for (const p of player.orbitPos) {
+            if (homingMissiles.length >= 30) break;
+            homingMissiles.push({ x: p.x, y: p.y, angle: Math.atan2(p.y - player.y, p.x - player.x), speed: 8.5 * skillUp.proj, radius: 5,
+              damage: md, life: 120, level: 1, pierce: 1, hitCooldownMap: new WeakMap(), isPermanent: false, src: "orbitMissile" });
+          }
+        }
       }
 
       // ⛓️ 사슬 회전날: 쿨타임마다 멀리 뻗었다가 돌아옴 (레벨업마다 크기 증가, 왕복 시간·쿨타임 단축)
@@ -6806,13 +8382,25 @@
           }
         }
       }
+    }
 
-      updateShurikens(timestamp);
-      updateThunder(timestamp);
-      updateVortex(timestamp);
-      updateFrostAura();
-      updatePoison(timestamp);
+    // 🧪 맹독 수리검 융합: 중독된 적은 0.5초마다 피해 + 이동속도 40% 감소 (3초)
+    function updateToxins() {
+      for (let j = monsters.length - 1; j >= 0; j--) {
+        const m = monsters[j];
+        if (!m.toxicUntil || m.toxicUntil < playTimeMs) continue;
+        m.speed = Math.min(m.speed, m.baseSpeed * 0.6);
+        m.slowTimer = Math.max(m.slowTimer || 0, 4);
+        if (playTimeMs < (m.toxicTickAt || 0)) continue;
+        m.toxicTickAt = playTimeMs + 500;
+        m.hp -= hurt(m, m.toxicDmg || 1, "toxicShuriken");
+        if (Math.random() < 0.4) addHitEffect({ x: m.x, y: m.y - 8, radius: 9, life: 7, maxLife: 7, color: "#a3e635" });
+        if (m.hp <= 0) handleMonsterDeath(m, j);
+      }
+    }
 
+    // update() 뒷부분: 칼날·부메랑·장판·탄환·몬스터 이동·충돌·아이템·보석·이펙트 수명
+    function updateRestOfSkills(timestamp) {
       if (player.bladeLevel > 0 && player.bladeActive) {
         const bladeRadius = (80 + player.bladeLevel * 15) * skillUp.area;
         for (let b = enemyBullets.length - 1; b >= 0; b--) {
@@ -6823,10 +8411,16 @@
             enemyBullets.splice(b, 1);
           }
         }
+        const frostBlade = synOn("frostBlade");
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (fastHypot(player.x - m.x, player.y - m.y) < bladeRadius + m.radius) {
-            m.hp -= hurt(m, (2.6 + player.bladeLevel * 0.8) * skillScale(), "blade");
+            // 🧊 빙결 칼날 융합: 피해 1.3배 + 0.8초 완전 빙결 (보스·중간 보스는 둔화)
+            if (frostBlade) {
+              if (m.isBoss || m.isElite) { m.speed = Math.min(m.speed, m.baseSpeed * 0.7); m.slowTimer = Math.max(m.slowTimer || 0, 20); }
+              else { if (!(m.frozenUntil > playTimeMs)) addHitEffect({ x: m.x, y: m.y, radius: 18, life: 8, maxLife: 8, color: "#bae6fd" }); m.stunUntil = m.frozenUntil = playTimeMs + 800; }
+            }
+            m.hp -= hurt(m, (2.6 + player.bladeLevel * 0.8) * skillScale() * (frostBlade ? 1.3 : 1), frostBlade ? "frostBlade" : "blade");
             if (m.hp <= 0) handleMonsterDeath(m, j);
           }
         }
@@ -6885,6 +8479,12 @@
               bm.hitCooldownMap.set(m, timestamp);
               Sound.metalClang();
               addHitEffect({ x: m.x, y: m.y, radius: 16, life: 8, maxLife: 8, color: "#38bdf8" });
+              // ⚡ 뇌전 부메랑 융합: 맞힌 자리에서 주변 3명에게 연쇄 번개 (부메랑마다 0.3초에 한 번)
+              if (synOn("thunderBoomerang") && timestamp - (bm.shockAt || 0) > 300) {
+                bm.shockAt = timestamp;
+                pendingBlasts.push({ chain: true, x: m.x, y: m.y, exclude: m, jumps: 3,
+                  damage: player.damage * (0.8 + player.lightningLevel * 0.2) * skillPower, src: "thunderBoomerang", color: "#fde047" });
+              }
               if (m.hp <= 0) handleMonsterDeath(m, j);
             }
           }
@@ -6937,7 +8537,9 @@
           enemyBullets.splice(i, 1);
           continue;
         }
-        if (fastHypot(eb.x - player.x, eb.y - player.y) < eb.radius + player.radius) {
+        // 대시 무적 중에는 탄환이 몸을 그대로 통과 (탄막을 뚫고 탈출)
+        if (playTimeMs >= player.invulnUntil && fastHypot(eb.x - player.x, eb.y - player.y) < eb.radius + player.radius) {
+          if (eb.slow && playTimeMs >= player.levelInvulnUntil) player.slowUntil = playTimeMs + 1500; // 서리 마녀 얼음탄: 1.5초 둔화
           takeDamage(eb.damage);
           enemyBullets.splice(i, 1);
           continue;
@@ -6987,7 +8589,7 @@
             if (timestamp - lastHit < 300) continue;
             hm.hitCooldownMap.set(m, timestamp);
 
-            m.hp -= hurt(m, hm.damage, "homing");
+            m.hp -= hurt(m, hm.damage, hm.src || "homing");
             addHitEffect({ x: hm.x, y: hm.y, radius: 12 + hm.level * 4, life: 10, maxLife: 10, color: "#ec4899" });
 
             // 만렙이 아닐 때만 관통 카운트 후 소멸
@@ -7025,20 +8627,29 @@
         }
 
         const angle = Math.atan2(player.y - m.y, player.x - m.x);
+        // ☠️ 독 안개 마비 · 🧊 빙결: 움직이지도 쏘지도 못함 (보스는 마비되지 않음)
+        const stunned = !m.isBoss && m.stunUntil > playTimeMs;
 
-        if (m.isBoss) {
-          updateBoss(m, timestamp, angle);
+        if (m.straight) {
+          // 도주전 '몰이 떼': 정해진 방향으로 곧게 돌진, 화면 밖으로 멀리 나가면 사라짐
+          if (!stunned) { m.x += m.straight.dx; m.y += m.straight.dy; }
+          if (distToPlayer > recycleDist + 300) { monsters.splice(i, 1); continue; }
+        } else if (m.isBoss) {
+          if (m.rush) updateRushBoss(m, timestamp, angle);
+          else updateBoss(m, timestamp, angle);
         } else if (m.isElite) {
           updateElite(m, timestamp, angle);
-        } else if (!(m.type === "shooter" && distToPlayer < 240) && !(gameState === "preview" && distToPlayer < 130)) {
+        } else if (stunned) {
+          m.shootTimer = Math.max(m.shootTimer, timestamp - m.shootInterval + 400); // 마비가 풀린 직후 바로 쏘지 않게
+        } else if (!(m.type === "shooter" && distToPlayer < 240) && !(gameState === "preview" && distToPlayer < (m.type === "shooter" ? 320 : 130))) {
           m.x += Math.cos(angle) * m.speed;
           m.y += Math.sin(angle) * m.speed;
         }
         if (obstacles.length) pushOutOfObstacles(m, m.radius, m.speed); // 보스 포함 모든 적이 장애물을 돌아서 접근
-        m.walkCycle += 0.14;
+        if (!stunned) m.walkCycle += 0.14;
 
         // 원거리 몹: 층에 따라 탄 속도·갈래 수가 다름 (2층 3갈래, 3층 고속 연사)
-        if (m.type === "shooter" && timestamp - m.shootTimer > m.shootInterval) {
+        if (m.type === "shooter" && !stunned && timestamp - m.shootTimer > m.shootInterval) {
           const st = currentStage();
           for (let s = 0; s < st.shooterSpread; s++) {
             const sa = angle + (s - (st.shooterSpread - 1) / 2) * 0.28;
@@ -7052,7 +8663,7 @@
           m.shootTimer = timestamp;
         }
 
-        if (distToPlayer < player.radius + m.radius) {
+        if (distToPlayer < player.radius + m.radius && !stunned) {
           takeDamage(m.isBoss ? (m.isLateBoss ? 0.9 : 0.7) * currentStage().dmg : monsterDmg(m.isElite ? 0.6 : 0.38));
         }
 
@@ -7065,6 +8676,7 @@
         for (let j = bullets.length - 1; j >= 0; j--) {
           const b = bullets[j];
           if (b.lastHit === m) continue; // 방금 튕겨 나온 적은 다시 맞지 않음
+          if (b.hitSet && b.hitSet.has(m)) continue; // 관통탄은 같은 적을 두 번 맞히지 않음
           const bdx = m.x - b.x, bdy = m.y - b.y, br = m.radius + b.radius;
           if (bdx * bdx + bdy * bdy < br * br) {
             // 출처: 분신 탄 / 차지샷 / 도탄으로 튕긴 탄 / 기본 공격
@@ -7074,15 +8686,24 @@
             addHitEffect({ x: b.x, y: b.y, radius: (10 + b.radius) * (b.crit ? 1.8 : 1), life: 6, maxLife: 6, color: hitColor });
             // 캐릭터 평타 효과 (실제 피해는 몬스터 순회가 끝난 뒤 pendingBlasts에서 처리)
             if (b.kind === "fireball") {
-              pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 60 + player.bulletCaliberLevel * 5, damage: b.damage * 0.7, src: bSrc });
+              pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 70 + player.bulletCaliberLevel * 6, damage: b.damage * 0.75, src: bSrc, fire: true });
             } else if (b.kind === "bolt") {
-              pendingBlasts.push({ chain: true, x: m.x, y: m.y, exclude: m, jumps: 2, damage: b.damage * 0.6, src: bSrc });
+              pendingBlasts.push({ chain: true, x: m.x, y: m.y, exclude: m, jumps: Math.random() < 0.5 ? 2 : 3, damage: b.damage * 0.65, src: bSrc, color: "#facc15" });
+            } else if (b.kind === "ice") {
+              // 얼음 가시: 1초 동안 이동속도 50% (보스 20%)
+              m.speed = Math.min(m.speed, m.baseSpeed * (m.isBoss ? 0.8 : 0.5));
+              m.slowTimer = Math.max(m.slowTimer || 0, Math.round(ATTACK_TYPES.ice.slowMs / 16.67));
+              m.chilledUntil = Math.max(m.chilledUntil || 0, playTimeMs + ATTACK_TYPES.ice.slowMs);
             }
             // 도탄 스킬 보유 시 명중음은 타격감 있는 폭발음
             if (!b.isCharged && player.ricochetLevel > 0) Sound.ricochet();
             if (b.isCharged) {
               b.pierce--;
               if (b.pierce <= 0) bullets.splice(j, 1);
+            } else if (b.pierceLeft > 0) {
+              // 고속 실탄·얼음 가시: 적을 꿰뚫고 계속 날아감
+              b.pierceLeft--;
+              (b.hitSet || (b.hitSet = new Set())).add(m);
             } else {
               // 도탄 Lv2+: 명중 지점에서 폭발 (실제 피해는 순회 후 처리)
               if (player.ricochetLevel >= 2) {
@@ -7146,7 +8767,8 @@
           }
           boomed = true;
           // 폭발 그림은 동시에 최대 12개까지만 (피해 판정은 모두 적용)
-          if (explosions.length < 14) explosions.push({ x: bl.x, y: bl.y, radius: bl.radius, life: 18, maxLife: 18, lv: 0, small: true });
+          if (explosions.length < 14) explosions.push({ x: bl.x, y: bl.y, radius: bl.radius, life: 18, maxLife: 18, lv: 0, small: true, color: bl.fire ? "#f97316" : undefined });
+          if (bl.fire && particles.length < MAX_PARTICLES - 4) spawnBurst(bl.x, bl.y, Math.random() < 0.5 ? "#fb923c" : "#fde047", 3, 4); // 화염 스플래시 불씨
           for (let j = monsters.length - 1; j >= 0; j--) {
             const m = monsters[j];
             if (m === bl.exclude) continue;
@@ -7362,8 +8984,21 @@
 
     function handleMonsterDeath(m, index) {
       m.dead = true;
-      const look = MONSTER_LOOKS[m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type];
+      const look = MONSTER_LOOKS[m.lookType || (m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type)];
       spawnBurst(m.x, m.y, look.limb[0], m.isBoss ? 40 : 6, m.isBoss ? 10 : 5);
+      if (m.rush) {
+        // 보스 러시 보스 격파: 큰 폭발 + 체력 30% 회복 (경험치·보스 코어 없음). 3마리 모두 잡으면 클리어
+        addShake(14);
+        explosions.push({ x: m.x, y: m.y, radius: 200, life: 30, maxLife: 30, lv: 5, color: m.rushColor });
+        Sound.explosion();
+        player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.3);
+        monsters.splice(index, 1);
+        kills++;
+        bonus.bossKills = (bonus.bossKills || 0) + 1;
+        statOf(m.lastSrc || "basic").kills++;
+        updateUI();
+        return;
+      }
       if (m.isBoss) {
         addShake(14);
         explosions.push({ x: m.x, y: m.y, radius: 180, life: 30, maxLife: 30, lv: 5 });
@@ -7563,8 +9198,8 @@
 
       if (m.isBoss) {
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = m.enraged ? 0.55 + Math.sin(timestamp / 120) * 0.15 : 0.3;
-        drawGlow(ctx, m.enraged ? "#f97316" : "#dc2626", m.x, m.y, r * 2.4);
+        ctx.globalAlpha = m.enraged ? 0.55 + Math.sin(timestamp / 120) * 0.15 : (m.rush ? 0.45 : 0.3);
+        drawGlow(ctx, m.rush ? m.rushColor : (m.enraged ? "#f97316" : "#dc2626"), m.x, m.y, r * 2.4);
         ctx.globalAlpha = 1;
         ctx.globalCompositeOperation = "source-over";
       } else if (m.isElite) {
@@ -7601,8 +9236,27 @@
         }
       }
 
-      const spr = monsterSprite(m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type, r, facing);
+      const spr = monsterSprite(m.lookType || (m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type), r, facing);
       blit(ctx, spr, m.x, m.y);
+      // ☠️ 독 안개 마비 / 🧊 빙결: 몸 위에 초록(얼음은 하늘색) 막 + 머리 위 별 회전
+      if (m.stunUntil > playTimeMs && !m.isBoss) {
+        const ice = m.frozenUntil > playTimeMs;
+        ctx.globalAlpha = 0.45;
+        ctx.fillStyle = ice ? "#bae6fd" : "#84cc16";
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, r * 0.95, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        if (detail) {
+          ctx.fillStyle = ice ? "#e0f2fe" : "#d9f99d";
+          for (let k = 0; k < 3; k++) {
+            const a = timestamp / 180 + k * Math.PI * 2 / 3;
+            ctx.beginPath();
+            ctx.arc(m.x + Math.cos(a) * r * 0.7, m.y - r - 6 + Math.sin(a) * 4, 2.6, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
       if (m.flash > 0 && !detail) m.flash = 0;
       if (m.flash > 0) {
         ctx.globalCompositeOperation = "lighter";
@@ -7647,14 +9301,16 @@
           ctx.strokeStyle = m.enraged ? "#fb923c" : "#ffffff";
           ctx.lineWidth = m.enraged ? 3 : 2;
           ctx.strokeRect(-barW / 2, barY, barW, barH);
-          if (m.enraged) {
+          if (m.enraged || m.rush) {
+            // 보스 러시 보스는 이름 표시 (광란이면 이름 뒤에 표시)
+            const label = m.rush ? m.rushName + (m.enraged ? " · 광란" : "") : "🔥 광란";
             ctx.font = "bold 15px sans-serif";
             ctx.textAlign = "center";
             ctx.lineWidth = 3;
             ctx.strokeStyle = "#000";
-            ctx.strokeText("🔥 광란", 0, barY - 6);
-            ctx.fillStyle = "#fdba74";
-            ctx.fillText("🔥 광란", 0, barY - 6);
+            ctx.strokeText(label, 0, barY - 6);
+            ctx.fillStyle = m.rush ? (m.enraged ? "#fdba74" : "#f8fafc") : "#fdba74";
+            ctx.fillText(label, 0, barY - 6);
           }
         }
         ctx.restore();
@@ -7822,6 +9478,38 @@
       for (let wave of fireWaves) {
         const progress = wave.currentRadius / wave.maxRadius;
         const alpha = Math.max(0, 1 - progress);
+        if (wave.mega) {
+          // 만렙: 화면을 뒤덮는 거대 화염 파동 — 붉은 외곽 → 주황 불벽 → 노란·흰 심지 + 안쪽에 남는 열기
+          const a2 = Math.min(1, alpha * 1.4 + 0.15);
+          ctx.globalAlpha = 0.18 * a2;
+          drawGlow(ctx, "#ea580c", wave.x, wave.y, wave.currentRadius * 1.05);
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(wave.x, wave.y, wave.currentRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(220, 38, 38, ${a2 * 0.35})`;
+          ctx.lineWidth = 90;
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(249, 115, 22, ${a2 * 0.75})`;
+          ctx.lineWidth = 46;
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(253, 224, 71, ${a2 * 0.9})`;
+          ctx.lineWidth = 18;
+          ctx.stroke();
+          ctx.strokeStyle = `rgba(255, 255, 255, ${a2 * 0.8})`;
+          ctx.lineWidth = 5;
+          ctx.stroke();
+          // 불벽을 따라 일렁이는 불꽃 혀
+          const n = 28;
+          for (let k = 0; k < n; k++) {
+            const a = k / n * Math.PI * 2 + wave.currentRadius * 0.004;
+            const flick = 0.6 + Math.sin(timestamp / 60 + k * 1.9) * 0.4;
+            const rr = wave.currentRadius + flick * 26;
+            ctx.globalAlpha = a2 * 0.8 * flick;
+            drawGlow(ctx, k % 3 ? "#fb923c" : "#fde047", wave.x + Math.cos(a) * rr, wave.y + Math.sin(a) * rr, 26 + flick * 22);
+          }
+          ctx.globalAlpha = 1;
+          continue;
+        }
         const lw = 14 + player.fireNovaLevel * 3;
         ctx.beginPath();
         ctx.arc(wave.x, wave.y, wave.currentRadius, 0, Math.PI * 2);
@@ -7846,7 +9534,9 @@
       }
 
       drawTrapsGround(ctx, timestamp, inView);
+      drawBonusWorld(ctx, timestamp);
       drawEliteSummons(ctx, timestamp);
+      drawBossIntroWorld(ctx, timestamp);
 
       // ☄️ 메테오 화염 장판: 바닥의 그을음 + 일렁이는 불꽃 (끝날 때쯤 서서히 사그라듦)
       for (const fz of meteorFires) {
@@ -7981,9 +9671,33 @@
 
       // ⛰️ 장애물: 바위 / 돌기둥
       const obStyle = currentStage().obstacle;
+      const volatile = hasTrap("volatile");
       for (const ob of obstacles) {
         if (!inView(ob.x, ob.y)) continue;
         drawObstacle(ctx, ob, obStyle, timestamp);
+        if (volatile) {
+          // 💥 폭발 장애물: 주황색 폭약 심지 빛 + 경고 표시 (금이 가면 빠르게 깜빡이며 폭발 범위 표시)
+          const lit = !!ob.crumbleAt;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = lit ? 0.5 + Math.sin(timestamp / 60) * 0.35 : 0.3 + Math.sin(timestamp / 400 + ob.x) * 0.1;
+          drawGlow(ctx, "#f97316", ob.x, ob.y, ob.r * (lit ? 1.6 : 1.1));
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+          ctx.font = `bold ${Math.round(ob.r * 0.7)}px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("⚠️", ob.x, ob.y);
+          ctx.textBaseline = "alphabetic";
+          if (lit) {
+            ctx.beginPath();
+            ctx.arc(ob.x, ob.y, ob.r + 120, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(249, 115, 22, ${0.35 + Math.sin(timestamp / 60) * 0.25})`;
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 8]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
       }
 
       // 금이 간 장애물: 부서질 때가 가까울수록 균열이 늘고, 마지막 2초는 흔들리며 깜빡임
@@ -8316,13 +10030,40 @@
           drawGlow(ctx, glow, b.x, b.y, b.radius * (2.4 + Math.random() * 0.4));
           drawGlow(ctx, atk.core, b.x, b.y, b.radius * 1.1);
         } else if (b.kind === "bolt") {
-          // 전격탄: 지지직 떨리는 보라 구체
-          drawGlow(ctx, glow, b.x + (Math.random() - 0.5) * 4, b.y + (Math.random() - 0.5) * 4, b.radius * 2.5, "#ede9fe");
+          // 체인 전격: 지지직 떨리는 노란 전기 구체
+          drawGlow(ctx, glow, b.x + (Math.random() - 0.5) * 4, b.y + (Math.random() - 0.5) * 4, b.radius * 2.5, "#fefce8");
         } else {
           drawGlow(ctx, glow, b.x, b.y, b.radius * 2.3);
         }
       }
       ctx.globalCompositeOperation = "source-over";
+      // 얼음 가시·고속 실탄 본체: 날아가는 방향으로 길쭉한 결정 / 탄두
+      for (let b of bullets) {
+        if ((b.kind !== "ice" && b.kind !== "snipe") || !inView(b.x, b.y)) continue;
+        const a = Math.atan2(b.dy, b.dx), r = b.radius;
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(a);
+        ctx.beginPath();
+        if (b.kind === "ice") {
+          ctx.moveTo(r * 2.6, 0); ctx.lineTo(0, -r * 0.8); ctx.lineTo(-r * 1.6, 0); ctx.lineTo(0, r * 0.8);
+          ctx.closePath();
+          const ig = ctx.createLinearGradient(-r * 1.6, 0, r * 2.6, 0);
+          ig.addColorStop(0, "rgba(125, 211, 252, 0.6)");
+          ig.addColorStop(0.6, "#e0f2fe");
+          ig.addColorStop(1, "#ffffff");
+          ctx.fillStyle = ig;
+          ctx.fill();
+          ctx.strokeStyle = "rgba(12, 74, 110, 0.8)";
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        } else {
+          ctx.ellipse(0, 0, r * 2.2, r * 0.8, 0, 0, Math.PI * 2);
+          ctx.fillStyle = b.crit ? "#fef08a" : "#fffbeb";
+          ctx.fill();
+        }
+        ctx.restore();
+      }
 
       // 3방향 회전 부메랑 렌더링
       for (let bm of boomerangs) {
@@ -8633,6 +10374,7 @@
 
       drawLighting();
       if (bossArena.active && gameState === "playing") drawBossEdge(timestamp);
+      drawBossIntroScreen(timestamp);
       // (화면 터치 이동은 그대로 동작하고, 조이스틱 그림만 표시하지 않음)
       drawMinimap();
     }
@@ -8940,8 +10682,9 @@
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
-      const charge = pet.offline ? Math.max((playTimeMs - pet.offlineAt) / PET_RECHARGE_MS, pet.gems / PET_RECHARGE_GEMS) : 0;
+      const charge = pet.offline ? pet.gems / PET_RECHARGE_GEMS : 0;
       drawPet(ctx, pet.x, pet.y, pet.id, pet.skin, timestamp, 1.25, { offline: pet.offline, charge: charge, flash: pet.flash, facing: pet.facing });
+      if (pet.offline) drawPetRepairBadge(pet.x, pet.y - 30, charge, timestamp);
       // 체력바 (다쳤을 때만)
       if (!pet.offline && pet.hp < pet.maxHp) {
         const w = 30, r = Math.max(0, pet.hp / pet.maxHp);
@@ -8950,6 +10693,45 @@
         ctx.fillStyle = r > 0.5 ? "#4ade80" : (r > 0.25 ? "#facc15" : "#f87171");
         ctx.fillRect(pet.x - w / 2, pet.y - 43, w * r, 3);
       }
+    }
+
+    // 방전된 동료 머리 위: 깜빡이는 빈 배터리 아이콘 + "REPAIR" + 보석 수집 게이지 (n/100)
+    function drawPetRepairBadge(x, y, charge, timestamp) {
+      const blink = Math.floor(timestamp / 400) % 2 === 0;
+      const w = 64, h = 34;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(1.6, 1.6); // 화면이 축소돼 있어도 폰에서 읽히도록 크게
+      ctx.fillStyle = "rgba(2, 6, 23, 0.85)";
+      roundRect(ctx, -w / 2, -h, w, h, 8);
+      ctx.fill();
+      ctx.strokeStyle = blink ? "#f87171" : "#fbbf24";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // 배터리 (남은 칸은 게이지 비율만큼 채움)
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(-26, -27, 18, 10);
+      ctx.fillStyle = "#e2e8f0";
+      ctx.fillRect(-8, -24, 2.5, 4);
+      ctx.fillStyle = charge < 0.34 ? "#ef4444" : (charge < 0.67 ? "#facc15" : "#4ade80");
+      ctx.fillRect(-24.5, -25.5, 15 * Math.max(0.06, charge), 7);
+      ctx.font = "bold 10px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = blink ? "#fca5a5" : "#fde68a";
+      ctx.fillText("REPAIR", -2, -22);
+      // 수집 게이지
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(-27, -13, 54, 6);
+      ctx.fillStyle = "#34d399";
+      ctx.fillRect(-27, -13, 54 * Math.min(1, charge), 6);
+      ctx.font = "bold 9px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`💎 ${pet.gems}/${PET_RECHARGE_GEMS}`, 0, -3.5);
+      ctx.textBaseline = "alphabetic";
+      ctx.restore();
     }
 
     // 분신: 보라색 반투명 잔상으로 그린 캐릭터
@@ -8969,7 +10751,7 @@
 
     // 보스전 중: 화면 가장자리가 붉게 맥동 (문구 없이 보스전임을 표시)
     let bossEdge = null, bossEdgeW = 0, bossEdgeH = 0;
-    function drawBossEdge(timestamp) {
+    function drawBossEdge(timestamp, keepAlpha) {
       if (!bossEdge || bossEdgeW !== canvas.width || bossEdgeH !== canvas.height) {
         const cx = canvas.width / 2, cy = canvas.height / 2;
         bossEdge = ctx.createRadialGradient(cx, cy, Math.min(cx, cy) * 0.7, cx, cy, fastHypot(cx, cy));
@@ -8978,7 +10760,7 @@
         bossEdgeW = canvas.width;
         bossEdgeH = canvas.height;
       }
-      ctx.globalAlpha = 0.55 + Math.sin(timestamp / 400) * 0.25;
+      if (!keepAlpha) ctx.globalAlpha = 0.55 + Math.sin(timestamp / 400) * 0.25;
       ctx.fillStyle = bossEdge;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.globalAlpha = 1;
@@ -9067,6 +10849,8 @@
     }
 
     renderLobby();
+    // 지난번에 돌리지 않은 슬롯 기회가 남아 있으면 시작하자마자 슬롯머신 창 (게임을 껐다 켜도 보상 유지)
+    if (cs().slotTickets > 0) openSlot(false);
     requestAnimationFrame(gameLoop);
   </script>
 </body>
