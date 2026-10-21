@@ -790,22 +790,22 @@
     .pv-fold { padding: 9px 12px; font-size: 14px; white-space: nowrap; flex-shrink: 0; border-color: #f59e0b; color: #fde68a; }
     .pv-small { padding: 7px 9px; font-size: 12px; white-space: nowrap; flex-shrink: 0; }
     .pv-exit { border-color: #f87171; color: #fecaca; }
+    /* v36: 콤보박스·접기·종료 버튼 높이를 똑같이 (종료는 접기와 같은 크기) */
+    .pv-top { align-items: center; }
+    .pv-top .pv-combo, .pv-top .pv-fold { height: 40px; padding-top: 0; padding-bottom: 0; box-sizing: border-box; line-height: 38px; }
     #pv-body .lv-buttons { margin: 8px 0 4px; }
     #pv-body .syn-info { margin-top: 8px; font-size: 11px; }
     #preview-panel.folded #pv-body { display: none; }
     #preview-panel { padding-bottom: 6px; }
-    /* v35 미리보기: 여러 스킬 동시 선택 · Lv25 몹 대군 · 보스 소환 */
-    .pv-modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
-    .pv-modes button { padding: 8px 2px; border-radius: 10px; border: 1.5px solid #475569; background: #1e293b; color: #e2e8f0; font-weight: 800; font-size: 12px; cursor: pointer; }
-    .pv-modes button.on { border-color: #22d3ee; background: linear-gradient(180deg, #0e7490, #164e63); color: #ecfeff; }
-    .pv-multi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 8px; max-height: 38vh; overflow-y: auto; }
-    .pv-multi button { padding: 6px 2px; border-radius: 9px; border: 1.5px solid #334155; background: #0f172a; color: #94a3b8; font-weight: 700; font-size: 11px; line-height: 1.25; cursor: pointer; }
-    .pv-multi button b { display: block; font-size: 11px; color: #64748b; }
-    .pv-multi button.on { border-color: #f59e0b; background: #422006; color: #fde68a; }
-    .pv-multi button.on b { color: #fbbf24; }
-    .pv-multi button.ctl { border-color: #475569; color: #e2e8f0; background: #1e293b; }
-    #preview-panel.multi .pv-top select, #preview-panel.multi #pv-lv-buttons, #preview-panel.multi #pv-syn-info { display: none !important; }
-    #preview-panel.multi .pv-top::before { content: "🧩 여러 스킬 선택 중 · 칸을 누를 때마다 Lv 올라감 (MAX 다음은 끔)"; flex: 1; font-size: 11px; color: #fde68a; font-weight: 700; }
+    /* v36 스킬 선택 콤보박스 (여러 개 체크) */
+    .pv-combo { flex: 1; min-width: 0; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid #64748b; background: #0f172a; color: #f1f5f9; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+    .pv-menu { position: absolute; left: 14px; right: 14px; top: calc(54px + env(safe-area-inset-top, 0px)); z-index: 5; max-height: 62vh; overflow-y: auto; background: #0b1222; border: 1px solid #f59e0b; border-radius: 12px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6); touch-action: pan-y; }
+    .pv-menu-head { position: sticky; top: 0; padding: 8px 10px; font-size: 11px; color: #fde68a; font-weight: 700; background: #0b1222; border-bottom: 1px solid #334155; }
+    .pv-menu-row { display: block; width: 100%; text-align: left; padding: 10px 12px; border: none; border-bottom: 1px solid #1e293b; background: transparent; color: #cbd5e1; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .pv-menu-row.on { background: #422006; color: #fde68a; }
+    .pv-menu-foot { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; background: #0b1222; border-top: 1px solid #334155; }
+    .pv-menu-foot button { padding: 10px; border-radius: 10px; border: 1px solid #475569; background: #1e293b; color: #e2e8f0; font-weight: 800; cursor: pointer; }
+    .pv-menu-foot button.done { border-color: #f59e0b; background: linear-gradient(180deg, #fbbf24, #d97706); color: #1c1917; }
     .lv-buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 8px; }
     .lv-buttons button {
       padding: 9px 0;
@@ -981,20 +981,16 @@
 
     <div id="preview-panel" style="display: none;">
       <div class="dev-row pv-top">
-        <select id="pv-skill"></select>
+        <select id="pv-skill" style="display: none;"></select>
+        <button id="pv-skill-btn" class="pv-combo" onclick="togglePvSkillMenu()">스킬 선택 ▾</button>
         <button id="pv-fold" class="pv-close pv-fold" onclick="togglePreviewFold()">▲ 접기</button>
-        <button class="pv-close pv-small pv-exit" onclick="goToLobby()">✕ 종료</button>
+        <button class="pv-close pv-fold pv-exit" onclick="goToLobby()">✕ 종료</button>
       </div>
       <div id="pv-body">
         <div id="pv-syn-info" class="syn-info"></div>
         <div id="pv-lv-buttons" class="lv-buttons"></div>
-        <div class="pv-modes">
-          <button id="pv-multi-btn" onclick="togglePreviewMulti()">🧩 여러 스킬</button>
-          <button id="pv-horde-btn" onclick="togglePreviewHorde()">👾 Lv25 몹 대군</button>
-          <button onclick="previewSpawnBoss()">👹 Lv25 보스</button>
-        </div>
-        <div id="pv-multi" class="pv-multi" style="display: none;"></div>
       </div>
+      <div id="pv-skill-menu" class="pv-menu" style="display: none;"></div>
       <input type="hidden" id="pv-level" value="1">
       <div id="pv-hint" class="pv-hint">🎯 원거리 몹 탄에 맞은 횟수: 0회 (피해 없음)</div>
     </div>
@@ -1272,7 +1268,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v35 · 2026-10-22";
+    const GAME_VERSION = "v37 · 2026-10-22";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -3351,7 +3347,7 @@
       armorLevel: 0,
 
       // 신단 버프 종료 시각 (playTimeMs 기준, 0 = 버프 없음)
-      buffs: { heal: 0, speed: 0, power: 0, clone: 0, exp: 0 },
+      buffs: { heal: 0, speed: 0, power: 0, clone: 0, exp: 0, boots: 0 },
       cloneShotTimer: 0
     };
 
@@ -4317,7 +4313,7 @@
         lastItemSpawnTime = timestamp;
         if (items.length >= 4) return;
 
-        const types = ["heal", "shield", "nuke", "magnet"];
+        const types = ["heal", "shield", "nuke", "magnet", "boots"];
         const pos = findOpenSpot(300, 700);
         items.push({
           x: pos.x,
@@ -4326,7 +4322,19 @@
           radius: 19
         });
       }
+      // 👟 질주 아이템: 위 랜덤 아이템과 별도로 25초마다 (필드에 없을 때만)
+      if (timestamp - lastBootsSpawnTime > BOOTS_SPAWN_MS) {
+        lastBootsSpawnTime = timestamp;
+        if (items.some(it => it.type === "boots")) return;
+        const pos = findOpenSpot(250, 600);
+        items.push({ x: pos.x, y: pos.y, type: "boots", radius: 19 });
+      }
     }
+    // 👟 질주 아이템: 먹으면 8초 동안 이동속도 +15% (다시 먹으면 시간만 갱신)
+    const BOOTS_SPAWN_MS = 25000; // v37: 7초 → 25초
+    const BOOTS_MS = 8000;
+    const BOOTS_SPEED_MULT = 1.15;
+    let lastBootsSpawnTime = 0;
 
     // ===== 층별 환경 함정: 1~9층은 1종, 10층부터 2종 동시 작동 =====
     // 층 번호로 정해지므로 같은 층은 항상 같은 함정 (층 선택 창에서 미리 확인 가능). 스킬 미리보기에서는 꺼짐
@@ -6339,7 +6347,7 @@
       hpFill.style.width = `${hpPct}%`;
 
       // 신단 버프 남은 시간
-      const labels = { heal: "💚 회복", speed: "💨 이속", power: "🔥 공격력", clone: "👥 분신", exp: "✦ 경험치×2" };
+      const labels = { heal: "💚 회복", speed: "💨 이속", power: "🔥 공격력", clone: "👥 분신", exp: "✦ 경험치×2", boots: "👟 질주+15%" };
       player.buffSecShown = Object.keys(player.buffs).map(n => Math.ceil(buffLeft(n) / 1000)).join(",");
       const active = Object.keys(player.buffs).filter(n => player.buffs[n]);
       if (active.length) {
@@ -7874,7 +7882,9 @@
       initAudio();
       currentFloor = 1;
       restartGame();
-      document.getElementById("pv-skill").value = document.getElementById("dev-skill").value;
+      previewSel = [document.getElementById("dev-skill").value]; // 개발자 옵션에서 고른 스킬로 시작 (미리보기 안에서 여러 개 추가 가능)
+      togglePvSkillMenu(false);
+      renderPvSkillButton();
       document.getElementById("pv-level").value = document.getElementById("dev-level").value;
       hideLobbyPanels();
       lobbyReturnPanel = "dev"; // 미리보기를 닫으면 개발자 옵션 창으로 돌아감
@@ -7884,34 +7894,35 @@
       btnDash.style.display = "block"; // 대시 버튼은 실제 게임과 같은 위치
       applyDashPos();
       gameState = "preview";
-      previewHorde = false; // 판마다 기본 상태로 (여러 스킬 선택은 유지)
-      previewSpawnAt = 0;
-      renderPreviewMulti();
+      setupPreviewLv25();
       activeTraps = []; // 미리보기에서는 함정 없음
       updateTrapHud();
       applyPreviewSkill();
     }
 
     function applyPreviewSkill() {
-      const id = document.getElementById("pv-skill").value;
+      const id = previewSel[0] || "";
       const lv = +document.getElementById("pv-level").value;
       // "syn:아이디" 는 시너지 미리보기: 조합에 필요한 스킬을 모두 같은 레벨로 켬
       const syn = id.startsWith("syn:") ? SYNERGIES.find(s => "syn:" + s.id === id) : null;
-      let defs = syn ? syn.needs.map(n => PREVIEW_SKILLS.find(s => s.id === (Array.isArray(n) ? n[0] : n))) : [PREVIEW_SKILLS.find(s => s.id === id) || PREVIEW_SKILLS[0]];
-      // v35 여러 스킬 모드: 칸마다 고른 레벨로 동시에 켬 (시너지·융합도 조건이 맞으면 자동 발동)
-      if (previewMulti) defs = PREVIEW_SKILLS.filter(s => previewMulti[s.id] > 0);
-      previewDef = previewMulti ? { walk: defs.some(d => d.walk), gun: defs.some(d => d.gun) } : defs[0];
+      // v36: 콤보박스에서 체크한 스킬(시너지 항목이면 조합 스킬)을 모두 같은 레벨로 켬
+      const defs = [];
+      for (const sid of previewSel) {
+        const sy = sid.startsWith("syn:") ? SYNERGIES.find(s => "syn:" + s.id === sid) : null;
+        const list = sy ? sy.needs.map(n => PREVIEW_SKILLS.find(s => s.id === (Array.isArray(n) ? n[0] : n))) : [PREVIEW_SKILLS.find(s => s.id === sid)];
+        for (const d of list) if (d && !defs.includes(d)) defs.push(d);
+      }
+      previewDef = { walk: defs.some(d => d.walk), gun: defs.some(d => d.gun) };
       for (const s of PREVIEW_SKILLS) player[s.key] = 0;
       for (const d of defs) {
-        const dlv = previewMulti ? previewMulti[d.id] : lv;
-        player[d.key] = dlv;
-        if (d.after) d.after(dlv);
+        player[d.key] = lv;
+        if (d.after) d.after(lv);
       }
       poisonClouds = [];
       player.poisonTimer = 0;
       updateSynergies();
-      showSynInfo(id);
-      document.getElementById("dev-skill").value = id;
+      showSynInfo(previewSel.find(x => x.startsWith("syn:")) || id);
+      if (id) document.getElementById("dev-skill").value = id;
       document.getElementById("dev-level").value = lv;
       document.getElementById("dev-lv-label").innerText = `Lv.${lv}${lv >= 5 ? " MAX" : ""}`;
       // 이전 스킬의 투사체·장판 정리 후 바로 발동되도록 타이머 초기화
@@ -7931,55 +7942,72 @@
       renderLevelButtons();
     }
 
-    // 미리보기용 더미 몬스터를 일정 수 유지 (느리게 다가오고, 처치 연출을 볼 수 있도록 적당한 체력)
-    // + 실제로 탄을 쏘는 원거리 몹 4마리 (회피·탄 상쇄 테스트용, 맞아도 피해 없음 · 맞은 횟수만 표시)
+    // 미리보기: 탄·몸통에 맞은 횟수 (피해 없음)
     let previewHits = 0, previewHitsShown = -1;
-    const PREVIEW_SHOOTERS = 4;
-    // ===== v35 미리보기 확장: 여러 스킬 동시 선택 · Lv25 몹 대군 · Lv25 보스 =====
-    let previewMulti = null;  // 여러 스킬 모드일 때 { 스킬ID: 레벨(0~5) }
-    let previewHorde = false; // Lv25 몹 대군: 실제 게임 Lv25와 같은 스폰 간격·마릿수·몹 체력·원거리 몹 비율 (+ 내 공격력도 Lv25 수준)
     let previewSpawnAt = 0;
-    function togglePreviewMulti() {
-      if (previewMulti) {
-        previewMulti = null;
-      } else {
-        // 지금 켜져 있는 스킬을 그대로 가져와서 시작
-        previewMulti = {};
-        for (const s of PREVIEW_SKILLS) if (player[s.key] > 0) previewMulti[s.id] = player[s.key];
+    // 스킬 선택 콤보박스(여러 개 체크): 고른 스킬을 모두 위의 레벨 버튼 레벨로 동시에 켬 (시너지 항목은 조합 스킬을 함께 켬)
+    let previewSel = [];
+    function pvOptionList() {
+      return PREVIEW_SKILLS.map(s => ({ id: s.id, name: s.name }))
+        .concat(SYNERGIES.map(s => ({ id: "syn:" + s.id, name: `🔗 ${s.name} (${s.fusion ? "융합" : "시너지"})` })));
+    }
+    function pvLabel(id) { const o = pvOptionList().find(x => x.id === id); return o ? o.name : id; }
+    function renderPvSkillButton() {
+      const btn = document.getElementById("pv-skill-btn");
+      const n = previewSel.length;
+      btn.innerText = (n === 0 ? "스킬 선택" : n === 1 ? pvLabel(previewSel[0]) : `${pvLabel(previewSel[0])} 외 ${n - 1}개`) + " ▾";
+    }
+    function togglePvSkillMenu(force) {
+      const menu = document.getElementById("pv-skill-menu");
+      const open = force !== undefined ? force : menu.style.display === "none";
+      menu.style.display = open ? "block" : "none";
+      if (open) renderPvSkillMenu();
+    }
+    function renderPvSkillMenu() {
+      const menu = document.getElementById("pv-skill-menu");
+      menu.innerHTML = "";
+      const head = document.createElement("div");
+      head.className = "pv-menu-head";
+      head.innerText = `여러 개 선택 가능 · ${previewSel.length}개 선택됨 (레벨은 위 Lv 버튼으로 함께 조절)`;
+      menu.appendChild(head);
+      for (const o of pvOptionList()) {
+        const row = document.createElement("button");
+        const on = previewSel.includes(o.id);
+        row.className = "pv-menu-row" + (on ? " on" : "");
+        row.innerText = `${on ? "☑" : "☐"} ${o.name}`;
+        row.onclick = () => {
+          if (on) previewSel = previewSel.filter(x => x !== o.id);
+          else previewSel.push(o.id);
+          renderPvSkillMenu();
+          renderPvSkillButton();
+          applyPreviewSkill();
+        };
+        menu.appendChild(row);
       }
-      renderPreviewMulti();
-      applyPreviewSkill();
+      const foot = document.createElement("div");
+      foot.className = "pv-menu-foot";
+      const clear = document.createElement("button");
+      clear.innerText = "⏹ 모두 해제";
+      clear.onclick = () => { previewSel = []; renderPvSkillMenu(); renderPvSkillButton(); applyPreviewSkill(); };
+      const done = document.createElement("button");
+      done.className = "done";
+      done.innerText = "✔ 완료";
+      done.onclick = () => togglePvSkillMenu(false);
+      foot.appendChild(clear);
+      foot.appendChild(done);
+      menu.appendChild(foot);
     }
-    function renderPreviewMulti() {
-      previewPanel.classList.toggle("multi", !!previewMulti);
-      document.getElementById("pv-multi-btn").className = previewMulti ? "on" : "";
-      document.getElementById("pv-horde-btn").className = previewHorde ? "on" : "";
-      const box = document.getElementById("pv-multi");
-      box.style.display = previewMulti ? "grid" : "none";
-      box.innerHTML = "";
-      if (!previewMulti) return;
-      for (const s of PREVIEW_SKILLS) {
-        const lv = previewMulti[s.id] || 0;
-        const btn = document.createElement("button");
-        btn.className = lv ? "on" : "";
-        btn.innerHTML = `${s.name}<b>${lv ? (lv >= 5 ? "MAX" : "Lv" + lv) : "끔"}</b>`;
-        btn.onclick = () => { previewMulti[s.id] = ((previewMulti[s.id] || 0) + 1) % 6; renderPreviewMulti(); applyPreviewSkill(); };
-        box.appendChild(btn);
-      }
-      const ctl = (label, fn) => { const b = document.createElement("button"); b.className = "ctl"; b.innerText = label; b.onclick = () => { fn(); renderPreviewMulti(); applyPreviewSkill(); }; box.appendChild(b); };
-      ctl("⏹ 모두 끄기", () => { for (const s of PREVIEW_SKILLS) previewMulti[s.id] = 0; });
-      ctl("⏫ 켠 것 MAX", () => { for (const s of PREVIEW_SKILLS) if (previewMulti[s.id]) previewMulti[s.id] = 5; });
+
+    // v37: 미리보기는 항상 Lv25 상황 — Lv25 몹 대군(실제 게임 Lv25와 같은 스폰 공식) + Lv25 최종 보스 (잡으면 4초 뒤 다시 등장)
+    //   내 공격력도 Lv25 수준(×1.03^24). 탄·몸통에 맞아도 피해 없음, 맞은 횟수만 표시
+    const PREVIEW_BOSS_RESPAWN_MS = 4000;
+    let previewBossGoneAt = null;
+    function setupPreviewLv25() {
+      player.level = CLEAR_LEVEL;
+      player.damage *= Math.pow(LEVEL_DMG_GROWTH, CLEAR_LEVEL - 1);
+      previewSpawnAt = 0;
+      previewBossGoneAt = gameNow - PREVIEW_BOSS_RESPAWN_MS; // 시작하자마자 보스 등장
     }
-    function togglePreviewHorde() {
-      previewHorde = !previewHorde;
-      const g = Math.pow(LEVEL_DMG_GROWTH, CLEAR_LEVEL - 1);
-      if (previewHorde) { player.level = CLEAR_LEVEL; player.damage *= g; }
-      else { player.level = 1; player.damage /= g; }
-      monsters = monsters.filter(m => m.isBoss); // 새 기준으로 다시 채움
-      enemyBullets = [];
-      renderPreviewMulti();
-    }
-    // 실제 게임 Lv25 무렵의 최종 보스 (보스 결계 포함). 미리보기라 맞아도 피해 없음
     function previewSpawnBoss() {
       if (gameState !== "preview" || monsters.some(m => m.isBoss)) return;
       const lv = player.level;
@@ -7988,37 +8016,19 @@
       spawnBoss(true);
       player.level = lv;
       bossAlert.style.display = "none"; // 미리보기에서는 경고 문구 없이 (상단 패널을 가림)
-      explosions.push({ x: player.x, y: player.y - 300, radius: 220, life: 30, maxLife: 30, lv: 5, color: "#facc15" });
-      addShake(10);
     }
     function previewTick() {
       player.hp = player.maxHp;
-      if (previewHorde) {
-        // Lv25 스폰: 0.26초마다 5마리 (최대 130), 보스전 중에는 멈춤 — handleMonsterSpawns와 같은 공식
-        if (!bossArena.active && gameNow - previewSpawnAt > Math.max(260, 920 - (player.level - 1) * 55)) {
-          previewSpawnAt = gameNow;
-          const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3), MAX_MONSTERS - monsters.length);
-          for (let i = 0; i < count; i++) spawnMonster();
-        }
-        updatePreviewHint();
-        return;
+      // 보스: 없으면 잠시 뒤 다시 소환
+      if (!monsters.some(m => m.isBoss)) {
+        if (previewBossGoneAt === null) previewBossGoneAt = gameNow;
+        else if (gameNow - previewBossGoneAt >= PREVIEW_BOSS_RESPAWN_MS) { previewSpawnBoss(); previewBossGoneAt = null; }
       }
-      let guard = 0;
-      const dummies = () => monsters.filter(m => !m.previewShooter).length;
-      while (dummies() < 12 && guard++ < 12) {
-        const a = Math.random() * Math.PI * 2, d = 200 + Math.random() * 200;
-        spawnMonster(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, Math.random() < 0.25 ? 0.95 : 0.3);
-        const m = monsters[monsters.length - 1];
-        m.speed = m.baseSpeed = 0.35;
-        m.hp = m.maxHp = m.type === "tanker" ? 900 : 300;
-      }
-      guard = 0;
-      while (monsters.filter(m => m.previewShooter).length < PREVIEW_SHOOTERS && guard++ < 4) {
-        const a = Math.random() * Math.PI * 2, d = 340 + Math.random() * 80;
-        spawnMonster(player.x + Math.cos(a) * d, player.y + Math.sin(a) * d, 0.3);
-        const m = monsters[monsters.length - 1];
-        Object.assign(m, { type: "shooter", radius: 21, color: "#b91c1c", previewShooter: true, speed: 0.4, baseSpeed: 0.4, hp: 600, maxHp: 600,
-          shootInterval: 1300 + Math.random() * 500, shootTimer: gameNow + Math.random() * 1000 });
+      // 몹: Lv25 공식으로 0.26초마다 5마리 (최대 130). 보스전 중에도 계속 (미리보기 전용)
+      if (gameNow - previewSpawnAt > Math.max(260, 920 - (player.level - 1) * 55)) {
+        previewSpawnAt = gameNow;
+        const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3), MAX_MONSTERS - monsters.length);
+        for (let i = 0; i < count; i++) spawnMonster();
       }
       updatePreviewHint();
     }
@@ -8137,7 +8147,7 @@
       exps = [];
       shrines = [];
       lastShrineSpawn = 0;
-      player.buffs = { heal: 0, speed: 0, power: 0, clone: 0, exp: 0 };
+      player.buffs = { heal: 0, speed: 0, power: 0, clone: 0, exp: 0, boots: 0 };
       player.clones = [];
       player.shurikenLevel = 0;
       shurikens = [];
@@ -8286,7 +8296,7 @@
       if (moveX !== 0 || moveY !== 0) {
         player.isMoving = true;
         const len = fastHypot(moveX, moveY);
-        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * petSpeedMult() * trapMoveMult(moveX / len, moveY / len) *
+        const spd = player.speed * (player.buffs.speed ? SPEED_BUFF_MULT : 1) * (player.buffs.boots ? BOOTS_SPEED_MULT : 1) * petSpeedMult() * trapMoveMult(moveX / len, moveY / len) *
           (playTimeMs < (player.slowUntil || 0) ? 0.6 : 1) * bonusSpeedMult();
         player.x += (moveX / len) * spd;
         player.y += (moveY / len) * spd;
@@ -9155,6 +9165,10 @@
             for (let e of exps) {
               e.magnetized = true;
             }
+          } else if (it.type === "boots") {
+            player.buffs.boots = playTimeMs + BOOTS_MS;
+            spawnBurst(player.x, player.y, "#2dd4bf", 14, 6);
+            updateUI();
           }
           items.splice(i, 1);
         }
@@ -10033,7 +10047,7 @@
       ctx.globalCompositeOperation = "source-over";
 
       // 필드 아이템
-      const itemColors = { heal: "#22c55e", shield: "#38bdf8", nuke: "#eab308", magnet: "#ec4899" };
+      const itemColors = { heal: "#22c55e", shield: "#38bdf8", nuke: "#eab308", magnet: "#ec4899", boots: "#2dd4bf" };
       for (let it of items) {
         const pulse = 1 + Math.sin(timestamp / 250) * 0.12;
         ctx.globalCompositeOperation = "lighter";
@@ -10071,6 +10085,19 @@
           ctx.fillRect(-8, -8, 5, 16);
           ctx.fillRect(3, -8, 5, 16);
           ctx.fillRect(-8, 5, 16, 4);
+        } else if (it.type === "boots") {
+          // 👟 질주: 청록 테두리 + 앞으로 향한 두 겹 화살표
+          ctx.strokeStyle = "#2dd4bf"; ctx.stroke();
+          ctx.strokeStyle = "#5eead4";
+          ctx.lineWidth = 3.2;
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          ctx.moveTo(-8, -7); ctx.lineTo(-1, 0); ctx.lineTo(-8, 7);
+          ctx.moveTo(0, -7); ctx.lineTo(7, 0); ctx.lineTo(0, 7);
+          ctx.stroke();
+          ctx.lineCap = "butt";
+          ctx.lineJoin = "miter";
         }
         ctx.restore();
       }
@@ -10947,7 +10974,7 @@
 
       drawPetFloor(timestamp);
       // 신단 버프 중: 버프 색 오라 (공격력 주황, 이속 청록, 회복 초록)
-      const buffColors = { power: "#fb923c", speed: "#2dd4bf", heal: "#4ade80", exp: "#facc15" };
+      const buffColors = { power: "#fb923c", speed: "#2dd4bf", heal: "#4ade80", exp: "#facc15", boots: "#5eead4" };
       ctx.globalCompositeOperation = "lighter";
       for (const name in buffColors) {
         if (!player.buffs[name]) continue;
