@@ -1254,7 +1254,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v32 · 2026-10-21";
+    const GAME_VERSION = "v33 · 2026-10-21";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1424,6 +1424,19 @@
       boomerang() {
         if (!sfxReady("boomerang", 120)) return;
         sfxNoise({ filter: "bandpass", freq: 500, freqEnd: 2600, q: 5, dur: 0.28, vol: 0.18, attack: 0.08, wet: 0.25 });
+      },
+      // v33 부메랑 전용: 실로폰처럼 울리던 금속음(metalClang) 대신 날카롭게 베는 소리
+      boomerangThrow() {
+        if (!sfxReady("bmThrow", 120)) return;
+        sfxNoise({ filter: "bandpass", freq: 1800, freqEnd: 7000, q: 6, dur: 0.22, vol: 0.2, attack: 0.04, wet: 0.2 }); // 휘익 (높게 치솟는 바람 가르는 소리)
+        sfxNoise({ filter: "highpass", freq: 5500, dur: 0.12, vol: 0.1, attack: 0.02, delay: 0.04 });
+      },
+      boomerangHit() {
+        if (!sfxReady("bmHit", 70)) return;
+        sfxNoise({ filter: "highpass", freq: 6500, dur: 0.045, vol: 0.24 });                                   // 챙 — 아주 짧고 높은 칼날 소리
+        sfxNoise({ filter: "bandpass", freq: 5200, freqEnd: 1800, q: 3.5, dur: 0.09, vol: 0.2, wet: 0.15 });    // 슥 — 베고 지나가는 소리
+        sfxTone({ type: "sawtooth", freq: 2400, freqEnd: 900, dur: 0.05, vol: 0.035 });                        // 날 끝 금속 긁힘 (울림 없이 짧게)
+        sfxTone({ freq: 180, freqEnd: 70, dur: 0.06, vol: 0.12 });                                             // 살짝 묵직한 타격감
       },
       metalClang() {
         if (!sfxReady("clang", 70)) return;
@@ -5137,7 +5150,7 @@
     function fireBoomerang() {
       const target = findNearestMonster(950);
       const baseAngle = target ? Math.atan2(target.y - player.y, target.x - player.x) : player.angle;
-      Sound.boomerang();
+      Sound.boomerangThrow();
 
       // (v28) 크기 증가: Lv1 41 → Lv5 69 (예전 34 → 58). 스킬 범위 강화도 적용
       const bSize = (34 + player.boomerangLevel * 7) * skillUp.area;
@@ -5428,7 +5441,7 @@
       const target = lv <= 0 ? 0 : (lv >= 5 ? 6 : lv + 1);
       if (shurikens.length > target) shurikens.length = target;
       if (!target) return;
-      const size = (12 + lv * 3 + (lv >= 5 ? 4 : 0)) * skillUp.area;
+      const size = (12 + lv * 3 + (lv >= 5 ? 14 : 0)) * skillUp.area; // v33: 만렙 31 → 41
       const dmg = player.damage * (1.2 + lv * 0.35) * skillPower;
       while (shurikens.length < target) {
         const a = Math.random() * Math.PI * 2;
@@ -5469,7 +5482,8 @@
           m.hp -= hurt(m, dmg, "shuriken");
           if (synOn("toxicShuriken")) { // 🧪 맹독 수리검: 3초 중독
             m.toxicUntil = playTimeMs + 3000;
-            m.toxicDmg = player.damage * (0.3 + player.poisonLevel * 0.1) * skillPower;
+            m.toxicDmg = player.damage * (0.5 + player.poisonLevel * 0.15) * skillPower; // v33: 0.3+0.1Lv → 0.5+0.15Lv
+            if (!m.toxicShownAt || playTimeMs - m.toxicShownAt > 600) { m.toxicShownAt = playTimeMs; addHitEffect({ x: m.x, y: m.y, radius: 22, life: 12, maxLife: 12, color: "#84cc16" }); }
           }
           addHitEffect({ x: m.x, y: m.y, radius: 12, life: 7, maxLife: 7, color: lv >= 5 ? "#facc15" : "#e2e8f0" });
           if (m.hp <= 0) handleMonsterDeath(m, j);
@@ -5794,9 +5808,9 @@
       { id: "frostBlade", name: "🧊 빙결 칼날", needs: ["blade", "frostAura"], fusion: true,
         desc: "회전 칼날에 베인 적이 0.8초 동안 완전히 얼어붙고 칼날 피해 1.3배" },
       { id: "railSniper", name: "🎯 레일 저격", needs: ["sniper", "laser"], fusion: true,
-        desc: "저격탄이 레이저로 조준 중인 적에게 맞으면 피해 1.6배 + 레이저 증폭이 즉시 최대" },
+        desc: "레이저 갈래마다 저격탄이 1발씩 (Lv4 2발 · 만렙 3발, 각 레이저가 조준한 적에게) · 레이저로 조준 중인 적에게 맞으면 피해 1.6배 + 레이저 증폭이 즉시 최대" },
       { id: "orbitMissile", name: "🛰️ 궤도 포격", needs: ["orbit", "homing"], fusion: true,
-        desc: "궤도 구체가 1.6초마다 각자 작은 유도 미사일을 1발씩 발사" },
+        desc: "궤도 구체가 1.6초마다 각자 작은 유도 미사일을 2발씩 발사" },
       { id: "toxicShuriken", name: "🧪 맹독 수리검", needs: ["shuriken", "poison"], fusion: true,
         desc: "수리검에 맞은 적이 3초 동안 중독 (0.5초마다 피해) · 중독된 적은 이동속도 40% 감소" }
     ];
@@ -7898,6 +7912,8 @@
       document.getElementById("pv-fold").innerText = folded ? "▼ 펼치기" : "▲ 접기";
     }
 
+    // 기본 이동속도 (v33: 2.5 → 3.5, 40% 빠르게)
+    const BASE_MOVE_SPEED = 3.5;
     // 시작 능력치 = 기본값 × 캐릭터 특성 + 클리어 영구 보너스 + 상점 강화
     function getStartStats() {
       const bonus = getBonusStats();
@@ -7907,7 +7923,7 @@
       return {
         maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult) + relicCount("hp") * 20,
         damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100)) + relicCount("atk") * 5,
-        speed: +(2.5 * ch.speedMult * (1 + shop.spd * 0.03 + relicCount("spd") * 0.05)).toFixed(2),
+        speed: +(BASE_MOVE_SPEED * ch.speedMult * (1 + shop.spd * 0.03 + relicCount("spd") * 0.05)).toFixed(2),
         fireRate: Math.round(620 * ch.fireRateMult)
       };
     }
@@ -8362,20 +8378,39 @@
     }
 
     // 🎯 저격 1발 (보스 우선). 쏠 대상이 없으면 false
+    // 🎯 레일 저격 융합(v33): 레이저 갈래마다 1발씩, 각 레이저가 조준한 적에게 (갈래가 한 적에 모였으면 그 적에게 여러 발)
+    function railSniperTargets() {
+      const lt = player.laserTarget;
+      if (!synOn("railSniper") || cloneCasting || !lt || lt.dead) return null;
+      const lv = player.laserLevel;
+      const beams = lv >= 5 ? 3 : (lv >= 4 ? 2 : 1);
+      const focus = beams > 1 ? Math.max(1, player.laserFocus || 1) : 1;
+      const extras = (player.laserExtra || []).filter(m => !m.dead);
+      const list = [];
+      for (let i = 0; i < beams; i++) { const m = i < focus ? lt : extras[i - focus]; if (m) list.push(m); }
+      return list.length ? list : null;
+    }
+    function laserAimed(m) { return m === player.laserTarget || (player.laserExtra || []).includes(m); }
     function castSniper() {
-        const target = findStrongestMonster(1100);
-        if (target) {
+        const first = findStrongestMonster(1100);
+        const targets = railSniperTargets() || (first ? [first] : []);
+        targets.forEach((target, k) => {
           const lv = player.sniperLevel;
           let dmg = player.damage * (6 + lv * 2.5) * skillPower;
           const crit = Math.random() < 0.1 + lv * 0.05;
           if (crit) dmg *= 2;
           if (lv >= 5 && target.isBoss) dmg += target.maxHp * 0.015;
-          // 실제로 날아가는 고속 탄환 (레벨이 오를수록 굵어짐)
+          // 실제로 날아가는 고속 탄환 (레벨이 오를수록 굵어짐). 여러 발이면 출발점을 살짝 옆으로 벌림
+          const a0 = Math.atan2(target.y - player.y, target.x - player.x);
+          const off = (k - (targets.length - 1) / 2) * 14;
           sniperShots.push({
-            x: player.x, y: player.y, angle: Math.atan2(target.y - player.y, target.x - player.x),
+            x: player.x - Math.sin(a0) * off, y: player.y + Math.cos(a0) * off, angle: a0,
             target: target, tx: target.x, ty: target.y,
             speed: 30 * skillUp.proj, radius: 3 + lv * 1.6, damage: Math.floor(dmg), crit: crit, lv: lv, trail: []
           });
+        });
+        if (targets.length) {
+          const target = targets[0], lv = player.sniperLevel;
           player.angle = Math.atan2(target.y - player.y, target.x - player.x);
           addHitEffect({ x: player.x + Math.cos(player.angle) * 28, y: player.y + Math.sin(player.angle) * 28, radius: 10 + lv * 3, life: 6, maxLife: 6, color: "#e0f2fe" });
           Sound.snipe();
@@ -8397,7 +8432,7 @@
         if (d <= s.speed) {
           // 명중 (🎯 레일 저격 융합: 레이저로 조준 중인 적이면 1.6배 + 레이저 증폭 즉시 최대)
           if (s.target && !s.target.dead) {
-            const rail = synOn("railSniper") && s.target === player.laserTarget;
+            const rail = synOn("railSniper") && laserAimed(s.target);
             if (rail) { player.laserRamp = 180; addHitEffect({ x: s.tx, y: s.ty, radius: 44, life: 14, maxLife: 14, color: "#f0abfc" }); }
             damageMonster(s.target, rail ? s.damage * 1.6 : s.damage, null, rail ? "railSniper" : "sniper");
           }
@@ -8493,10 +8528,14 @@
         if (synOn("orbitMissile") && playTimeMs - (player.orbitMissileAt || 0) > 1600 * skillUp.cd) {
           player.orbitMissileAt = playTimeMs;
           const md = Math.floor(player.damage * (0.7 + player.homingLevel * 0.15) * skillPower);
+          // v33: 구체마다 2발 (양옆으로 벌어져 나감)
           for (const p of player.orbitPos) {
-            if (homingMissiles.length >= 30) break;
-            homingMissiles.push({ x: p.x, y: p.y, angle: Math.atan2(p.y - player.y, p.x - player.x), speed: 8.5 * skillUp.proj, radius: 5,
-              damage: md, life: 120, level: 1, pierce: 1, hitCooldownMap: new WeakMap(), isPermanent: false, src: "orbitMissile" });
+            const out = Math.atan2(p.y - player.y, p.x - player.x);
+            for (const spread of [-0.35, 0.35]) {
+              if (homingMissiles.length >= 40) break;
+              homingMissiles.push({ x: p.x, y: p.y, angle: out + spread, speed: 8.5 * skillUp.proj, radius: 5,
+                damage: md, life: 120, level: 1, pierce: 1, hitCooldownMap: new WeakMap(), isPermanent: false, src: "orbitMissile" });
+            }
           }
         }
       }
@@ -8551,7 +8590,7 @@
         if (playTimeMs < (m.toxicTickAt || 0)) continue;
         m.toxicTickAt = playTimeMs + 500;
         m.hp -= hurt(m, m.toxicDmg || 1, "toxicShuriken");
-        if (Math.random() < 0.4) addHitEffect({ x: m.x, y: m.y - 8, radius: 9, life: 7, maxLife: 7, color: "#a3e635" });
+        addHitEffect({ x: m.x, y: m.y - 8, radius: 12, life: 9, maxLife: 9, color: "#a3e635" });
         if (m.hp <= 0) handleMonsterDeath(m, j);
       }
     }
@@ -8598,7 +8637,7 @@
           const ob = obstacles.length ? obstacleAt(bm.x, bm.y, bm.size * 0.5) : null;
           if (ob) {
             hitObstacle(ob);
-            Sound.metalClang();
+            Sound.boomerangHit();
             if (bm.returningUnlocked) {
               bm.state = "returning";
             } else {
@@ -8634,7 +8673,7 @@
             if (timestamp - lastHit > 220) {
               m.hp -= hurt(m, bm.damage, "boomerang");
               bm.hitCooldownMap.set(m, timestamp);
-              Sound.metalClang();
+              Sound.boomerangHit();
               addHitEffect({ x: m.x, y: m.y, radius: 16, life: 8, maxLife: 8, color: "#38bdf8" });
               // ⚡ 뇌전 부메랑 융합: 맞힌 자리에서 주변 3명에게 연쇄 번개 (부메랑마다 0.3초에 한 번)
               if (synOn("thunderBoomerang") && timestamp - (bm.shockAt || 0) > 300) {
@@ -8705,22 +8744,38 @@
       }
 
       // 유도탄 (Lv.5 영구 순환 궤도 처리)
-      const missileTarget = homingMissiles.length > 0 ? findNearestMonster(1000) : null; // 프레임당 한 번만 탐색
+      // v33: 미사일마다 자기 대상을 따로 고름 (예전: 모두 플레이어에게 가장 가까운 한 마리를 쫓아서, 가까이 가면 선회 반경 때문에 그 주위를 빙글빙글 돎)
+      //   - 대상이 죽거나 멀어지면, 또는 한 번 맞힌 뒤에는 미사일에서 가장 가까운 다른 적으로 바꿈 (다른 적이 없으면 그대로)
+      //   - 가까워질수록 회전을 급하게, 대상이 옆·뒤에 있으면 잠깐 감속해서 작게 돌아 바로 다시 들어감
+      const pickMissileTarget = (hm, avoid) => {
+        let best = null, bestD = Infinity;
+        for (const m of monsters) {
+          if (m === avoid || fastHypot(m.x - player.x, m.y - player.y) > 1000) continue;
+          const d = fastHypot(m.x - hm.x, m.y - hm.y);
+          if (d < bestD) { bestD = d; best = m; }
+        }
+        return best || avoid || null;
+      };
       for (let i = homingMissiles.length - 1; i >= 0; i--) {
         const hm = homingMissiles[i];
         if (!hm.isPermanent) hm.life--;
         else hm.damage = Math.floor(player.damage * (1.6 + hm.level * 0.35) * skillPower); // 영구 미사일은 현재 공격력 반영
 
-        const target = missileTarget;
+        if (!hm.tgt || hm.tgt.dead || fastHypot(hm.tgt.x - player.x, hm.tgt.y - player.y) > 1000) hm.tgt = pickMissileTarget(hm, null);
+        const target = hm.tgt && !hm.tgt.dead ? hm.tgt : null;
+        let spdMul = 1;
         if (target) {
+          const dist = fastHypot(target.x - hm.x, target.y - hm.y);
           const desired = Math.atan2(target.y - hm.y, target.x - hm.x);
           let diff = desired - hm.angle;
           while (diff < -Math.PI) diff += Math.PI * 2;
           while (diff > Math.PI) diff -= Math.PI * 2;
-          hm.angle += diff * 0.14;
+          const close = Math.max(0, Math.min(1, (240 - dist) / 240));
+          hm.angle += diff * (0.14 + close * 0.5);
+          if (Math.abs(diff) > 1.1 && dist < 220) spdMul = 0.45; // 지나쳤으면 감속하며 급선회
         }
-        hm.x += Math.cos(hm.angle) * hm.speed;
-        hm.y += Math.sin(hm.angle) * hm.speed;
+        hm.x += Math.cos(hm.angle) * hm.speed * spdMul;
+        hm.y += Math.sin(hm.angle) * hm.speed * spdMul;
         // 장애물에 막힘: 일반 미사일은 폭발·소멸, 만렙 영구 미사일은 반대로 튕겨 나감
         const hob = obstacles.length ? obstacleAt(hm.x, hm.y, hm.radius) : null;
         if (hob) {
@@ -8748,6 +8803,7 @@
 
             m.hp -= hurt(m, hm.damage, hm.src || "homing");
             addHitEffect({ x: hm.x, y: hm.y, radius: 12 + hm.level * 4, life: 10, maxLife: 10, color: "#ec4899" });
+            hm.tgt = pickMissileTarget(hm, m); // 맞힌 뒤에는 다른 적으로 (없으면 같은 적을 다시 노림)
 
             // 만렙이 아닐 때만 관통 카운트 후 소멸
             if (!hm.isPermanent) {
@@ -9253,17 +9309,41 @@
         bladeGrad.addColorStop(1, "#334155");
 
         // 얇고 휘어진 초승달형 칼날 (날 끝이 회전 방향으로 휘어짐)
+        // v33: 실제 검 모양 — 바깥쪽(-y)으로 뻗은 곧은 칼날 + 뾰족한 끝, 안쪽(+y)에 코등이·손잡이·폼멜
         const bladePath = () => {
           ctx.beginPath();
-          ctx.moveTo(-2.5, 13);
-          ctx.quadraticCurveTo(-5, -6, 9, -24);
-          ctx.quadraticCurveTo(1.5, -5, 2.5, 13);
+          ctx.moveTo(-3.4, 3);
+          ctx.lineTo(-3.4, -21);
+          ctx.lineTo(0, -29);
+          ctx.lineTo(3.4, -21);
+          ctx.lineTo(3.4, 3);
           ctx.closePath();
+        };
+        const swordHilt = () => {
+          // 코등이 (가로 막대)
+          ctx.fillStyle = player.bladeLevel >= 5 ? "#facc15" : "#94a3b8";
+          ctx.beginPath();
+          ctx.moveTo(-9, 2.5); ctx.lineTo(9, 2.5); ctx.lineTo(7.5, 6); ctx.lineTo(-7.5, 6); ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 0.8; ctx.stroke();
+          // 손잡이 (가죽 감김)
+          ctx.fillStyle = "#3f2a1d";
+          ctx.fillRect(-1.8, 6, 3.6, 9);
+          ctx.strokeStyle = "rgba(251, 191, 36, 0.55)"; ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          for (let k = 0; k < 3; k++) { ctx.moveTo(-1.8, 7.5 + k * 2.6); ctx.lineTo(1.8, 8.8 + k * 2.6); }
+          ctx.stroke();
+          // 폼멜 (손잡이 끝 구슬)
+          ctx.beginPath();
+          ctx.arc(0, 16.5, 2.6, 0, Math.PI * 2);
+          ctx.fillStyle = player.bladeLevel >= 5 ? "#fde047" : "#cbd5e1";
+          ctx.fill();
+          ctx.strokeStyle = "#0f172a"; ctx.stroke();
         };
         const placeBlade = (a) => {
           ctx.save();
           ctx.translate(Math.cos(a) * bladeDist, Math.sin(a) * bladeDist);
-          ctx.rotate(a + Math.PI / 2);
+          ctx.rotate(a + Math.PI / 2 + 0.3); // 칼끝이 도는 방향으로 살짝 기울어짐
           ctx.scale(bladeScale, bladeScale);
         };
 
@@ -9305,13 +9385,18 @@
           ctx.lineWidth = 0.8;
           ctx.strokeStyle = "#0f172a";
           ctx.stroke();
-          // 바깥쪽 날에 푸른 빛 하이라이트
+          // 칼날 가운데 홈(풀러) + 날 끝 푸른 빛 하이라이트
           ctx.beginPath();
-          ctx.moveTo(-2.5, 13);
-          ctx.quadraticCurveTo(-5, -6, 9, -24);
+          ctx.moveTo(0, 1); ctx.lineTo(0, -21);
+          ctx.strokeStyle = "rgba(100, 116, 139, 0.8)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(3.4, 3); ctx.lineTo(3.4, -21); ctx.lineTo(0, -29);
           ctx.strokeStyle = "rgba(165, 243, 252, 0.95)";
           ctx.lineWidth = 1.2;
           ctx.stroke();
+          swordHilt();
           ctx.restore();
         }
       }
@@ -10188,8 +10273,16 @@
       if (shurikens.length) {
         const gold = player.shurikenLevel >= 5;
         ctx.globalCompositeOperation = "lighter";
+        const toxic = synOn("toxicShuriken"); // 🧪 맹독 수리검 융합 중: 연두빛 독기를 두르고 독 방울을 흘림
         for (const s of shurikens) {
-          drawGlow(ctx, gold ? "#facc15" : "#7dd3fc", s.x, s.y, s.size * 2.2);
+          drawGlow(ctx, toxic ? "#84cc16" : (gold ? "#facc15" : "#7dd3fc"), s.x, s.y, s.size * 2.2);
+          if (toxic) {
+            for (let k = 1; k <= 4; k++) {
+              ctx.globalAlpha = 0.5 - k * 0.1;
+              drawGlow(ctx, "#a3e635", s.x - s.dx * k * 2.2, s.y - s.dy * k * 2.2, s.size * (1 - k * 0.15));
+            }
+            ctx.globalAlpha = 1;
+          }
           if (gold) drawMaxFx(ctx, "#fde047", s.x, s.y, s.size, timestamp, s.spin, 2);
         }
         ctx.globalCompositeOperation = "source-over";
@@ -10200,8 +10293,8 @@
           const r = s.size;
           const g2 = ctx.createLinearGradient(-r, -r, r, r);
           g2.addColorStop(0, "#ffffff");
-          g2.addColorStop(0.5, gold ? "#facc15" : "#94a3b8");
-          g2.addColorStop(1, gold ? "#713f12" : "#1e293b");
+          g2.addColorStop(0.5, toxic ? "#84cc16" : (gold ? "#facc15" : "#94a3b8"));
+          g2.addColorStop(1, toxic ? "#1a2e05" : (gold ? "#713f12" : "#1e293b"));
           ctx.beginPath();
           for (let k = 0; k < 8; k++) {
             const rr = k % 2 === 0 ? r : r * 0.28;
@@ -10267,6 +10360,26 @@
         if (!m.isBoss && !inView(m.x, m.y)) continue;
         drawHumanMonster(m, timestamp);
       }
+      // 🧪 중독된 적 (맹독 수리검): 몸을 감싼 연두 독기 + 머리 위 ☠ + 피어오르는 독 거품
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const m of monsters) {
+        if (!m.toxicUntil || m.toxicUntil < playTimeMs || !inView(m.x, m.y)) continue;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.55 + Math.sin(timestamp / 120 + m.x) * 0.15;
+        drawGlow(ctx, "#84cc16", m.x, m.y, m.radius * 2);
+        for (let k = 0; k < 3; k++) {
+          const ph = (timestamp / 700 + k / 3 + m.x * 0.01) % 1;
+          ctx.globalAlpha = 0.8 * (1 - ph);
+          drawGlow(ctx, "#bef264", m.x + (k - 1) * m.radius * 0.5, m.y - ph * 28, 6);
+        }
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.font = `bold ${Math.round(16 + m.radius * 0.3)}px sans-serif`;
+        ctx.fillStyle = "#bef264";
+        ctx.fillText("☠", m.x, m.y - m.radius - 14);
+      }
+      ctx.textBaseline = "alphabetic";
 
       // 플레이어 총알: 발광 에너지탄 (빛이 겹치면 더 밝아지는 가산 합성)
       ctx.globalCompositeOperation = "lighter";
