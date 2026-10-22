@@ -1349,7 +1349,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v40 · 2026-10-23";
+    const GAME_VERSION = "v41 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -10009,13 +10009,13 @@
     // ╚══════════════════════════════════════════════════════════════════╝
     // ── 🌙 검기 날리기(블레이드) / 🌋 대지 가르기(브레이커) ──
     //   Lv = 멀티 샷을 고른 횟수(최대 5). 휘두를 때마다 Lv개를 앞쪽으로 날림 (적 관통, 한 적은 한 번만)
-    //   여러 개는 빈틈없이 맞붙은 부채꼴로 펼쳐짐 (간격 = 폭) → 바로 앞은 항상 덮임
-    //   검기: 덮는 각도 Lv1 30° · Lv2 68° · Lv3 124° · Lv4 202° · 만렙 5개 × 72° = 360°
+    //   여러 개는 맞붙은 부채꼴로 펼쳐짐 (간격 = 폭) → 바로 앞은 항상 덮임
+    //   검기(v40.1): 굵고 큼직한 초승달. 덮는 각도 Lv1 40° · Lv2 88° · Lv3 144° · Lv4 208° · 만렙은 72° 간격으로 사방 5개 (사이 빈틈 있음)
     //   균열: 덮는 각도 Lv1 23° · Lv2 52° · Lv3 90° · Lv4 128° · 만렙 5개 × 36° = 앞쪽 180°
     //   사거리 Lv1 240 → Lv4 480 · 만렙은 화면 끝까지. 레벨마다 크기(두께·폭)도 커짐
     //   융합(SYNERGIES의 char 항목): 체인 라이트닝 → 번개 연쇄 · 독 안개 → 중독 · 빙결 오라/프로스트 트레일 → 빙결 · 플레임 노바/메테오 → 화염 폭발
     const WAVE_NAMES = { swordsman: "🌙 검기 날리기", hammer: "🌋 대지 가르기" };
-    const WAVE_HALF_DEG = { swordsman: [0, 15, 17, 20.7, 25.25, 36], hammer: [0, 11.5, 13, 15, 16, 18] };
+    const WAVE_HALF_DEG = { swordsman: [0, 20, 22, 24, 26, 28], hammer: [0, 11.5, 13, 15, 16, 18] };
     const waveHalf = (kind, lv) => WAVE_HALF_DEG[kind][lv] * Math.PI / 180;
     const WAVE_FADE = 16;
     let meleeWaves = [];
@@ -10028,7 +10028,7 @@
       const sword = save.character !== "hammer";
       if (lv <= 1) return sword ? "휘두를 때마다 전방으로 초승달 검기 1개를 날림 (적 관통 · 일반 탄환을 벰)"
         : "내려칠 때마다 전방으로 땅이 갈라지는 균열 1줄기 (적 관통 · 밀쳐냄)";
-      if (lv >= 5) return sword ? "★ 최종 진화: 검기 5개가 360°를 빈틈없이 덮으며 화면 끝까지!"
+      if (lv >= 5) return sword ? "★ 최종 진화: 거대한 검기 5개가 사방(72° 간격)으로 화면 끝까지!"
         : "★ 최종 진화: 균열 5줄기가 앞쪽 180°를 빈틈없이 덮으며 화면 끝까지 · 용암이 솟구침!";
       const cover = Math.round(WAVE_HALF_DEG[sword ? "swordsman" : "hammer"][lv] * 2 * lv);
       return `${sword ? "검기" : "균열"} ${lv}개가 앞쪽 ${cover}°를 덮음 · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
@@ -10065,12 +10065,12 @@
       player.waveReadyAt = playTimeMs + (sword ? 420 : 600); // 공격 속도를 많이 올려도 너무 촘촘하지 않게
       const lv = Math.min(5, player.multishotLevel), kind = sword ? "swordsman" : "hammer";
       const syn = waveSynergy(sword);
-      const range = waveRange(lv), half = waveHalf(kind, lv), gap = half * 2;
+      const range = waveRange(lv), half = waveHalf(kind, lv), gap = sword && lv >= 5 ? Math.PI * 2 / 5 : half * 2;
       const dmg = baseDmg * (sword ? 0.5 + lv * 0.1 : 0.45 + lv * 0.1);
       for (let i = 0; i < lv && meleeWaves.length < 40; i++) {
         const a = ang + (i - (lv - 1) / 2) * gap;
         const w = { sword: sword, x: player.x, y: player.y, ang: a, half: half, d: 16, dMax: range, lv: lv, syn: syn, dmg: dmg,
-          speed: (sword ? 10 : 7.5) + lv * 1.3, thick: (sword ? 26 : 34) + lv * 6, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 };
+          speed: (sword ? 10 : 7.5) + lv * 1.3, thick: sword ? 46 + lv * 8 : 34 + lv * 6, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 };
         if (!sword) w.crack = crackPath(range);
         meleeWaves.push(w);
       }
@@ -10151,7 +10151,7 @@
         }
         for (let k = N; k >= 0; k--) {
           const t = k / N, an = w.ang - w.half + w.half * 2 * t, tp = Math.pow(Math.sin(Math.PI * t), 0.7);
-          const r = d - thick * 0.3 * tp;
+          const r = d - thick * 0.5 * tp; // v40.1: 안쪽도 두툼하게 (얇은 선처럼 보이지 않게)
           ctx.lineTo(w.x + Math.cos(an) * r, w.y + Math.sin(an) * r);
         }
         ctx.closePath();
@@ -10218,16 +10218,32 @@
         }
         ctx.strokeStyle = style; ctx.lineWidth = lw; ctx.stroke();
       };
+      // v40.1: 저레벨에서도 잘 보이게 균열을 굵게 + 빛 번짐
       ctx.globalAlpha = a;
-      crackLine(6 + lv, "rgba(28, 18, 8, 0.85)");
+      crackLine(10 + lv * 1.5, "rgba(28, 18, 8, 0.85)");
       ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = a * (0.65 + Math.sin(timestamp / 90 + w.seed) * 0.2);
-      crackLine(2 + lv * 0.5, col);
+      ctx.globalAlpha = a * 0.35;
+      crackLine(12 + lv * 2, col);
+      ctx.globalAlpha = a * (0.75 + Math.sin(timestamp / 90 + w.seed) * 0.2);
+      crackLine(3.5 + lv * 0.6, col);
       ctx.globalCompositeOperation = "source-over";
       ctx.lineJoin = "miter";
       if (w.fade) { ctx.globalAlpha = 1; return; }
+      // 앞쪽 충격 띠 (부채꼴 호): 맞는 범위가 한눈에 보이게
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = a * 0.4;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, w.d, w.ang - w.half, w.ang + w.half);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = w.thick * 0.7;
+      ctx.stroke();
+      ctx.globalAlpha = a * 0.8;
+      ctx.strokeStyle = "#fde68a";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.globalCompositeOperation = "source-over";
       // 앞쪽 띠: 바위 가시 + 흙먼지 (만렙은 용암 빛)
-      const arcLen = w.d * w.half * 2, n = Math.max(3, Math.min(26, Math.round(arcLen / 24)));
+      const arcLen = w.d * w.half * 2, n = Math.max(5, Math.min(26, Math.round(arcLen / 20)));
       const ice = w.syn.frost;
       for (let k = 0; k < n; k++) {
         const t = (k + 0.5) / n, an = w.ang - w.half + w.half * 2 * t;
@@ -10676,7 +10692,7 @@
     const PREVIEW_PASSIVES = [
       { id: "fireRate", name: "🚀 공격 속도 (발사 속도 증폭)", key: "hasteLevel", gun: true },
       { id: "bulletCaliber", name: "💥 공격력 (대구경 탄환)", key: "bulletCaliberLevel", gun: true },
-      { id: "multishot", name: "🏹 멀티 샷 · 공격 범위 확장", key: "multishotLevel", gun: true },
+      { id: "multishot", name: "🏹 멀티 샷 · 🌙 검기 날리기 · 🌋 대지 가르기", key: "multishotLevel", gun: true },
       { id: "speed", name: "⚡ 이동속도 (기동성 향상)", key: "speedLevel", walk: true },
       { id: "magnet", name: "🧲 자석 강화", key: "magnetLevel" },
       { id: "armor", name: "🦾 나노 강화 장갑", key: "armorLevel" },
@@ -11028,6 +11044,7 @@
       player.speedLevel = 0;
       player.magnetLevel = 0;
       meleeWaves = [];
+      player.waveReadyAt = 0; // v40.1 버그 수정: 이전 판의 대기 시각이 남으면 새 판(playTimeMs 0)에서 검기·균열이 한동안 안 나감
       resetUlt();
       player.damage = start.damage;
       player.fireRate = start.fireRate;
