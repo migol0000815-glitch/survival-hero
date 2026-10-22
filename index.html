@@ -1349,7 +1349,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v42 · 2026-10-23";
+    const GAME_VERSION = "v43 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -10023,8 +10023,9 @@
     // ╚══════════════════════════════════════════════════════════════════╝
     // ── 🌙 검기 날리기(블레이드) / 🌋 대지 가르기(브레이커) ──
     //   Lv = 멀티 샷을 고른 횟수(최대 5). 휘두를 때마다 Lv개를 앞쪽으로 날림 (적 관통, 한 적은 한 번만)
-    //   검기(v42): 크기가 정해진 초승달 투사체 (가운데 두툼 + 양 끝이 뒤로 깊게 휘어진 뿔). 옆 폭 70~110 · 두께 26~40 · 뿔 깊이 = 옆 폭의 85%
-    //     여러 개는 26° 간격 부채꼴, 만렙은 72° 간격으로 사방 5개. 맞는 판정도 초승달 모양 (crescentHit)
+    //   검기(v42): 크기가 정해진 초승달 투사체 (가운데 두툼 + 양 끝이 뒤로 깊게 휘어진 뿔). 맞는 판정도 초승달 모양 (crescentHit)
+    //     v43: 옆 폭 104~152 · 두께 37~52, 여러 개는 30° 간격 부채꼴, 검기마다 뒤에 작은 바람폭풍(피해 35%)이 따라감
+    //     만렙은 초승달 대신 360° 고리 검기(ring) 1개 + 바람폭풍 8방향
     //   균열: 맞붙은 부채꼴 (간격 = 폭). 덮는 각도 Lv1 28° · Lv2 72° · Lv3 132° · Lv4 208° · 만렙 5줄기 × 72° = 360°
     //   사거리 Lv1 240 → Lv4 480 · 만렙은 화면 끝까지. 레벨마다 크기도 커짐
     //   균열은 바닥 효과 → 캐릭터·몹 아래에 그림 (drawMeleeWaves(t, true) 가 몹보다 먼저)
@@ -10032,9 +10033,15 @@
     const WAVE_NAMES = { swordsman: "🌙 검기 날리기", hammer: "🌋 대지 가르기" };
     const WAVE_HALF_DEG = { hammer: [0, 14, 18, 22, 26, 36] };
     const waveHalf = (kind, lv) => WAVE_HALF_DEG.hammer[lv] * Math.PI / 180;
-    const SWORD_WAVE_GAP = 26 * Math.PI / 180;
+    const SWORD_WAVE_GAP = 30 * Math.PI / 180;
     // 초승달 크기 (Lv별): hw 옆 반폭 · depth 가운데 두께 · back 뿔이 뒤로 휘는 깊이
-    function crescentSize(lv) { const hw = 30 + lv * 5; return { hw: hw, depth: 22 + lv * 3.5, back: hw * 0.85 }; }
+    //   v43: 더 크게 (옆 폭 Lv1 104 → Lv4 152 · 두께 37 → 52)
+    function crescentSize(lv) { const hw = 46 + lv * 6; return { hw: hw, depth: 32 + lv * 5, back: hw * 0.85 }; }
+    // v43: 검기 뒤를 따라가는 작은 바람폭풍 (검기 1개당 1개, 만렙은 고리 검기 뒤로 8방향)
+    const STORM_LAG = 70;
+    const stormRadius = lv => 24 + lv * 3;
+    // v43: 만렙 360° 고리 검기 두께
+    const RING_THICK = 64;
     // 점(x,y)·반지름 r 이 초승달 검기 w 와 겹치는지. 진행 방향 u, 옆 방향 v 의 지역 좌표로 바꿔 두 포물선 사이인지 봄
     function crescentHit(w, x, y, r) {
       const dx = x - w.x, dy = y - w.y, c = Math.cos(w.ang), s = Math.sin(w.ang);
@@ -10055,9 +10062,9 @@
       const sword = save.character !== "hammer";
       if (lv <= 1) return sword ? "휘두를 때마다 전방으로 초승달 검기 1개를 날림 (적 관통 · 일반 탄환을 벰)"
         : "내려칠 때마다 전방으로 땅이 갈라지는 균열 1줄기 (적 관통 · 밀쳐냄)";
-      if (lv >= 5) return sword ? "★ 최종 진화: 거대한 초승달 검기 5개가 사방(72° 간격)으로 화면 끝까지!"
+      if (lv >= 5) return sword ? "★ 최종 진화: 360°를 쓸어버리는 고리 검기가 화면 끝까지 + 바람폭풍 8개!"
         : "★ 최종 진화: 균열 5줄기가 360°를 빈틈없이 덮으며 화면 끝까지 · 용암이 솟구침!";
-      if (sword) return `초승달 검기 ${lv}개 (부채꼴) · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
+      if (sword) return `초승달 검기 ${lv}개 + 뒤따르는 바람폭풍 ${lv}개 · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
       return `균열 ${lv}줄기가 앞쪽 ${Math.round(WAVE_HALF_DEG.hammer[lv] * 2 * lv)}°를 덮음 · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
     }
     // 지금 발동 중인 융합 (검기·균열 공통 처리, 출처 이름은 융합 id)
@@ -10095,13 +10102,25 @@
       const range = waveRange(lv), half = sword ? 0 : waveHalf(kind, lv);
       const gap = sword ? (lv >= 5 ? Math.PI * 2 / 5 : SWORD_WAVE_GAP) : (lv >= 5 ? Math.PI * 2 / 5 : half * 2);
       const dmg = baseDmg * (sword ? 0.5 + lv * 0.1 : 0.45 + lv * 0.1);
-      for (let i = 0; i < lv && meleeWaves.length < 40; i++) {
+      const pushStorm = (a, spd) => meleeWaves.push({ sword: true, storm: true, x: player.x, y: player.y, ang: a, d: 30 - STORM_LAG, dMax: range, lv: lv, syn: syn,
+        dmg: dmg * 0.35, speed: spd, r: stormRadius(lv), hit: new Set(), fade: 0, procs: 6, ph: Math.random() * 6, seed: Math.random() * 100 });
+      if (sword && lv >= 5) {
+        // 만렙: 360° 고리 검기 1개 + 그 뒤로 바람폭풍 8개
+        if (meleeWaves.length < 60) {
+          const sp = 10 + lv * 1.3;
+          meleeWaves.push({ sword: true, ring: true, x: player.x, y: player.y, ang: ang, d: 30, dMax: range, lv: lv, syn: syn, dmg: dmg,
+            speed: sp, thick: RING_THICK, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 });
+          for (let k = 0; k < 8; k++) pushStorm(ang + k * Math.PI / 4 + Math.PI / 8, sp);
+        }
+      }
+      for (let i = 0; i < lv && meleeWaves.length < 60 && !(sword && lv >= 5); i++) {
         const a = ang + (i - (lv - 1) / 2) * gap;
         const w = { sword: sword, x: player.x, y: player.y, ang: a, half: half, d: 30, dMax: range, lv: lv, syn: syn, dmg: dmg,
           speed: (sword ? 10 : 7.5) + lv * 1.3, thick: 34 + lv * 6, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 };
         if (sword) Object.assign(w, crescentSize(lv));
         else w.crack = crackPath(range);
         meleeWaves.push(w);
+        if (sword) pushStorm(a, w.speed);
       }
       if (sword) { if (sfxReady("waveS", 120)) sfxNoise({ filter: "bandpass", freq: 3200, freqEnd: 700, dur: 0.22, vol: 0.06 + lv * 0.012, q: 1.2 }); }
       else if (sfxReady("waveH", 200)) {
@@ -10129,11 +10148,27 @@
         const w = meleeWaves[i];
         if (w.d >= w.dMax) { if (++w.fade > WAVE_FADE) meleeWaves.splice(i, 1); continue; }
         w.d = Math.min(w.dMax, w.d + w.speed);
+        if (w.storm) { // 바람폭풍: 검기 뒤를 같은 속도로 따라가며 닿는 적을 약하게 베고 살짝 밀침
+          w.ph += 0.35;
+          if (w.d < 20) continue;
+          const sx = w.x + Math.cos(w.ang) * w.d, sy = w.y + Math.sin(w.ang) * w.d;
+          for (let j = monsters.length - 1; j >= 0; j--) {
+            const m = monsters[j];
+            if (w.hit.has(m) || fastHypot(m.x - sx, m.y - sy) > w.r + m.radius) continue;
+            w.hit.add(m);
+            waveHit(w, m);
+            if (!m.isBoss) knockback(m, sx, sy, m.isElite ? 3 : 9);
+            m.hp -= hurt(m, w.dmg, w.syn.src);
+            if (m.hp <= 0) handleMonsterDeath(m, j);
+          }
+          continue;
+        }
         const r0 = w.d - w.thick / 2, r1 = w.d + w.thick / 2;
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (w.hit.has(m)) continue;
-          if (w.sword) { if (!crescentHit(w, m.x, m.y, m.radius)) continue; }
+          if (w.ring) { const d = fastHypot(m.x - w.x, m.y - w.y); if (d < r0 - m.radius || d > r1 + m.radius) continue; }
+          else if (w.sword) { if (!crescentHit(w, m.x, m.y, m.radius)) continue; }
           else {
             const dx = m.x - w.x, dy = m.y - w.y, d = fastHypot(dx, dy);
             if (d < r0 - m.radius || d > r1 + m.radius) continue;
@@ -10150,7 +10185,8 @@
           for (let b = enemyBullets.length - 1; b >= 0; b--) {
             const eb = enemyBullets[b];
             if (!eb || eb.isBossBullet) continue;
-            if (!crescentHit(w, eb.x, eb.y, eb.radius)) continue;
+            if (w.ring) { const d = fastHypot(eb.x - w.x, eb.y - w.y); if (d < r0 - eb.radius || d > r1 + eb.radius) continue; }
+            else if (!crescentHit(w, eb.x, eb.y, eb.radius)) continue;
             addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: "#fef9c3" });
             enemyBullets.splice(b, 1);
           }
@@ -10165,7 +10201,9 @@
         if (w.sword === !!floor) continue;
         const a = w.fade ? 0.55 * (1 - w.fade / WAVE_FADE) : Math.min(1, 0.45 + (w.dMax - w.d) / (w.dMax * 0.3));
         if (a <= 0) continue;
-        if (w.sword) drawSwordWave(w, a, timestamp); else drawQuakeWave(w, a, timestamp);
+        if (w.storm) drawWindStorm(w, a, timestamp);
+        else if (w.ring) drawRingWave(w, a, timestamp);
+        else if (w.sword) drawSwordWave(w, a, timestamp); else drawQuakeWave(w, a, timestamp);
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
@@ -10229,6 +10267,96 @@
         if (w.syn.toxic) drawGlow(ctx, "#a3e635", bu - 8, bv, 8);
         if (w.syn.fire) drawGlow(ctx, Math.random() < 0.5 ? "#fb923c" : "#fde047", bu, bv, 11 + Math.random() * 5);
         if (w.lv >= 5 && k % 2 === 0) drawGlow(ctx, "#fde68a", bu + w.depth * 0.7, bv, 7);
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
+    // v43 바람폭풍: 바닥 소용돌이 고리 + 비틀며 위로 넓어지는 작은 깔때기 + 도는 바람결·먼지 + 뒤로 끌리는 바람 줄기
+    function drawWindStorm(w, a, timestamp) {
+      if (w.fade || w.d < 20) return;
+      const col = (w.syn.bolt || w.syn.frost || w.syn.toxic || w.syn.fire) ? waveColor(w) : "#bae6fd";
+      const x = w.x + Math.cos(w.ang) * w.d, y = w.y + Math.sin(w.ang) * w.d, r = w.r, ph = w.ph;
+      const fadeIn = Math.min(1, (w.d - 20) / 40);
+      a *= fadeIn;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      // 뒤로 끌리는 바람 줄기 3가닥
+      const bx = -Math.cos(w.ang), by = -Math.sin(w.ang), nx = -by, ny = bx;
+      for (let k = -1; k <= 1; k++) {
+        const o = k * r * 0.55 + Math.sin(ph + k * 2) * 4;
+        ctx.globalAlpha = 0.35 * a;
+        ctx.beginPath();
+        ctx.moveTo(x + nx * o, y + ny * o);
+        ctx.quadraticCurveTo(x + bx * r * 1.6 + nx * (o + 8 * Math.sin(ph + k)), y + by * r * 1.6 + ny * (o + 8 * Math.sin(ph + k)),
+          x + bx * r * (2.6 + Math.abs(k) * 0.4) + nx * o * 1.3, y + by * r * (2.6 + Math.abs(k) * 0.4) + ny * o * 1.3);
+        ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
+      }
+      // 바닥 빛 + 바닥 소용돌이 고리
+      ctx.globalAlpha = 0.45 * a;
+      drawGlow(ctx, col, x, y, r * 1.7);
+      ctx.translate(x, y);
+      for (let k = 0; k < 2; k++) {
+        ctx.globalAlpha = (0.6 - k * 0.2) * a;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * (1.05 - k * 0.35), r * (0.42 - k * 0.14), 0, ph * (1.4 + k * 0.6), ph * (1.4 + k * 0.6) + Math.PI * 1.4);
+        ctx.strokeStyle = k ? "#ffffff" : col; ctx.lineWidth = 3 - k; ctx.stroke();
+      }
+      // 깔때기: 위로 갈수록 넓어지는 타원 고리를 비틀며 쌓음
+      const N = 7, H = r * 2.2;
+      for (let i = 0; i < N; i++) {
+        const f = i / (N - 1), ox = Math.sin(ph + i * 0.8) * (2 + f * r * 0.25), oy = -f * H, rr = r * (0.3 + f * 0.75);
+        ctx.globalAlpha = (0.4 + f * 0.35) * a;
+        ctx.beginPath();
+        ctx.ellipse(ox, oy, rr, rr * 0.3, 0, ph * 1.6 + i, ph * 1.6 + i + Math.PI * 1.5);
+        ctx.strokeStyle = i % 2 ? col : "#f0f9ff"; ctx.lineWidth = 2 + f * 1.6; ctx.stroke();
+      }
+      // 도는 먼지·바람 조각
+      for (let k = 0; k < 5; k++) {
+        const an = ph * 1.8 + k * 1.256, hh = -((k * 0.21 + ph * 0.05) % 1) * H;
+        const rr = r * (0.4 + (-hh / H) * 0.7);
+        ctx.globalAlpha = 0.8 * a;
+        drawGlow(ctx, k % 2 ? "#ffffff" : col, Math.cos(an) * rr, hh + Math.sin(an) * rr * 0.3, 4 + w.lv * 0.4);
+      }
+      ctx.globalAlpha = 0.5 * a;
+      drawGlow(ctx, "#f0f9ff", Math.sin(ph) * 3, -H, r * 0.9);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
+    // v43 만렙 고리 검기: 사방으로 퍼지는 360° 칼바람 고리 (잔상 2겹 + 본체 + 흰 날 + 금빛 테 + 날 위 반짝임·짧은 검흔)
+    function drawRingWave(w, a, timestamp) {
+      if (w.fade) return;
+      const col = waveColor(w), T = w.thick;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const ring = (r, lw, style, alpha) => {
+        if (r <= lw / 2) return;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath(); ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
+        ctx.strokeStyle = style; ctx.lineWidth = lw; ctx.stroke();
+      };
+      for (let k = 2; k >= 1; k--) ring(w.d - w.speed * k * 2, T * (0.7 - k * 0.12), col, (0.3 - k * 0.08) * a);
+      ring(w.d, T, col, 0.32 * a);
+      ring(w.d + T * 0.08, T * 0.55, col, 0.55 * a);
+      ring(w.d + T * 0.2, T * 0.22, "#ffffff", 0.9 * a);
+      ring(w.d + T * 0.5, 3, "#fde68a", a);
+      // 날 위의 짧은 검흔 + 반짝임 (고리를 따라 돎)
+      const n = 18, rot = timestamp / 600 + w.seed;
+      ctx.lineCap = "round";
+      for (let k = 0; k < n; k++) {
+        const an = rot + k * Math.PI * 2 / n, r = w.d + T * 0.3;
+        ctx.globalAlpha = 0.85 * a;
+        ctx.beginPath(); ctx.arc(w.x, w.y, r, an, an + 0.12);
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.stroke();
+        if (k % 2 === 0) drawGlow(ctx, k % 4 ? col : "#fde68a", w.x + Math.cos(an) * r, w.y + Math.sin(an) * r, 12);
+        if (w.syn.bolt && Math.random() < 0.3) {
+          const p0 = { x: w.x + Math.cos(an) * w.d, y: w.y + Math.sin(an) * w.d }, p1 = { x: w.x + Math.cos(an) * (w.d + 40), y: w.y + Math.sin(an) * (w.d + 40) };
+          const pts = jaggedPath([p0, p1], 7);
+          ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.8; ctx.stroke();
+        }
       }
       ctx.restore();
       ctx.globalAlpha = 1;
@@ -10493,8 +10621,13 @@
           F.push({ t: "flake", x: rx() - wx * diag * 0.6, y: ry() - wy * diag * 0.6, vx: wx * sp + (Math.random() - 0.5) * 3, vy: wy * sp + (Math.random() - 0.5) * 3, r: 2 + Math.random() * 3, life: Math.ceil(diag * 1.6 / sp), maxLife: 99 });
         }
       } else if (def.kind === "blades") {
-        // v42: 칼은 그리지 않고, 칼을 휘두른 자리의 반달 검흔(잔상)만 화면 곳곳에
-        if (Math.random() < 0.8) F.push({ t: "slash", x: rx(), y: ry(), R: 130 + Math.random() * 170, a0: Math.random() * Math.PI * 2, sweep: (Math.random() < 0.5 ? -1 : 1) * (1.6 + Math.random() * 1.2), w: 18 + Math.random() * 18, life: 18, maxLife: 18 });
+        // v43: 화면 끝에서 끝까지 가로지르는 거대한 일직선 검격 (가끔 X자로 2개 겹침), 틱마다 1~2개
+        const n = Math.random() < 0.3 ? 2 : 1;
+        for (let k = 0; k < n; k++) {
+          const x = rx(), y = ry(), an = Math.random() * Math.PI, wd = 46 + Math.random() * 50;
+          F.push({ t: "slash", x: x, y: y, ang: an, L: diag * 2.3, w: wd, life: 20, maxLife: 20 });
+          if (Math.random() < 0.18) F.push({ t: "slash", x: x, y: y, ang: an + Math.PI / 2 + (Math.random() - 0.5) * 0.5, L: diag * 2.3, w: wd * 0.85, life: 20, maxLife: 20 });
+        }
       } else if (def.kind === "quake") {
         if (Math.random() < 0.55) F.push({ t: "spike", x: rx(), y: ry(), h: 34 + Math.random() * 34, w: 16 + Math.random() * 14, life: 30, maxLife: 30 });
         if (Math.random() < 0.4) F.push({ t: "dust", x: rx(), y: ry(), r: 40 + Math.random() * 40, life: 34, maxLife: 34 });
@@ -10632,29 +10765,29 @@
           const e = f.pts[f.pts.length - 1];
           drawGlow(ctx, "#c4b5fd", e.x, e.y, 34);
         } else if (f.t === "slash") {
-          // 휘두른 칼끝이 남긴 반달 검흔: 머리(칼끝 쪽)는 두껍고 꼬리로 갈수록 가늘어지며, 머리가 지나간 뒤 꼬리부터 사라짐
-          const p = 1 - f.life / f.maxLife, head = Math.min(1, p * 2.4), tail = Math.max(0, p * 2.4 - 0.75), a = p < 0.6 ? 1 : (1 - p) / 0.4;
-          if (head - tail < 0.02) continue;
-          const N = 18, arcAt = t => f.a0 + f.sweep * t;
-          const band = (wMul, col) => {
+          // v43 일직선 거대 검격: 한쪽 끝에서 반대편 끝까지 순식간에 그어짐(머리 섬광) → 가운데가 두툼한 칼날 모양으로 잠깐 남았다가 가늘어지며 사라짐
+          const p = 1 - f.life / f.maxLife, head = Math.min(1, p * 3.2), a = p < 0.5 ? 1 : (1 - p) / 0.5;
+          const thin = p < 0.3 ? 1 : 1 - (p - 0.3) / 0.7 * 0.75;
+          const c = Math.cos(f.ang), s = Math.sin(f.ang), x0 = f.x - c * f.L / 2, y0 = f.y - s * f.L / 2;
+          const blade = (wMul, col) => { // 양 끝이 뾰족한 렌즈(칼날) 모양
+            const len = f.L * head, hw = f.w * wMul * thin / 2;
+            const mx = x0 + c * len / 2, my = y0 + s * len / 2;
             ctx.beginPath();
-            for (let k = 0; k <= N; k++) {
-              const t = tail + (head - tail) * k / N, th = f.w * wMul * Math.pow(k / N, 0.8), an = arcAt(t), r = f.R + th / 2;
-              if (k === 0) ctx.moveTo(f.x + Math.cos(an) * r, f.y + Math.sin(an) * r); else ctx.lineTo(f.x + Math.cos(an) * r, f.y + Math.sin(an) * r);
-            }
-            for (let k = N; k >= 0; k--) {
-              const t = tail + (head - tail) * k / N, th = f.w * wMul * Math.pow(k / N, 0.8), an = arcAt(t), r = f.R - th / 2;
-              ctx.lineTo(f.x + Math.cos(an) * r, f.y + Math.sin(an) * r);
-            }
+            ctx.moveTo(x0, y0);
+            ctx.quadraticCurveTo(mx - s * hw * 2, my + c * hw * 2, x0 + c * len, y0 + s * len);
+            ctx.quadraticCurveTo(mx + s * hw * 2, my - c * hw * 2, x0, y0);
             ctx.closePath();
             ctx.fillStyle = col;
             ctx.fill();
           };
-          ctx.globalAlpha = 0.55 * a;
-          band(1.6, "#7dd3fc");
+          ctx.globalAlpha = 0.16 * a;
+          blade(2.6, "#38bdf8");
+          ctx.globalAlpha = 0.4 * a;
+          blade(1.3, "#7dd3fc");
           ctx.globalAlpha = 0.95 * a;
-          band(0.7, "#ffffff");
-          if (head < 1) { const an = arcAt(head); drawGlow(ctx, "#e0f2fe", f.x + Math.cos(an) * f.R, f.y + Math.sin(an) * f.R, f.w * 2.2); }
+          blade(0.5, "#ffffff");
+          if (head < 1) { ctx.globalAlpha = 1; drawGlow(ctx, "#e0f2fe", x0 + c * f.L * head, y0 + s * f.L * head, f.w * 1.8); }
+          else if (p < 0.45) { ctx.globalAlpha = (0.45 - p) * 1.2; drawGlow(ctx, "#ffffff", f.x, f.y, f.w * 1.8); }
         }
       }
       ctx.globalAlpha = 1;
@@ -10668,10 +10801,11 @@
       const env = Math.min(1, t / 300, (ULT_TOTAL_MS - t) / 400);
       ctx.fillStyle = rgba(def.tint, 0.3 * env);
       ctx.fillRect(0, 0, W, H);
-      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado") {
+      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado" || def.kind === "blades") {
         const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
         g.addColorStop(0, "rgba(0,0,0,0)");
-        g.addColorStop(1, def.kind === "blizzard" ? `rgba(224, 242, 254, ${0.55 * env})` : def.kind === "quake" ? `rgba(68, 34, 8, ${0.5 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
+        g.addColorStop(1, def.kind === "blizzard" ? `rgba(224, 242, 254, ${0.55 * env})` : def.kind === "quake" ? `rgba(68, 34, 8, ${0.5 * env})`
+          : def.kind === "blades" ? `rgba(56, 189, 248, ${0.35 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, W, H);
       }
