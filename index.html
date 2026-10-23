@@ -1351,7 +1351,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v47 · 2026-10-23";
+    const GAME_VERSION = "v48 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1699,6 +1699,20 @@
         sfxTone({ freq: 110, freqEnd: 34, dur: 0.32, vol: 0.5, delay: sweep ? 0.12 : 0 });
         sfxNoise({ filter: "lowpass", freq: 1600, freqEnd: 160, dur: 0.3, vol: 0.3, wet: 0.3, delay: sweep ? 0.12 : 0 });
       },
+      // v48 랜서 찌르기: 짧게 공기를 찢는 '슉' (3타 뛰어들기는 더 길고 낮게)
+      thrust(step) {
+        if (!sfxReady("thrust", 60)) return;
+        const big = step === 2;
+        sfxNoise({ filter: "highpass", freq: big ? 2200 : 3000, freqEnd: big ? 6000 : 7000, dur: big ? 0.16 : 0.08, vol: big ? 0.22 : 0.15, wet: 0.2 });
+        sfxTone({ type: "triangle", freq: big ? 900 : 1300, freqEnd: big ? 300 : 600, dur: 0.09, vol: 0.06 });
+        if (big) sfxTone({ freq: 140, freqEnd: 60, dur: 0.18, vol: 0.18, delay: 0.04 });
+      },
+      // v48 버서커 도끼질: 묵직하게 베는 '부웅-퍽' / 회오리: 크게 도는 바람 + 쿵
+      cleave(spin) {
+        if (!sfxReady("cleave", 100)) return;
+        sfxNoise({ filter: "bandpass", freq: spin ? 500 : 900, freqEnd: spin ? 2200 : 400, q: 1.6, dur: spin ? 0.32 : 0.18, vol: 0.22, attack: spin ? 0.05 : 0.01, wet: 0.2 });
+        sfxTone({ freq: 95, freqEnd: 40, dur: 0.22, vol: 0.35, delay: spin ? 0.12 : 0.05 });
+      },
       // 근접 무기로 적 탄환 쳐내기: 짧은 쨍
       parry() {
         if (!sfxReady("parry", 90)) return;
@@ -1721,6 +1735,12 @@
           sfxNoise({ filter: "bandpass", freq: 6000, freqEnd: 1200, q: 4, dur: 0.12, vol: 0.2, wet: 0.3 });
           sfxTone({ type: "square", freq: 300, freqEnd: 1600, dur: 0.12, vol: 0.05, delay: 0.1 });
           sfxNoise({ filter: "highpass", freq: 3000, dur: 0.08, vol: 0.18, delay: 0.2 });
+        } else if (style === "charge") { // v48 랜서 창 돌격
+          sfxNoise({ filter: "highpass", freq: 1800, freqEnd: 6000, dur: 0.24, vol: 0.24, wet: 0.2 });
+          sfxTone({ freq: 120, freqEnd: 70, dur: 0.22, vol: 0.2 });
+        } else if (style === "whirlwind") { // v48 버서커 회전 돌진
+          sfxNoise({ filter: "bandpass", freq: 600, freqEnd: 1600, q: 1.2, dur: 0.3, vol: 0.24, wet: 0.2 });
+          sfxNoise({ filter: "bandpass", freq: 1600, freqEnd: 600, q: 1.2, dur: 0.2, vol: 0.18, delay: 0.15 });
         } else if (style === "slash") {
           sfxNoise({ filter: "bandpass", freq: 5000, freqEnd: 900, q: 3, dur: 0.22, vol: 0.28, wet: 0.25 });
           sfxTone({ type: "triangle", freq: 3200, dur: 0.25, vol: 0.05, wet: 0.6, delay: 0.05 });
@@ -2123,6 +2143,11 @@
         melee: true, reach: 112, arc: 110, speed: 0, dmgMult: 1.0, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#bae6fd" },
       smash:    { name: "🔨 지면 강타 · 휩쓸기", desc: "전방 지면 강타 2번 후 360도 휩쓸기 (적을 밀쳐냄, 한 방 ×1.9) · 범위 안 일반 탄환을 해머로 쳐냄",
         melee: true, reach: 120, arc: 150, speed: 0, dmgMult: 1.9, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#fbbf24" },
+      // v48 근접 신규 2종. style: 근접 연출·검기 종류 (sword/hammer 는 기존, lance = 창, axe = 도끼)
+      thrust:   { name: "🔱 3단 찌르기", desc: "앞쪽 좁고 긴 범위를 꿰뚫는 찌르기 2번 + 3타는 앞으로 뛰어들며 깊게 찌름 (사거리 ×1.35 · 피해 ×1.7) · 범위 안 일반 탄환을 쳐냄",
+        melee: true, style: "lance", reach: 165, arc: 46, speed: 0, dmgMult: 1.65, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#fde68a" },
+      cleave:   { name: "🪓 도끼질 · 회오리 베기", desc: "넓게 베어 넘기는 도끼질 2번 후 3타는 한 바퀴 회오리 베기 (360° · 피해 ×1.3 · 적을 밀쳐냄) · 범위 안 일반 탄환을 쳐냄",
+        melee: true, style: "axe", reach: 118, arc: 170, speed: 0, dmgMult: 1.55, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#f87171" },
       // v46 신규 캐릭터 평타. homing: 가장 가까운 적을 향해 방향을 틂 (steerSoulBullet)
       soul:     { name: "👻 영혼탄", desc: "적을 끝까지 쫓아가는 유도 영혼탄 (피해 ×1.0 · 2명까지 꿰뚫고 다음 적을 다시 쫓아감) · 하수인을 불러 함께 싸움",
         speed: 8, dmgMult: 1.0, range: 900, radiusMult: 1.15, tailLen: 2.4, tail: "rgba(167, 139, 250, 0.45)", glow: "#a78bfa", core: "#f5f3ff", homing: true, pierce: 1 },
@@ -2154,9 +2179,14 @@
       summoner: { name: "🔮 서머너", attack: "soul", summoner: true, passive: "소환형 · 4초마다 영혼 하수인 1마리를 부르고, 쓰러뜨린 적도 25% 확률로 하수인이 됨 (최대 3마리 + 영혼 군단 1번마다 +1 · 12초 유지) · 모든 스킬 피해 +10% · 체력 -15% · 대시: 영혼 도약 (출발 자리 영혼 폭발 + 하수인 1마리 소환)",
         hpMult: 0.85, speedMult: 1, fireRateMult: 1.05, armor: 0, dodge: 0, skillMult: 1.1, crit: 0, skin: "summoner" },
       trickster: { name: "🃏 트릭스터", attack: "card", passive: "기교형 · 카드 문양마다 다른 효과 · 13장째마다 조커 대폭발 · 이동속도 +10% · 8% 확률로 피해 회피 · 대시: 카드 셔플 (주위로 카드를 흩뿌려 적 기절)",
-        hpMult: 0.95, speedMult: 1.1, fireRateMult: 0.95, armor: 0, dodge: 0.08, skillMult: 1, crit: 0, skin: "trickster" }
+        hpMult: 0.95, speedMult: 1.1, fireRateMult: 0.95, armor: 0, dodge: 0.08, skillMult: 1, crit: 0, skin: "trickster" },
+      // v48 근접 신규 2종: 랜서(창 · 길고 좁게 꿰뚫음) / 버서커(도끼 · 넓게 베고 체력이 낮을수록 강해짐)
+      lancer: { name: "🔱 랜서", attack: "thrust", melee: true, passive: "긴 사거리 관통형 · 이동속도 +20% · 치명타 확률 +12% (피해 ×2) · 공격 속도 +20% · 3타는 앞으로 뛰어들며 찌름 · 대시: 창 돌격 (경로의 적을 꿰뚫고 밀어냄)",
+        hpMult: 1.1, speedMult: 1.2, fireRateMult: 0.8, armor: 0.05, dodge: 0, skillMult: 1, crit: 0.12, skin: "lancer" },
+      berserker: { name: "🪓 버서커", attack: "cleave", melee: true, rage: true, passive: "광폭 근접형 · 체력이 낮을수록 강해짐 (체력 50% 이하 공격력·공격 속도 +25%, 25% 이하 +45%) · 최대 체력 +25% · 처치 시 체력 흡수 (최대 체력 1.5%) · 대시: 회전 돌진 (주위를 베며 이동)",
+        hpMult: 1.25, speedMult: 1.12, fireRateMult: 1.05, armor: 0.05, dodge: 0, skillMult: 1, crit: 0, lifeOnKill: 0.015, skin: "berserker" }
     };
-    const CHARACTER_ORDER = ["survivor", "warrior", "assassin", "mage", "swordsman", "hammer", "summoner", "trickster"]; // 건슬링어 → 파이로 → 프로스트 → 스파크 → 블레이드 → 브레이커 → 서머너 → 트릭스터
+    const CHARACTER_ORDER = ["survivor", "warrior", "assassin", "mage", "swordsman", "hammer", "summoner", "trickster", "lancer", "berserker"]; // … → 서머너 → 트릭스터 → 랜서 → 버서커
     function currentCharacter() { return CHARACTERS[save.character] || CHARACTERS.survivor; }
     function currentAttack() { return ATTACK_TYPES[currentCharacter().attack] || ATTACK_TYPES.energy; }
 
@@ -2240,7 +2270,15 @@
         // v46 트릭스터 카드 (card): 카드 뒷면 색·무늬 + 던지는 카드 색이 바뀜
         { id: "rosecard", cls: "card", name: "🌹 장미 카드", price: 1500, back: ["#ffe4e6", "#e11d48", "#4c0519"], glow: "#fb7185" },
         { id: "goldcard", cls: "card", name: "💎 황금 카드", price: 2000, back: ["#fef9c3", "#eab308", "#713f12"], glow: "#fde047" },
-        { id: "tarot", cls: "card", name: "🌌 타로 카드", price: 3000, back: ["#f3e8ff", "#7e22ce", "#1e0838"], glow: "#c084fc", stars: true }
+        { id: "tarot", cls: "card", name: "🌌 타로 카드", price: 3000, back: ["#f3e8ff", "#7e22ce", "#1e0838"], glow: "#c084fc", stars: true },
+        // v48 랜서 창 (spear): 창날 색 · 술 장식 · 빛 / 삼지창 · 할버드는 창날 모양이 바뀜
+        { id: "dragonspear", cls: "spear", name: "🐉 용기병의 창", price: 1500, tip: ["#fef9c3", "#f59e0b", "#78350f"], tassel: "#dc2626", glow: "#fbbf24" },
+        { id: "frosttrident", cls: "spear", name: "❄️ 빙결 삼지창", price: 2000, tip: ["#ffffff", "#7dd3fc", "#0c4a6e"], tassel: "#e0f2fe", glow: "#38bdf8", trident: true },
+        { id: "thunderhalberd", cls: "spear", name: "⚡ 뇌광 할버드", price: 3000, tip: ["#ede9fe", "#8b5cf6", "#2e1065"], tassel: "#facc15", glow: "#c4b5fd", halberd: true },
+        // v48 버서커 도끼 (axe): 도끼날 색 · 빛 / 쌍날 · 불꽃 장식
+        { id: "bloodaxe", cls: "axe", name: "🩸 피의 도끼", price: 1500, head: ["#fecaca", "#b91c1c", "#2a0606"], glow: "#ef4444" },
+        { id: "twinaxe", cls: "axe", name: "🌑 흑철 쌍날 도끼", price: 2000, head: ["#d4d4d8", "#3f3f46", "#09090b"], glow: "#a1a1aa", double: true },
+        { id: "flameaxe", cls: "axe", name: "🔥 화염 전부", price: 3000, head: ["#fef3c7", "#f97316", "#7c2d12"], glow: "#fb923c", flame: true }
       ],
       aura: [
         { id: "flame", name: "🔥 불꽃 오라", price: 1500, color: "#f97316" },
@@ -2257,6 +2295,11 @@
       ]
     };
     const COSMETIC_SLOTS = { hat: "모자", armor: "갑옷", weapon: "무기", aura: "오라", costume: "🎭 코스튬 (외형 전체 변경)" };
+    // v48 가격 상향: 한두 판 만에 다 사지 않게 외형·동료 외형 ×3, 능력치·스킬 강화 시작 가격 ×2 (위의 표는 예전 기준값 그대로 두고 여기서 곱함)
+    const COSMETIC_PRICE_MULT = 3, UPGRADE_PRICE_MULT = 2;
+    for (const slot in COSMETICS) for (const it of COSMETICS[slot]) it.price = Math.round(it.price * COSMETIC_PRICE_MULT / 100) * 100;
+    for (const pid in PET_SKINS) for (const sk of PET_SKINS[pid]) if (sk.price) sk.price = Math.round(sk.price * COSMETIC_PRICE_MULT / 100) * 100;
+    for (const it of SHOP_ITEMS.concat(SKILL_SHOP_ITEMS)) it.base *= UPGRADE_PRICE_MULT;
     function equippedCosmetic(slot) {
       const id = cs().equip && cs().equip[slot];
       return id ? COSMETICS[slot].find(c => c.id === id) : null;
@@ -2449,18 +2492,21 @@
       hammer: { name: "브레이커 철갑", armor: ["#fed7aa", "#c2410c", "#431407"], helmet: ["#fef3c7", "#a8a29e", "#292524"], hair: ["#fdba74", "#c2410c", "#7c2d12"], trim: "#fbbf24", visor: "#fbbf24", gun: ["#e7e5e4", "#57534e", "#1c1917"] },
       // v46 신규 캐릭터
       summoner: { name: "서머너 영혼 로브", armor: ["#ede9fe", "#6d28d9", "#1e0b4b"], helmet: ["#c4b5fd", "#4c1d95", "#12052e"], hair: ["#f5f3ff", "#c4b5fd", "#6d28d9"], trim: "#facc15", visor: "#c084fc", gun: ["#ede9fe", "#6d28d9", "#1e0b4b"] },
-      trickster: { name: "트릭스터 마술 연미복", armor: ["#ffe4e6", "#be123c", "#3f0716"], helmet: ["#e5e7eb", "#1f2937", "#030712"], hair: ["#fef3c7", "#f59e0b", "#78350f"], trim: "#fde047", visor: "#f472b6", gun: ["#ffe4e6", "#be123c", "#3f0716"] }
+      trickster: { name: "트릭스터 마술 연미복", armor: ["#ffe4e6", "#be123c", "#3f0716"], helmet: ["#e5e7eb", "#1f2937", "#030712"], hair: ["#fef3c7", "#f59e0b", "#78350f"], trim: "#fde047", visor: "#f472b6", gun: ["#ffe4e6", "#be123c", "#3f0716"] },
+      // v48 근접 신규
+      lancer: { name: "랜서 용기병 경갑", armor: ["#e0f2fe", "#2563eb", "#0b1d4a"], helmet: ["#ffffff", "#cbd5e1", "#334155"], hair: ["#fef9c3", "#facc15", "#a16207"], trim: "#dc2626", visor: "#38bdf8", gun: ["#f8fafc", "#94a3b8", "#1e293b"] },
+      berserker: { name: "버서커 늑대 가죽", armor: ["#fde68a", "#92400e", "#2a1206"], helmet: ["#e7e5e4", "#78716c", "#292524"], hair: ["#fca5a5", "#dc2626", "#7f1d1d"], trim: "#ef4444", visor: "#f87171", gun: ["#e7e5e4", "#57534e", "#1c1917"] }
     };
     const SKIN_TONE = ["#fff1e6", "#f9cdb0", "#b97a5c"];
     // 외형 키 → 캐릭터 종류 (머리 모양·모자·무기)
-    function heroKind(skin) { return ({ warrior: "pyro", assassin: "frost", mage: "spark", swordsman: "swordsman", hammer: "hammer", summoner: "summoner", trickster: "trickster" })[skin] || "gunslinger"; }
+    function heroKind(skin) { return ({ warrior: "pyro", assassin: "frost", mage: "spark", swordsman: "swordsman", hammer: "hammer", summoner: "summoner", trickster: "trickster", lancer: "lancer", berserker: "berserker" })[skin] || "gunslinger"; }
     // v38: 장착한 코스튬 (equip 을 넘기면 그것 기준 — 상점 입어보기)
     function costumeOf(equip) {
       const id = (equip || cs().equip).costume;
       return id ? COSMETICS.costume.find(c => c.id === id) : null;
     }
     // v38.1 외형 무기: 캐릭터 계열에 맞는 무기만 적용 (원거리 = 총, 블레이드 = 검, 브레이커 = 망치)
-    function weaponClassOfKind(kind) { return ({ swordsman: "blade", hammer: "hammer", summoner: "tome", trickster: "card" })[kind] || "gun"; }
+    function weaponClassOfKind(kind) { return ({ swordsman: "blade", hammer: "hammer", summoner: "tome", trickster: "card", lancer: "spear", berserker: "axe" })[kind] || "gun"; }
     function weaponClassOfChar(id) { return weaponClassOfKind(heroKind((CHARACTERS[id] || {}).skin || "default")); }
     function weaponItemFor(equip, kind) {
       const id = equip && equip.weapon;
@@ -2472,8 +2518,11 @@
     // 지금 캐릭터가 든 근접 무기 모양 (근접 공격 연출 색에도 사용)
     function meleeWeaponStyle() {
       const kind = heroKind(getSkin());
-      return weaponItemFor(cs().equip, kind) || (kind === "hammer" ? DEFAULT_HAMMER : DEFAULT_BLADE);
+      return weaponItemFor(cs().equip, kind) || ({ hammer: DEFAULT_HAMMER, lancer: DEFAULT_SPEAR, berserker: DEFAULT_AXE })[kind] || DEFAULT_BLADE;
     }
+    // v48 랜서 창 · 버서커 도끼 기본 모양
+    const DEFAULT_SPEAR = { tip: ["#ffffff", "#cbd5e1", "#475569"], tassel: "#dc2626", glow: "#fde68a" };
+    const DEFAULT_AXE = { head: ["#f5f5f4", "#78716c", "#1c1917"], glow: "#f87171", axe: true };
     // v46 서머너 지팡이 · 트릭스터 카드 기본 모양 (상점 무기를 끼면 그 색이 영혼탄·하수인·던지는 카드에도 반영)
     const DEFAULT_TOME = { head: "lantern", glow: "#a78bfa", shaft: ["#d6a36b", "#6b3f1d", "#2a1608"] };
     const DEFAULT_DECK = { back: ["#e0e7ff", "#4338ca", "#1e1b4b"], glow: "#f472b6" };
@@ -2527,7 +2576,7 @@
       const kind0 = heroKind(skin);
       const wItem = weaponItemFor(cs().equip, kind0);
       const weapon = wItem ? wItem.id : "";
-      if (kind0 === "swordsman" || kind0 === "hammer" || kind0 === "summoner" || kind0 === "trickster") {
+      if (kind0 === "swordsman" || kind0 === "hammer" || kind0 === "summoner" || kind0 === "trickster" || kind0 === "lancer" || kind0 === "berserker") {
         drawSignatureWeapon(g, a, skin, p, wItem); // 근접·v46 캐릭터: 상점 무기는 고유 무기 모양 그대로 색·장식이 바뀜
       } else if (weapon === "rifle") {
         // v38.1: 위에서 봐도 확 달라 보이게 크게 (긴 총열 + 조준경 + 개머리판)
@@ -2550,10 +2599,13 @@
       // (v28) SD 스타일: 작은 몸 + 큰 머리. 위에서 내려다본 모습이지만 앞쪽(+x)에 눈·볼터치가 보이게
       const kind = heroKind(skin);
       const armorItem = costume ? null : equippedCosmetic("armor");
+      if (kind0 === "lancer") drawBackSpearsTop(g, wItem || DEFAULT_SPEAR); // v48 랜서: 등에 꽂은 창 5자루
       if (costume) drawCostumeBackTop(g, a, costume, p);                  // 망토·꼬리 등 (몸 뒤)
       if (armorItem) drawArmorTop(g, a, armorItem, "back");              // 갑옷 망토 (그림자 갑옷)
       shadedBall(g, 11, 10, 4.2, 4.2, a, SKIN_TONE, "#5c2e1a");           // 무기를 쥔 손
-      shadedBall(g, -4, 0, kind === "hammer" ? 12 : 10, kind === "hammer" ? 15 : 13.5, a, p.armor, "#020617"); // 어깨·몸통 (브레이커는 듬직하게)
+      const bulky = kind === "hammer" || kind === "berserker";
+      if (kind === "berserker" && !costume) shadedBall(g, -7, 0, 11, 17, a, ["#f5f5f4", "#a8a29e", "#57534e"], "#292524"); // v48 어깨에 두른 늑대 털가죽
+      shadedBall(g, -4, 0, bulky ? 12 : 10, bulky ? 15 : 13.5, a, p.armor, "#020617"); // 어깨·몸통 (브레이커·버서커는 듬직하게)
       if (armorItem) drawArmorTop(g, a, armorItem, "front");             // 갑옷 견갑
       shadedBall(g, 2, -12, 3.6, 3.6, a, SKIN_TONE, "#5c2e1a");            // 반대쪽 손
       if (kind === "frost" && !costume) shadedBall(g, -7, 0, 9, 14, a, p.helmet, "#0c2440"); // 후드 망토 자락
@@ -2655,6 +2707,32 @@
           for (const side of [-1, 1]) shadedBall(g, 1, side * 13.5, 4, 4.6, a, p.armor, "#1e0b4b");
           glowDot(g, -9, 0, 1.6, p.visor);
         }
+        return;
+      }
+      if (kind === "lancer") {
+        // v48 랜서: 은빛 투구 + 머리 위를 가로지르는 붉은 깃털 볏 + 뒤로 묶은 금발
+        if (plain) { backArc(13.5, 2, Math.PI * 0.45, Math.PI * 1.55); g.fill(); return; }
+        shadedBall(g, -15, 0, 5, 3.4, a, p.hair, "#713f12");                     // 꽁지머리
+        shadedBall(g, 0, 0, 13.8, 14, a, p.helmet, "#1e293b");
+        g.beginPath();                                                         // 깃털 볏 (앞에서 뒤로)
+        g.moveTo(10, 0); g.quadraticCurveTo(0, -5, -18, -1); g.quadraticCurveTo(-4, 1.5, 10, 0);
+        g.fillStyle = p.trim; g.fill();
+        g.strokeStyle = "#7f1d1d"; g.lineWidth = 0.8; g.stroke();
+        g.strokeStyle = "rgba(0, 0, 0, 0.35)"; g.lineWidth = 1.2;              // 앞쪽 챙
+        g.beginPath(); g.arc(2, 0, 12.5, -Math.PI * 0.32, Math.PI * 0.32); g.stroke();
+        return;
+      }
+      if (kind === "berserker") {
+        // v48 버서커: 늑대 머리 가죽 후드 (귀 두 개 + 주둥이가 이마 위) + 삐져나온 붉은 머리
+        if (plain) { backArc(14, 2, Math.PI * 0.4, Math.PI * 1.6); g.fill(); return; }
+        backArc(14.5, 2, Math.PI * 0.4, Math.PI * 1.6); g.fill();               // 붉은 머리
+        shadedBall(g, -3, 0, 13, 13.5, a, ["#f5f5f4", "#a8a29e", "#57534e"], "#292524");
+        for (const side of [-1, 1]) {                                          // 늑대 귀
+          g.beginPath(); g.moveTo(-2, side * 7); g.lineTo(-10, side * 15); g.lineTo(-7, side * 5); g.closePath();
+          g.fillStyle = "#78716c"; g.fill(); g.strokeStyle = "#292524"; g.lineWidth = 0.8; g.stroke();
+        }
+        shadedBall(g, 6, 0, 5.5, 4.5, a, ["#e7e5e4", "#a8a29e", "#57534e"], "#292524"); // 이마 위 늑대 주둥이
+        g.fillStyle = "#1c1917"; g.beginPath(); g.arc(10.5, 0, 1.4, 0, Math.PI * 2); g.fill();
         return;
       }
       if (kind === "summoner") {
@@ -2786,6 +2864,29 @@
         for (const x of [4, 7, 10]) g.fillRect(x, 8.2, 1.2, 3.6);
         return;
       }
+      if (skin === "lancer") {
+        // v48 랜서: 아주 긴 창 (나무 자루 + 붉은 술 + 잎 모양 창날 / 삼지창 / 할버드)
+        const W = wItem || DEFAULT_SPEAR;
+        glowLine(32, 50, 10, 10, W.glow);
+        metalBar(g, -12, 8.6, 44, 2.8, ["#d6a36b", "#7c4a1e", "#2a1608"]);
+        g.fillStyle = W.tassel;                                                // 술 장식
+        g.beginPath(); g.moveTo(30, 8); g.lineTo(25, 3); g.lineTo(23, 6); g.lineTo(27, 10); g.lineTo(23, 14); g.lineTo(25, 17); g.lineTo(30, 12); g.closePath(); g.fill();
+        drawSpearTip(g, W, 32, 10, 1);
+        return;
+      }
+      if (skin === "berserker") {
+        // v48 버서커: 짧고 굵은 자루 + 커다란 반달 도끼날 (쌍날 · 불꽃 장식)
+        const W = wItem || DEFAULT_AXE;
+        for (const side of [1, -1]) { // v48 양손에 하나씩 (왼손 도끼는 위아래 뒤집어 날이 바깥쪽)
+          g.save();
+          if (side < 0) { g.scale(1, -1); g.translate(-6, 2); }
+          glowLine(24, 40, 10, 16, W.glow);
+          metalBar(g, -2, 7.8, 32, 4.2, ["#a16207", "#57340f", "#1c0a02"]);
+          drawAxeHead(g, a, W, 29, 10, 0.88);
+          g.restore();
+        }
+        return;
+      }
       if (skin === "summoner") {
         // v46 서머너: 긴 지팡이 + 머리 장식 (기본 영혼 등불 / 해골 / 월광 수정구 / 떠 있는 마도서) — 머리에서 영혼 빛
         const W = wItem || DEFAULT_TOME;
@@ -2911,6 +3012,75 @@
       }
     }
 
+    // v48 랜서 등 뒤 창 5자루 (위에서 본 모양: 등에서 뒤쪽으로 부채꼴로 뻗은 자루 + 끝의 창날)
+    function drawBackSpearsTop(g, W) {
+      for (let k = -2; k <= 2; k++) {
+        const an = Math.PI + k * 0.2, c = Math.cos(an), s = Math.sin(an);
+        g.save();
+        g.translate(-6 + c * 4, s * 4);
+        g.rotate(an);
+        metalBar(g, 0, -1.3, 26, 2.6, ["#d6a36b", "#7c4a1e", "#2a1608"]);
+        drawSpearTip(g, W, 26, 0, 0.75);
+        g.restore();
+      }
+    }
+    // 정면: 등 뒤에서 머리 위로 부채처럼 솟은 창 5자루 (몸보다 먼저 그림)
+    function drawBackSpearsFront(g, W) {
+      g.save();
+      g.translate(0, 16);
+      for (let k = -2; k <= 2; k++) {
+        g.save();
+        g.rotate(k * 0.24);
+        metalBar(g, -1.7, -86, 3.4, 78, ["#d6a36b", "#7c4a1e", "#2a1608"]);
+        g.fillStyle = W.tassel; g.fillRect(-3, -78, 6, 4);
+        g.translate(0, -86);
+        g.rotate(-Math.PI / 2);
+        drawSpearTip(g, W, 0, 0, 1.05);
+        g.restore();
+      }
+      g.restore();
+    }
+    // v48 창날 (밑동 (x, y), +x 방향으로 뻗음, 크기 k). 기본 잎 모양 / trident 삼지창 / halberd 할버드(도끼날 + 창날)
+    function drawSpearTip(g, W, x, y, k) {
+      const fill = () => { const sg = g.createLinearGradient(x, y - 6 * k, x, y + 6 * k); sg.addColorStop(0, W.tip[0]); sg.addColorStop(0.5, W.tip[1]); sg.addColorStop(1, W.tip[2]); g.fillStyle = sg; g.fill(); g.strokeStyle = "#0f172a"; g.lineWidth = 0.9; g.stroke(); };
+      g.fillStyle = "#475569"; g.fillRect(x - 1.5 * k, y - 2.6 * k, 3 * k, 5.2 * k); // 쇠 고리
+      if (W.trident) {
+        for (const s of [-1, 0, 1]) {
+          g.beginPath();
+          g.moveTo(x + 2 * k, y + s * 5 * k - 1.4 * k); g.lineTo(x + (s ? 13 : 17) * k, y + s * 5.5 * k); g.lineTo(x + 2 * k, y + s * 5 * k + 1.4 * k); g.closePath(); fill();
+        }
+        g.fillStyle = W.tip[1]; g.fillRect(x + 1 * k, y - 6 * k, 2.4 * k, 12 * k);
+        return;
+      }
+      if (W.halberd) {
+        g.beginPath(); // 옆으로 튀어나온 반달 도끼날
+        g.moveTo(x + 3 * k, y - 1.5 * k); g.quadraticCurveTo(x + 6 * k, y - 13 * k, x + 13 * k, y - 11 * k); g.quadraticCurveTo(x + 9 * k, y - 6 * k, x + 10 * k, y - 1.5 * k); g.closePath(); fill();
+      }
+      g.beginPath(); // 잎 모양 창날
+      g.moveTo(x + 1 * k, y - 2.2 * k); g.quadraticCurveTo(x + 9 * k, y - 4.6 * k, x + 18 * k, y); g.quadraticCurveTo(x + 9 * k, y + 4.6 * k, x + 1 * k, y + 2.2 * k); g.closePath(); fill();
+      g.strokeStyle = "rgba(255, 255, 255, 0.85)"; g.lineWidth = 0.8 * k;
+      g.beginPath(); g.moveTo(x + 3 * k, y); g.lineTo(x + 15 * k, y); g.stroke();
+    }
+    // v48 도끼날 (자루 끝 (x, y), 날은 자루 옆(+y 쪽)으로, 크기 k). double 쌍날 / flame 불꽃 장식
+    function drawAxeHead(g, a, W, x, y, k) {
+      const blade = side => {
+        g.beginPath();
+        g.moveTo(x - 4 * k, y + side * 1.5 * k);
+        g.quadraticCurveTo(x - 9 * k, y + side * 13 * k, x - 3 * k, y + side * 17 * k);
+        g.quadraticCurveTo(x + 4 * k, y + side * 12 * k, x + 9 * k, y + side * 16 * k);
+        g.quadraticCurveTo(x + 11 * k, y + side * 8 * k, x + 4 * k, y + side * 1.5 * k);
+        g.closePath();
+        g.fillStyle = frontShade(g, x - 9 * k, x + 11 * k, W.head);
+        g.fill();
+        g.strokeStyle = "#0c0a09"; g.lineWidth = 1; g.stroke();
+        g.strokeStyle = "rgba(255, 255, 255, 0.75)"; g.lineWidth = 1.2 * k; // 날 끝 빛
+        g.beginPath(); g.moveTo(x - 3 * k, y + side * 16 * k); g.quadraticCurveTo(x + 4 * k, y + side * 11.5 * k, x + 8.5 * k, y + side * 15 * k); g.stroke();
+      };
+      blade(1);
+      if (W.double) blade(-1);
+      shadedBall(g, x, y, 3.6 * k, 3.6 * k, a, ["#d6d3d1", "#57534e", "#1c1917"], "#0c0a09"); // 쇠 뭉치
+      if (W.flame) { g.globalCompositeOperation = "lighter"; drawGlow(g, "#fb923c", x + 1 * k, y + 10 * k, 12 * k); drawGlow(g, "#fde047", x + 2 * k, y + 13 * k, 5 * k); g.globalCompositeOperation = "source-over"; }
+    }
     // v46 서머너 지팡이 머리 (위에서 본 모양 · 중심 (x, y)). W.head: lantern(기본 영혼 등불) / skull / orb / book
     function drawTomeHeadTop(g, a, W, x, y) {
       if (W.head === "skull") {
@@ -3389,10 +3559,11 @@
       g.fill();
       // (v28) SD 비율: 짧은 다리 + 작은 몸 + 큰 머리
       const kind = heroKind(skin);
-      const wide = kind === "hammer" ? 1.18 : 1; // 브레이커는 듬직한 체형
+      const wide = kind === "hammer" || kind === "berserker" ? 1.18 : 1; // 브레이커·버서커는 듬직한 체형
       const armorItem = costume ? null : findCos("armor");
       if (costume) drawCostumeFrontBack(g, costume, p, t);
       if (armorItem) drawArmorFront(g, armorItem, t, "back");
+      if (kind === "lancer") drawBackSpearsFront(g, weaponItemFor(equip, kind) || DEFAULT_SPEAR); // v48 등 뒤로 부채처럼 솟은 창 5자루
       for (const side of [-1, 1]) {
         g.fillStyle = frontShade(g, side * 8 - 5, side * 8 + 5, p.armor);
         roundRect(g, side * 8 * wide - 5, 24, 10, 18, 4);
@@ -3448,6 +3619,19 @@
         g.beginPath(); g.moveTo(-9, -4); g.lineTo(0, 12); g.lineTo(9, -4); g.lineTo(5, -4); g.lineTo(0, 6); g.lineTo(-5, -4); g.closePath(); g.fill();
         g.fillStyle = p.trim; g.fillRect(-16, 16, 32, 4.5);          // 붉은 허리띠 + 매듭
         g.beginPath(); g.moveTo(10, 18); g.lineTo(16, 30 + Math.sin(t / 200) * 2); g.lineTo(12, 30); g.closePath(); g.fill();
+      } else if (kind === "lancer") {
+        g.fillStyle = frontShade(g, -12, 12, ["#ffffff", "#cbd5e1", "#475569"]); // v48 랜서: 은빛 가슴판 + 십자 문장 + 붉은 허리띠
+        roundRect(g, -12, -2, 24, 15, 5); g.fill();
+        g.fillStyle = p.trim;
+        g.fillRect(-1.5, 0, 3, 11); g.fillRect(-5, 4, 10, 3);
+        g.fillRect(-16, 17, 32, 4);
+      } else if (kind === "berserker") {
+        g.fillStyle = "#e7e5e4";                                     // v48 버서커: 어깨에 두른 털 + 가죽 끈 X자 + 전투 문신
+        roundRect(g, -18, -6, 36, 9, 4.5); g.fill();
+        g.strokeStyle = "#3f2a1d"; g.lineWidth = 3;
+        g.beginPath(); g.moveTo(-12, 0); g.lineTo(12, 22); g.moveTo(12, 0); g.lineTo(-12, 22); g.stroke();
+        g.fillStyle = "#3f2a1d"; g.fillRect(-18, 19, 36, 5);
+        g.fillStyle = "#facc15"; g.beginPath(); g.arc(0, 11, 2.4, 0, Math.PI * 2); g.fill();
       } else if (kind === "summoner") {
         g.fillStyle = p.helmet[1];                                   // v46 서머너: 겹친 로브 앞섶 + 가슴의 영혼 보석 + 금실 허리끈
         g.beginPath(); g.moveTo(-10, -4); g.lineTo(0, 14); g.lineTo(10, -4); g.closePath(); g.fill();
@@ -3531,6 +3715,15 @@
         g.fillStyle = frontShade(g, -26, 26, p.helmet); g.fill();
         shadedBall(g, 0, -30, 31, 30, 0, p.helmet, "#12052e");
       }
+      if (kind === "lancer" && !hatCos && !costume) { // v48 랜서: 투구 뒤로 늘어진 붉은 망토 깃 + 금발 꽁지머리
+        g.fillStyle = frontShade(g, -26, 26, p.hair);
+        g.beginPath(); g.ellipse(22 + Math.sin(t / 300) * 1.5, -24, 7, 14, 0.4, 0, Math.PI * 2); g.fill();
+      }
+      if (kind === "berserker" && !hatCos && !costume) { // v48 버서커: 늑대 가죽 뒤판 + 덥수룩한 붉은 머리
+        shadedBall(g, 0, -32, 32, 29, 0, ["#f5f5f4", "#a8a29e", "#57534e"], "#292524");
+        g.fillStyle = frontShade(g, -28, 28, p.hair);
+        for (const side of [-1, 1]) { g.beginPath(); g.ellipse(side * 22, -18, 8, 16, side * 0.3, 0, Math.PI * 2); g.fill(); }
+      }
       if (kind === "trickster" && !hatCos && !costume) { // v46 트릭스터 뒷머리 (금발 단발)
         g.fillStyle = frontShade(g, -26, 26, p.hair);
         roundRect(g, -26, -42, 52, 30, 12);
@@ -3573,6 +3766,41 @@
 
     // 정면 머리 모양 (머리 중심 (0, -28), 반지름 약 25). plain = 외형 모자를 쓴 경우 머리카락만
     function drawHeroHairFront(g, kind, p, t, plain) {
+      if (kind === "lancer") {
+        // v48 랜서: 금발 앞머리 + 은빛 투구 (이마 가리개) + 위로 솟은 붉은 깃털 장식
+        g.fillStyle = frontShade(g, -24, 24, p.hair);
+        g.beginPath(); g.moveTo(-23, -30); g.quadraticCurveTo(-8, -48, 4, -38); g.quadraticCurveTo(14, -46, 23, -30); g.quadraticCurveTo(6, -40, -23, -30); g.fill();
+        if (plain) return;
+        g.fillStyle = frontShade(g, -27, 27, p.helmet);
+        g.beginPath(); g.ellipse(0, -38, 27, 20, 0, Math.PI, 0); g.lineTo(27, -36); g.quadraticCurveTo(0, -44, -27, -36); g.closePath(); g.fill();
+        g.strokeStyle = "#1e293b"; g.lineWidth = 1.2; g.stroke();
+        g.fillStyle = p.visor; g.fillRect(-3, -56, 6, 16);              // 가운데 푸른 보석 줄
+        g.fillStyle = p.trim;                                           // 깃털 장식
+        g.beginPath(); g.moveTo(0, -56); g.quadraticCurveTo(6 + Math.sin(t / 220) * 3, -80, -10 + Math.sin(t / 220) * 4, -88); g.quadraticCurveTo(-4, -72, -6, -56); g.closePath(); g.fill();
+        for (const side of [-1, 1]) {                                  // 투구 옆 작은 날개 장식
+          g.beginPath(); g.moveTo(side * 24, -42); g.lineTo(side * 36, -54); g.lineTo(side * 33, -44); g.lineTo(side * 38, -40); g.lineTo(side * 26, -36); g.closePath();
+          g.fillStyle = "#f8fafc"; g.fill(); g.strokeStyle = "#64748b"; g.lineWidth = 0.8; g.stroke();
+        }
+        return;
+      }
+      if (kind === "berserker") {
+        // v48 버서커: 늑대 머리 가죽 후드 (귀 + 이빨) + 붉은 앞머리 + 볼의 전투 문신
+        g.fillStyle = frontShade(g, -26, 26, p.hair);
+        g.beginPath(); g.moveTo(-25, -28); g.lineTo(-18, -44); g.lineTo(-10, -34); g.lineTo(-2, -46); g.lineTo(6, -34); g.lineTo(14, -45); g.lineTo(25, -28); g.quadraticCurveTo(0, -38, -25, -28); g.fill();
+        g.fillStyle = "#dc2626";                                        // 볼 문신 세 줄
+        for (const side of [-1, 1]) for (let k = 0; k < 2; k++) g.fillRect(side * 16 - 3, -22 + k * 4, 6, 1.6);
+        if (plain) return;
+        g.fillStyle = frontShade(g, -30, 30, ["#f5f5f4", "#a8a29e", "#57534e"]);
+        g.beginPath(); g.ellipse(0, -40, 30, 17, 0, Math.PI, 0); g.lineTo(30, -38); g.quadraticCurveTo(0, -46, -30, -38); g.closePath(); g.fill();
+        for (const side of [-1, 1]) {                                  // 늑대 귀
+          g.beginPath(); g.moveTo(side * 12, -54); g.lineTo(side * 24, -74); g.lineTo(side * 27, -50); g.closePath();
+          g.fillStyle = "#a8a29e"; g.fill(); g.strokeStyle = "#292524"; g.lineWidth = 1; g.stroke();
+          g.beginPath(); g.moveTo(side * 16, -54); g.lineTo(side * 23, -67); g.lineTo(side * 24, -53); g.closePath(); g.fillStyle = "#fecaca"; g.fill();
+        }
+        g.fillStyle = "#ffffff";                                        // 이마 위 늑대 이빨
+        for (let k = -2; k <= 2; k++) { g.beginPath(); g.moveTo(k * 8 - 3, -39); g.lineTo(k * 8, -33); g.lineTo(k * 8 + 3, -39); g.closePath(); g.fill(); }
+        return;
+      }
       if (kind === "summoner") {
         // v46 서머너: 후드 앞쪽 테두리(금실) + 은빛 앞머리 + 이마의 작은 영혼 보석
         g.fillStyle = frontShade(g, -24, 24, p.hair);
@@ -3740,9 +3968,35 @@
       const wItem = cosWeapon ? COSMETICS.weapon.find(c => c.id === cosWeapon) : null;
       const kind = wItem && wItem.cls === "blade" ? "katana" : (wItem && wItem.cls === "hammer" ? "bighammer" :
         (wItem && wItem.cls === "tome" ? "lantern" : (wItem && wItem.cls === "card" ? "cards" :
-        (cosWeapon || ({ assassin: "icewand", warrior: "flame", mage: "staff", swordsman: "katana", hammer: "bighammer", summoner: "lantern", trickster: "cards" })[skin] || "revolver"))));
+        (wItem && wItem.cls === "spear" ? "spear" : (wItem && wItem.cls === "axe" ? "battleaxe" :
+        (cosWeapon || ({ assassin: "icewand", warrior: "flame", mage: "staff", swordsman: "katana", hammer: "bighammer", summoner: "lantern", trickster: "cards", lancer: "spear", berserker: "battleaxe" })[skin] || "revolver"))))));
       g.save();
-      if (kind === "lantern") {
+      if (kind === "spear") {
+        // v48 랜서: 머리 위로 길게 솟은 창 (세워 든 모양)
+        const W = wItem || DEFAULT_SPEAR;
+        g.translate(27, 14);
+        g.rotate(-Math.PI / 2 + 0.18);
+        if (wItem) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.45 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 92, 0, 24); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        metalBar(g, -22, -2, 96, 4, ["#d6a36b", "#7c4a1e", "#2a1608"]);
+        g.fillStyle = W.tassel;
+        g.beginPath(); g.moveTo(72, -2); g.lineTo(62, -9 + Math.sin(t / 180) * 2); g.lineTo(60, 0); g.lineTo(62, 9 + Math.sin(t / 180) * 2); g.lineTo(72, 2); g.closePath(); g.fill();
+        drawSpearTip(g, W, 74, 0, 1.5);
+      } else if (kind === "battleaxe") {
+        // v48 버서커: 어깨에 걸친 큰 도끼
+        const W = wItem || DEFAULT_AXE;
+        g.translate(24, 12);
+        g.rotate(-Math.PI / 2 + 0.45);
+        if (wItem) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.45 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 52, 10, 30); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        metalBar(g, -12, -3, 66, 6, ["#a16207", "#57340f", "#1c0a02"]);
+        drawAxeHead(g, 0, W, 50, 0, 1.6);
+        g.restore(); g.save();                                   // v48 왼손에도 도끼 (좌우 대칭)
+        g.translate(-34, 12);
+        g.rotate(-Math.PI / 2 - 0.45);
+        g.scale(1, -1);
+        if (wItem) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.45 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 52, 10, 30); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        metalBar(g, -12, -3, 66, 6, ["#a16207", "#57340f", "#1c0a02"]);
+        drawAxeHead(g, 0, W, 50, 0, 1.6);
+      } else if (kind === "lantern") {
         // v46 서머너: 세워 든 긴 지팡이 + 머리 장식(등불·해골·수정구·마도서) + 주위를 맴도는 작은 영혼 둘
         const W = wItem || DEFAULT_TOME;
         g.fillStyle = frontShade(g, 25, 29, W.shaft);
@@ -7283,7 +7537,28 @@
       { id: "quakeFrost", name: "🧊 빙하 균열", needs: ["multishot", ["frostAura", "frost"]], fusion: true, char: "hammer",
         desc: "균열을 따라 얼음 가시가 솟아 맞은 적이 0.8초 동안 얼어붙음 (보스·중간 보스는 둔화)" },
       { id: "quakeFire", name: "🌋 용암 균열", needs: ["multishot", ["fireNova", "meteor"]], fusion: true, char: "hammer",
-        desc: "균열에서 용암이 분출해, 맞은 자리에서 작은 화염 폭발" }
+        desc: "균열에서 용암이 분출해, 맞은 자리에서 작은 화염 폭발" },
+      // ===== (v48) 랜서 창격파 · 버서커 회전 도끼 전용 융합 4종씩 + 전용 시너지 1종씩 =====
+      { id: "lanceBolt", name: "⚡ 뇌창", needs: ["multishot", "lightning"], fusion: true, char: "lancer",
+        desc: "창격파가 번개를 두르고, 꿰뚫린 적에서 주변 적 2명에게 번개가 튐" },
+      { id: "lanceToxic", name: "🧪 독창", needs: ["multishot", "poison"], fusion: true, char: "lancer",
+        desc: "창격파에 꿰뚫린 적이 3초 동안 중독 (0.5초마다 피해 · 이동속도 40% 감소)" },
+      { id: "lanceFrost", name: "❄️ 빙창", needs: ["multishot", ["frostAura", "frost"]], fusion: true, char: "lancer",
+        desc: "창격파에 꿰뚫린 적이 0.8초 동안 얼어붙음 (보스·중간 보스는 둔화)" },
+      { id: "lanceFire", name: "🔥 화염창", needs: ["multishot", ["fireNova", "meteor"]], fusion: true, char: "lancer",
+        desc: "창격파가 불타오르고, 꿰뚫린 자리에서 작은 화염 폭발" },
+      { id: "lanceGale", name: "💨 질풍 창술", needs: ["multishot", "speed"], char: "lancer",
+        desc: "창격파가 40% 더 빠르게 날아가고 30% 더 굵어짐" },
+      { id: "axeBolt", name: "⚡ 뇌전 도끼", needs: ["multishot", "lightning"], fusion: true, char: "berserker",
+        desc: "회전 도끼가 번개를 두르고, 맞은 적에서 주변 적 2명에게 번개가 튐" },
+      { id: "axeToxic", name: "☠️ 맹독 도끼", needs: ["multishot", "poison"], fusion: true, char: "berserker",
+        desc: "회전 도끼에 베인 적이 3초 동안 중독 (0.5초마다 피해 · 이동속도 40% 감소)" },
+      { id: "axeFrost", name: "🧊 서리 도끼", needs: ["multishot", ["frostAura", "frost"]], fusion: true, char: "berserker",
+        desc: "회전 도끼에 베인 적이 0.8초 동안 얼어붙음 (보스·중간 보스는 둔화)" },
+      { id: "axeFire", name: "🔥 화염 도끼", needs: ["multishot", ["fireNova", "meteor"]], fusion: true, char: "berserker",
+        desc: "회전 도끼가 불타오르고, 베인 자리에서 작은 화염 폭발" },
+      { id: "axeFrenzy", name: "🩸 피의 광란", needs: ["multishot", "armor"], char: "berserker",
+        desc: "회전 도끼에 맞힐 때마다 최대 체력 0.4% 회복 (0.1초에 한 번) · 광폭화가 체력 70% 이하부터 시작" }
     ];
     let activeSynergies = [];
     const synOn = id => activeSynergies.includes(id);
@@ -8359,7 +8634,7 @@
         const head = document.createElement("div");
         head.className = "cos-slot";
         const wCls = weaponClassOfChar(save.character);
-        head.innerText = slot === "weapon" ? `무기 (${({ gun: "원거리 캐릭터용 총", blade: "블레이드 전용 검", hammer: "브레이커 전용 망치", tome: "서머너 전용 지팡이 · 영혼 색도 바뀜", card: "트릭스터 전용 카드 · 던지는 카드 색도 바뀜" })[wCls]})` : COSMETIC_SLOTS[slot];
+        head.innerText = slot === "weapon" ? `무기 (${({ gun: "원거리 캐릭터용 총", blade: "블레이드 전용 검", hammer: "브레이커 전용 망치", tome: "서머너 전용 지팡이 · 영혼 색도 바뀜", card: "트릭스터 전용 카드 · 던지는 카드 색도 바뀜", spear: "랜서 전용 창 · 창격 색도 바뀜", axe: "버서커 전용 도끼 · 도끼질 색도 바뀜" })[wCls]})` : COSMETIC_SLOTS[slot];
         cos.appendChild(head);
         for (const item of COSMETICS[slot]) {
           if (slot === "weapon" && (item.cls || "gun") !== wCls) continue; // 내 캐릭터가 쓸 수 있는 무기만
@@ -9462,7 +9737,7 @@
     //   건슬링어 구르기 + 회전 칼날 / 파이로 부스터 + 작은 플레임 노바 / 프로스트 블링크 + 얼음 장판
     //   스파크 순간이동 + 스파크 폭발 / 블레이드 쾌속 발도 돌진(경로 베기) / 브레이커 바디 슬램(넉백 + 착지 충격파)
     //   v46 서머너 영혼 도약(출발 자리 영혼 폭발 + 도착하면 하수인 1마리) / 트릭스터 카드 셔플(출발 자리에서 카드가 원형으로 퍼지며 기절)
-    const DASH_STYLES = { survivor: "tumble", warrior: "boost", assassin: "blink", mage: "teleport", swordsman: "slash", hammer: "slam", summoner: "soul", trickster: "shuffle" };
+    const DASH_STYLES = { survivor: "tumble", warrior: "boost", assassin: "blink", mage: "teleport", swordsman: "slash", hammer: "slam", summoner: "soul", trickster: "shuffle", lancer: "charge", berserker: "whirlwind" }; // v48 랜서 창 돌격 · 버서커 회전 돌진
     const DASH_STUN_MS = 1000;
     function dashStyleOf(id) { return DASH_STYLES[id] || "tumble"; }
     // v42: 대시 거리는 모든 캐릭터 동일 — 가장 길던 프로스트 블링크(×1.9) 기준 (약 280px)
@@ -9541,14 +9816,18 @@
               life: 18, maxLife: 18, color: Math.random() < 0.5 ? "#f97316" : "#fde047", size: 7 + Math.random() * 4 });
           }
         }
-        if (st === "slash" || st === "slam") {
-          const reach = st === "slam" ? 54 : 48;
+        if (st === "slash" || st === "slam" || st === "charge" || st === "whirlwind") {
+          const reach = { slash: 48, slam: 54, charge: 52, whirlwind: 66 }[st];
           for (const m of mons) {
             if (player.dashHit.has(m) || fastHypot(m.x - player.x, m.y - player.y) > reach + m.radius) continue;
             player.dashHit.add(m);
             if (st === "slash") {
               const crit = Math.random() < currentCharacter().crit;
               dashStrike(m, 2.2 * (crit ? 2 : 1), { color: crit ? "#fde047" : "#bae6fd" });
+            } else if (st === "charge") { // v48 창 돌격: 꿰뚫고 진행 방향 옆으로 크게 밀어냄
+              dashStrike(m, 2.0, { push: 90, fx: player.x - Math.cos(player.dashAngle) * 30, fy: player.y - Math.sin(player.dashAngle) * 30, color: "#fde68a" });
+            } else if (st === "whirlwind") { // v48 회전 돌진: 주위를 베며 밀침
+              dashStrike(m, 1.7, { push: 50, fx: player.x, fy: player.y, color: "#f87171" });
             } else {
               dashStrike(m, 1.6, { push: 110, fx: player.x, fy: player.y, color: "#fbbf24" });
             }
@@ -9678,7 +9957,7 @@
         ctx.globalCompositeOperation = "source-over";
       }
       // 블레이드 발도 돌진: 지나간 길을 가르는 흰 검광
-      if ((st === "slash" || st === "slam") && playTimeMs < player.dashUntil + 200 && player.dashTrail.length > 1) {
+      if ((st === "slash" || st === "slam" || st === "charge" || st === "whirlwind") && playTimeMs < player.dashUntil + 200 && player.dashTrail.length > 1) {
         const a = Math.min(1, (player.dashUntil + 200 - playTimeMs) / 200);
         const p0 = player.dashFrom, p1 = player.dashTrail[player.dashTrail.length - 1];
         ctx.lineCap = "round";
@@ -9686,12 +9965,17 @@
         ctx.beginPath();
         ctx.moveTo(p0.x, p0.y);
         ctx.lineTo(p1.x, p1.y);
-        ctx.strokeStyle = st === "slash" ? `rgba(125, 211, 252, ${0.5 * a})` : `rgba(251, 146, 60, ${0.45 * a})`;
-        ctx.lineWidth = st === "slash" ? 26 : 40;
+        ctx.strokeStyle = st === "slash" ? `rgba(125, 211, 252, ${0.5 * a})` : st === "charge" ? `rgba(253, 224, 71, ${0.45 * a})` : st === "whirlwind" ? `rgba(239, 68, 68, ${0.42 * a})` : `rgba(251, 146, 60, ${0.45 * a})`;
+        ctx.lineWidth = { slash: 26, slam: 40, charge: 30, whirlwind: 56 }[st];
         ctx.stroke();
         ctx.strokeStyle = `rgba(255, 255, 255, ${0.9 * a})`;
         ctx.lineWidth = st === "slash" ? 5 : 8;
         ctx.stroke();
+        if (st === "whirlwind" && dashing) { // 회전 돌진: 몸 주위를 도는 붉은 회오리
+          const rot = playTimeMs / 40;
+          ctx.beginPath(); ctx.arc(player.x, player.y, 58, rot, rot + 4.4);
+          ctx.strokeStyle = `rgba(254, 202, 202, ${0.85 * a})`; ctx.lineWidth = 7; ctx.stroke();
+        }
         ctx.globalCompositeOperation = "source-over";
         ctx.lineCap = "butt";
       }
@@ -9818,10 +10102,22 @@
       }
       if (nodes.length > 1 && meleeFx.length < 30) meleeFx.push({ kind: "chain", nodes: nodes, sword: sword, life: 18, maxLife: 18 });
     }
+    // v48 근접 스타일: sword(블레이드) · hammer(브레이커) · lance(랜서) · axe(버서커). sword·lance = 가볍고 밀치지 않음, hammer·axe = 묵직하게 밀침
+    function meleeStyle() { const a = currentAttack(); return a.style || (a === ATTACK_TYPES.slash ? "sword" : "hammer"); }
+    const isLightStyle = st => st === "sword" || st === "lance";
+    // v48 버서커 광폭화: 체력 50% 이하 ×1.25 · 25% 이하 ×1.45 (공격력·공격 속도). 🩸 피의 광란 시너지면 70% 이하부터 시작
+    function rageMult() {
+      if (!currentCharacter().rage || player.maxHp <= 0) return 1;
+      const r = player.hp / player.maxHp;
+      if (r <= 0.25) return 1.45;
+      if (r <= (synOn("axeFrenzy") ? 0.7 : 0.5)) return 1.25;
+      return 1;
+    }
     // 기본 공격 1회. 휘두를 대상(적 또는 날아오는 일반 탄환)이 없으면 false (다음 프레임에 다시 시도)
     function meleeAttack() {
       const atk = currentAttack(), ch = currentCharacter();
-      const sword = atk === ATTACK_TYPES.slash;
+      const style = meleeStyle();
+      const sword = isLightStyle(style);
       const reach = meleeReach();
       // v40: 검기·균열을 배웠으면 그 사거리 안의 적에게도 휘두름 (닿지 않는 거리면 검기만 날아감)
       const target = findNearestMonster(Math.max(reach + 70, player.multishotLevel > 0 ? waveRange(player.multishotLevel) * 0.85 : 0));
@@ -9836,18 +10132,31 @@
       player.angle = ang;
       const step = meleeCombo % 3;
       meleeCombo++;
-      const full = !sword && step === 2;                   // 브레이커 3타 = 360도 휩쓸기
-      const half = full ? Math.PI : meleeHalfArc() * (sword && step === 2 ? 1.35 : 1);
-      const r = reach * (sword && step === 2 ? 1.15 : 1) * (full ? 1.1 : 1);
+      const big = step === 2;
+      const full = !sword && big;                          // 브레이커·버서커 3타 = 360도 휩쓸기 / 회오리 베기
+      let half = full ? Math.PI : meleeHalfArc(), r = reach, mult = 1;
+      if (style === "sword" && big) { half *= 1.35; r *= 1.15; mult = 1.6; }
+      else if (style === "lance" && big) { half *= 1.2; r *= 1.35; mult = 1.7; } // 랜서 3타: 깊게 찌르기
+      else if (style === "hammer" && full) { r *= 1.1; mult = 1.1; }
+      else if (style === "axe" && full) { r *= 1.15; mult = 1.3; }
       const crit = Math.random() < ch.crit;
-      const mult = (sword ? (step === 2 ? 1.6 : 1) : (full ? 1.1 : 1)) * (crit ? 2 : 1);
+      mult *= (crit ? 2 : 1) * rageMult();
       const dmg = player.damage * player.caliberMult * atk.dmgMult * mult;
+      // 랜서 3타: 목표 쪽으로 짧게 뛰어들며 찌름 (몸이 닿을 만큼은 안 들어감)
+      if (style === "lance" && big && target && !ult.active) {
+        const gap = fastHypot(target.x - player.x, target.y - player.y) - target.radius - player.radius - 26;
+        const lunge = Math.max(0, Math.min(48, gap));
+        if (lunge > 0) {
+          player.x += Math.cos(ang) * lunge; player.y += Math.sin(ang) * lunge;
+          if (obstacles.length) pushOutOfObstacles(player, player.radius, 0);
+        }
+      }
       const hits = meleeTargets(player.x, player.y, ang, half, r, full);
       meleeParry(player.x, player.y, ang, half, r, full);
       hits.sort((a, b) => fastHypot(a.x - player.x, a.y - player.y) - fastHypot(b.x - player.x, b.y - player.y));
       const lv = player.ricochetLevel;
       for (const m of hits) {
-        if (!sword && !m.isBoss) knockback(m, player.x, player.y, m.isElite ? 8 : (full ? 34 : 26));
+        if (!sword && !m.isBoss) knockback(m, player.x, player.y, m.isElite ? 8 : (full ? 34 : (style === "axe" ? 20 : 26)));
         if (lv >= 2 && pendingBlasts.length < 12 && hits.indexOf(m) < 3) {
           pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 40 + lv * 12 + (lv >= 5 ? 30 : 0),
             damage: dmg * (0.4 + lv * 0.15) * skillPower, src: "ricochet", elem: charElement(), push: sword ? 14 : 26 });
@@ -9856,12 +10165,20 @@
       }
       if (hits.length && lv > 0) meleeChain(hits[0], lv >= 5 ? 5 : 3, dmg * 0.6, sword);
       if (hits.length && player.ricochetLevel > 0) Sound.ricochet();
-      if (player.multishotLevel > 0) launchMeleeWaves(ang, player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1), sword);
-      meleeFx.push({ kind: sword ? "slash" : (full ? "sweep" : "slam"), x: player.x, y: player.y, ang: ang, half: half, r: r,
-        life: sword ? 13 : 18, maxLife: sword ? 13 : 18, dir: step % 2 ? -1 : 1, crit: crit, big: step === 2 });
+      if (player.multishotLevel > 0) {
+        const wdmg = player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1) * rageMult();
+        if (style === "lance" || style === "axe") launchStyleWaves(style, ang, wdmg); // v48 창격파 / 회전 도끼
+        else launchMeleeWaves(ang, wdmg, style === "sword");
+      }
+      const fxKind = { sword: "slash", lance: "thrust", hammer: full ? "sweep" : "slam", axe: full ? "sweep" : "cleave" }[style];
+      const life = { sword: 13, lance: 12, hammer: 18, axe: 16 }[style];
+      meleeFx.push({ kind: fxKind, x: player.x, y: player.y, ang: ang, half: half, r: r,
+        life: life, maxLife: life, dir: step % 2 ? -1 : 1, crit: crit, big: big });
       // v44: 몸 휘두르기 모션 (meleeSwingPose)
-      player.swing = { at: playTimeMs, ang: ang, dir: step % 2 ? -1 : 1, sword: sword, full: full, big: step === 2 };
-      if (!sword) {
+      player.swing = { at: playTimeMs, ang: ang, dir: step % 2 ? -1 : 1, sword: style === "sword", style: style, full: full, big: big };
+      if (style === "lance") Sound.thrust(step);
+      else if (style === "axe") { if (!full) addShake(2); Sound.cleave(full); }
+      else if (!sword) {
         if (!full) addShake(2.5);
         Sound.smash(full);
       } else {
@@ -9871,23 +10188,40 @@
     }
     // v44 근접 휘두르기 모션: 공격 순간 몸(스프라이트 방향 = 무기 방향)을 뒤에서 앞으로 힘차게 돌림
     //   블레이드 0.2초 수평 베기 (-70° → +50°, 3타는 더 크게) · 브레이커 0.28초 (뒤로 젖혔다가 내려침, 3타는 한 바퀴 회전)
-    const SWING_MS = { sword: 200, hammer: 280 };
+    //   v48 랜서 0.15초 (거의 그대로 앞으로 찌름) · 버서커 0.25초 (크게 젖혔다가 베어 넘김, 3타 회전)
+    const SWING_MS = { sword: 200, hammer: 280, lance: 150, axe: 250 };
     function meleeSwingPose() {
       const s = player.swing;
       if (!s || !currentCharacter().melee) return null;
-      const dur = s.sword ? SWING_MS.sword : SWING_MS.hammer, t = (playTimeMs - s.at) / dur;
+      const dur = SWING_MS[s.style || (s.sword ? "sword" : "hammer")], t = (playTimeMs - s.at) / dur;
       if (t < 0 || t >= 1) return null;
       const e = 1 - Math.pow(1 - t, 3); // 빠르게 휘두르고 끝에서 멈춤
       let from, to;
       if (s.full) { from = -Math.PI; to = Math.PI; }
+      else if (s.style === "lance") { from = -16 * Math.PI / 180; to = 4 * Math.PI / 180; }
+      else if (s.style === "axe") { from = -100 * Math.PI / 180; to = 45 * Math.PI / 180; }
       else if (s.sword) { const k = s.big ? 1.3 : 1; from = -70 * k; to = 50 * k; from *= Math.PI / 180; to *= Math.PI / 180; }
       else { from = -85 * Math.PI / 180; to = 35 * Math.PI / 180; }
       const off = (from + (to - from) * e) * s.dir;
-      return { ang: s.ang + off, a0: s.ang + from * s.dir, t: t, s: s };
+      // v48 몸 내밀기: 랜서는 찌를 때 몸 전체가 앞으로 쑥 (3타는 더 깊게), 버서커는 도끼를 휘두르며 살짝 앞으로
+      const poke = s.full ? 0 : s.style === "lance" ? Math.sin(t * Math.PI) * (s.big ? 22 : 12) : s.style === "axe" ? Math.sin(t * Math.PI) * 7 : 0;
+      return { ang: s.ang + off, a0: s.ang + from * s.dir, t: t, s: s, poke: poke };
     }
     // 휘두른 궤적: 몸 둘레 반원형 은은한 무기 궤적 (a0 → 현재 각도)
     function drawSwingTrail(x, y, sw) {
       const s = sw.s, ccw = s.dir < 0, fade = 1 - sw.t;
+      if (s.style === "lance" && !s.full) {
+        // v48 창: 반원 대신 앞으로 뻗는 찌르기 잔광
+        const col = meleeWeaponStyle().glow || "#fde68a", L = 40 + 40 * Math.min(1, sw.t * 3);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.lineCap = "round";
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(sw.ang) * L, y + Math.sin(sw.ang) * L);
+        ctx.strokeStyle = rgba(col, 0.4 * fade); ctx.lineWidth = 12; ctx.stroke();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.8 * fade})`; ctx.lineWidth = 2.5; ctx.stroke();
+        ctx.lineCap = "butt";
+        ctx.globalCompositeOperation = "source-over";
+        return;
+      }
       const r = s.sword ? 46 : 52, col = meleeWeaponStyle().glow || (s.sword ? "#bae6fd" : "#fbbf24");
       ctx.globalCompositeOperation = "lighter";
       ctx.beginPath();
@@ -9905,7 +10239,7 @@
     }
     // 가만히 서서 모은 차지 공격의 근접판: 크게 한 바퀴 회전 베기/내려찍기 (피해 ×4, 360도, 탄환 상쇄)
     function meleeChargedSpin() {
-      const sword = currentAttack() === ATTACK_TYPES.slash;
+      const sword = isLightStyle(meleeStyle());
       const r = meleeReach() * 1.6;
       const dmg = player.damage * player.caliberMult * 4;
       meleeParry(player.x, player.y, 0, Math.PI, r, true);
@@ -9920,7 +10254,9 @@
     function drawMeleeFx(timestamp) {
       if (!meleeFx.length) return;
       const WS = meleeWeaponStyle(); // v38.1: 상점 무기 색이 휘두르는 검기·해머에도 반영
+      const style = meleeStyle();
       const swingHead = () => {
+        if (style === "axe") { ctx.rotate(Math.PI / 2); drawAxeHead(ctx, 0, WS, 0, -6, 1.5); return; } // v48 버서커 회오리: 도끼날
         if (WS.spikes) { shadedBall(ctx, 0, 0, 13, 13, 0, WS.head, "#0c0a09"); return; }
         metalBar(ctx, -12, -16, 24, 32, WS.head || DEFAULT_HAMMER.head);
       };
@@ -9955,7 +10291,64 @@
           continue;
         }
         const x = player.x, y = player.y;
-        if (f.kind === "slash") {
+        if (f.kind === "thrust") {
+          // v48 창 찌르기: 좁은 쐐기 모양 빛이 순식간에 뻗었다 사라짐 + 창 본체가 끝까지 나갔다가 돌아옴 (3타는 끝에 충격 고리)
+          const ext = p < 0.35 ? p / 0.35 : 1 - (p - 0.35) / 0.65 * 0.6, tipD = f.r * (0.35 + 0.65 * ext);
+          const c = Math.cos(f.ang), s = Math.sin(f.ang), w = Math.tan(Math.min(1.2, f.half)) * f.r;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.beginPath();
+          ctx.moveTo(x - s * 6, y + c * 6);
+          ctx.lineTo(x + c * f.r - s * w, y + s * f.r + c * w);
+          ctx.lineTo(x + c * f.r * 1.08, y + s * f.r * 1.08);
+          ctx.lineTo(x + c * f.r + s * w, y + s * f.r - c * w);
+          ctx.lineTo(x + s * 6, y - c * 6);
+          ctx.closePath();
+          ctx.fillStyle = f.crit ? `rgba(253, 224, 71, ${0.32 * a})` : rgba(WS.glow, 0.26 * a);
+          ctx.fill();
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(x + c * f.r * 0.2, y + s * f.r * 0.2); ctx.lineTo(x + c * f.r * 1.05, y + s * f.r * 1.05);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${0.85 * a})`; ctx.lineWidth = f.big ? 4 : 2.5; ctx.stroke();
+          for (const side of [-1, 1]) { // 양옆 속도선
+            ctx.beginPath(); ctx.moveTo(x + c * f.r * 0.45 - s * side * w * 0.45, y + s * f.r * 0.45 + c * side * w * 0.45);
+            ctx.lineTo(x + c * f.r * 0.9 - s * side * w * 0.25, y + s * f.r * 0.9 + c * side * w * 0.25);
+            ctx.strokeStyle = rgba(WS.glow, 0.7 * a); ctx.lineWidth = 1.6; ctx.stroke();
+          }
+          if (f.big) { ctx.globalAlpha = a; drawGlow(ctx, WS.glow, x + c * f.r, y + s * f.r, 34 * (0.6 + p)); ctx.beginPath(); ctx.arc(x + c * f.r, y + s * f.r, 14 + p * 30, 0, Math.PI * 2); ctx.strokeStyle = `rgba(254, 249, 195, ${0.8 * a})`; ctx.lineWidth = 3; ctx.stroke(); ctx.globalAlpha = 1; }
+          ctx.lineCap = "butt";
+          ctx.globalCompositeOperation = "source-over";
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(f.ang);
+          metalBar(ctx, tipD - 70, -1.8, 66, 3.6, ["#d6a36b", "#7c4a1e", "#2a1608"]);
+          drawSpearTip(ctx, WS, tipD - 4, 0, 1.4);
+          ctx.restore();
+        } else if (f.kind === "cleave") {
+          // v48 도끼질: 두툼한 붉은 반달 베기 + 호를 따라 도는 도끼날 + 튀는 불티
+          const sweep = Math.min(1, p * 2);
+          const a0 = f.ang - f.half * f.dir, a1 = a0 + f.half * 2 * f.dir * sweep;
+          const ccw = f.dir < 0;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.beginPath();
+          ctx.arc(x, y, f.r, a0, a1, ccw);
+          ctx.arc(x, y, f.r * 0.4, a1, a0, !ccw);
+          ctx.closePath();
+          ctx.fillStyle = f.crit ? `rgba(253, 224, 71, ${0.45 * a})` : rgba(WS.glow, 0.42 * a);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(x, y, f.r, a0, a1, ccw);
+          ctx.strokeStyle = `rgba(255, 237, 213, ${0.95 * a})`;
+          ctx.lineWidth = 5;
+          ctx.stroke();
+          for (let k = 0; k < 4; k++) { const an = a0 + (a1 - a0) * (k + 0.5) / 4; drawGlow(ctx, "#fdba74", x + Math.cos(an) * f.r * 1.05, y + Math.sin(an) * f.r * 1.05, 7 * a); }
+          ctx.globalCompositeOperation = "source-over";
+          if (sweep < 1 || a > 0.5) {
+            ctx.save();
+            ctx.translate(x + Math.cos(a1) * f.r * 0.82, y + Math.sin(a1) * f.r * 0.82);
+            ctx.rotate(a1 + (ccw ? Math.PI : 0));
+            drawAxeHead(ctx, 0, WS, 0, -4, 1.3);
+            ctx.restore();
+          }
+        } else if (f.kind === "slash") {
           // 반달 모양 검기: 휘두르는 쪽으로 빠르게 펼쳐졌다가 사라짐 + 칼날 본체
           const sweep = Math.min(1, p * 2.2);
           const a0 = f.ang - f.half * f.dir, a1 = a0 + f.half * 2 * f.dir * sweep;
@@ -10059,8 +10452,9 @@
     // ===== 도탄 폭렬탄 속성 폭발: 캐릭터 기본 속성에 맞춘 색·모양 =====
     //   건슬링어 스파크 파편 / 파이로 불기둥 / 프로스트 빙결 파편 / 스파크 전격 방전 / 블레이드 검기 십자 / 브레이커 바위 파편
     //   v46 서머너 영혼 불꽃 / 트릭스터 카드 파편
-    const CHAR_ELEMENTS = { survivor: "spark", warrior: "fire", assassin: "ice", mage: "bolt", swordsman: "slash", hammer: "rock", summoner: "soul", trickster: "card" };
-    const ELEM_COLORS = { spark: "#fde68a", fire: "#f97316", ice: "#7dd3fc", bolt: "#a78bfa", slash: "#e0f2fe", rock: "#d97706", soul: "#c084fc", card: "#f472b6" };
+    //   v48 랜서 빛의 창 파편 / 버서커 붉은 베기 자국
+    const CHAR_ELEMENTS = { survivor: "spark", warrior: "fire", assassin: "ice", mage: "bolt", swordsman: "slash", hammer: "rock", summoner: "soul", trickster: "card", lancer: "pierce", berserker: "rend" };
+    const ELEM_COLORS = { spark: "#fde68a", fire: "#f97316", ice: "#7dd3fc", bolt: "#a78bfa", slash: "#e0f2fe", rock: "#d97706", soul: "#c084fc", card: "#f472b6", pierce: "#fde68a", rend: "#ef4444" };
     function charElement() { return CHAR_ELEMENTS[save.character] || "spark"; }
     // ("lighter" 합성 상태에서 호출)
     function drawElemBlast(ex, t, alpha, timestamp) {
@@ -10135,6 +10529,28 @@
           ctx.fillRect(ex.x + Math.cos(a) * d - sz / 2, ex.y + Math.sin(a) * d - sz / 2 - t * 10, sz, sz);
         }
         ctx.globalCompositeOperation = "lighter";
+      } else if (ex.elem === "pierce") {
+        // 사방으로 뻗는 가는 빛의 창 6개
+        ctx.strokeStyle = `rgba(254, 249, 195, ${alpha})`;
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        for (let k = 0; k < 6; k++) {
+          const an = s + k * 1.0472, r0 = R * 0.1, r1 = R * (0.55 + t * 0.6);
+          ctx.moveTo(ex.x + Math.cos(an) * r0, ex.y + Math.sin(an) * r0);
+          ctx.lineTo(ex.x + Math.cos(an) * r1, ex.y + Math.sin(an) * r1);
+        }
+        ctx.stroke();
+      } else if (ex.elem === "rend") {
+        // 붉은 할퀸 자국 3줄 (도끼로 찍은 자리)
+        ctx.strokeStyle = `rgba(254, 202, 202, ${alpha})`;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        for (let k = -1; k <= 1; k++) {
+          const L = R * (0.5 + t * 0.4), off = k * R * 0.22;
+          ctx.moveTo(ex.x - Math.cos(s) * L - Math.sin(s) * off, ex.y - Math.sin(s) * L + Math.cos(s) * off);
+          ctx.lineTo(ex.x + Math.cos(s) * L - Math.sin(s) * off, ex.y + Math.sin(s) * L + Math.cos(s) * off);
+        }
+        ctx.stroke();
       } else if (ex.elem === "soul") {
         // 위로 피어오르는 영혼 불꽃 5개 + 고리
         for (let k = 0; k < 5; k++) {
@@ -10982,7 +11398,7 @@
     //   사거리 Lv1 240 → Lv4 480 · 만렙은 화면 끝까지. 레벨마다 크기도 커짐
     //   균열은 바닥 효과 → 캐릭터·몹 아래에 그림 (drawMeleeWaves(t, true) 가 몹보다 먼저)
     //   융합(SYNERGIES의 char 항목): 체인 라이트닝 → 번개 연쇄 · 독 안개 → 중독 · 빙결 오라/프로스트 트레일 → 빙결 · 플레임 노바/메테오 → 화염 폭발
-    const WAVE_NAMES = { swordsman: "🌙 검기 날리기", hammer: "🌋 대지 가르기" };
+    const WAVE_NAMES = { swordsman: "🌙 검기 날리기", hammer: "🌋 대지 가르기", lancer: "🌠 창격파", berserker: "🪓 회전 도끼" };
     const WAVE_HALF_DEG = { hammer: [0, 14, 18, 22, 26, 36] };
     const waveHalf = (kind, lv) => WAVE_HALF_DEG.hammer[lv] * Math.PI / 180;
     const SWORD_WAVE_GAP = 40 * Math.PI / 180;
@@ -11026,7 +11442,18 @@
       return [0, 240, 310, 390, 480][lv] || 240;
     }
     function waveSkillDesc(lv) {
-      const sword = save.character !== "hammer";
+      const style = meleeStyle();
+      if (style === "lance") {
+        if (lv <= 1) return "찌를 때마다 앞으로 빛의 창격 1줄기를 쏨 (일렬로 모두 관통 · 일반 탄환을 꿰뚫어 지움)";
+        if (lv >= 5) return "★ 최종 진화: 거대한 창격 5줄기가 화면 끝까지 꿰뚫고, 창끝이 지나간 자리에 빛의 파편이 터짐!";
+        return `빛의 창격 ${lv}줄기 (좁은 부채꼴) · 더 굵고 더 멀리 (사거리 ${Math.round(waveRange(lv) * 1.1)})`;
+      }
+      if (style === "axe") {
+        if (lv <= 1) return "휘두를 때마다 회전 도끼 1개를 던짐 (날아갔다 돌아오며 두 번 벰 · 적을 밀치고 탄환을 쳐냄)";
+        if (lv >= 5) return "★ 최종 진화: 거대한 회전 도끼 6개가 사방으로 날아갔다가 돌아옴!";
+        return `회전 도끼 ${lv}개 (부채꼴) · 더 크고 더 멀리 (거리 ${axeOutDist(lv)})`;
+      }
+      const sword = style === "sword";
       if (lv <= 1) return sword ? "휘두를 때마다 전방으로 초승달 검기 1개를 날림 (적 관통 · 일반 탄환을 벰)"
         : "내려칠 때마다 전방으로 땅이 갈라지는 균열 1줄기 (적 관통 · 밀쳐냄)";
       if (lv >= 5) return sword ? `★ 최종 진화: 거대한 초승달 검풍이 화면 끝까지 + 양옆 검기 ${swordMaxDirs(0).length - 1}개가 앞쪽 180° 이상을 덮음 · 지나간 자리에 칼자국!`
@@ -11036,7 +11463,9 @@
     }
     // 지금 발동 중인 융합 (검기·균열 공통 처리, 출처 이름은 융합 id)
     function waveSynergy(sword) {
-      const ids = sword ? ["waveBolt", "waveToxic", "waveFrost", "waveFire"] : ["quakeBolt", "quakeToxic", "quakeFrost", "quakeFire"];
+      const style = typeof sword === "string" ? sword : (sword ? "sword" : "hammer"); // v48: 문자열이면 스타일 (lance·axe)
+      const ids = ({ sword: ["waveBolt", "waveToxic", "waveFrost", "waveFire"], hammer: ["quakeBolt", "quakeToxic", "quakeFrost", "quakeFire"],
+        lance: ["lanceBolt", "lanceToxic", "lanceFrost", "lanceFire"], axe: ["axeBolt", "axeToxic", "axeFrost", "axeFire"] })[style];
       const on = ids.map(synOn);
       return { bolt: on[0], toxic: on[1], frost: on[2], fire: on[3], src: ids.find((id, i) => on[i]) || "wave" };
     }
@@ -11045,6 +11474,7 @@
       if (w.syn.frost) return "#7dd3fc";
       if (w.syn.toxic) return "#84cc16";
       if (w.syn.fire) return "#fb923c";
+      if (w.style) return meleeWeaponStyle().glow || (w.style === "lance" ? "#fde68a" : "#f87171"); // v48 창격·도끼: 무기 색
       return w.sword ? (meleeWeaponStyle().glow || "#bae6fd") : "#f59e0b";
     }
     // 균열 모양: 가운데 갈라짐(지그재그) + 잔가지 몇 개
@@ -11102,11 +11532,190 @@
       if (w.syn.bolt) { pendingBlasts.push({ chain: true, x: m.x, y: m.y, exclude: m, jumps: 2, damage: w.dmg * 0.5, color: "#c4b5fd", src: w.syn.src }); w.procs++; }
       if (w.syn.fire) { pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 44 + w.lv * 6, damage: w.dmg * 0.45, src: w.syn.src, fire: true, elem: "fire" }); w.procs++; }
     }
+    // ===== v48 🌠 창격파 (랜서) · 🪓 회전 도끼 (버서커) =====
+    //   창격파: 앞으로 빠르게 뻗는 빛의 창. 창끝 뒤 len 길이의 막대 안에 들어온 적을 모두 관통 · 일반 탄환을 지움
+    //     Lv개 (간격 12°) · 만렙은 거대한 창 5줄기(간격 14°, 굵기 26) + 창끝 파편 폭발. 💨 질풍 창술 시너지: 속도 ×1.4 · 굵기 ×1.3
+    //   회전 도끼: 날아갔다가(axeOutDist) 내 쪽으로 되돌아오며 두 번 벰 (돌아올 때 다시 맞을 수 있음) · 밀쳐냄 · 일반 탄환을 쳐냄
+    //     Lv개 (간격 32°) · 만렙은 거대한 도끼 6개가 사방으로. 🩸 피의 광란 시너지: 도끼에 맞힐 때마다 체력 회복
+    // 버서커 광폭화 중: 몸에서 피어오르는 붉은 기운 (2단계면 더 진하게)
+    function drawRageAura(timestamp) {
+      const m = rageMult();
+      if (m <= 1 || gameState === "lobby") return;
+      const k = m >= 1.45 ? 1 : 0.6;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = (0.3 + Math.sin(timestamp / 110) * 0.1) * k;
+      drawGlow(ctx, "#ef4444", player.x, player.y, 46);
+      for (let i = 0; i < 4; i++) {
+        const ph = (timestamp / 600 + i / 4) % 1, an = i * 1.57 + timestamp / 900;
+        ctx.globalAlpha = 0.7 * (1 - ph) * k;
+        drawGlow(ctx, "#f87171", player.x + Math.cos(an) * 20, player.y + 10 - ph * 50, 10);
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
+    function axeOutDist(lv) { return Math.min(waveRange(Math.min(4, lv)), 170 + lv * 45); }
+    function launchStyleWaves(style, ang, baseDmg) {
+      if (playTimeMs < (player.waveReadyAt || 0)) return;
+      const lance = style === "lance";
+      player.waveReadyAt = playTimeMs + (lance ? 460 : 760);
+      const lv = Math.min(5, player.multishotLevel), syn = waveSynergy(style), max = lv >= 5;
+      if (lance) {
+        const n = max ? 5 : lv, gap = (max ? 14 : 12) * Math.PI / 180, gale = synOn("lanceGale");
+        for (let k = 0; k < n && meleeWaves.length < 40; k++) {
+          meleeWaves.push({ style: "lance", sword: true, x: player.x, y: player.y, ang: ang + (k - (n - 1) / 2) * gap, d: 20, dMax: Math.round(waveRange(lv) * 1.1),
+            len: max ? 150 : 70 + lv * 12, width: (max ? 26 : 10 + lv * 2) * (gale ? 1.3 : 1), speed: (12 + lv) * (gale ? 1.4 : 1),
+            lv: lv, syn: syn, dmg: baseDmg * (0.5 + lv * 0.1), hit: new Set(), procs: 0, fade: 0, seed: Math.random() * 100, giant: max, sparkAt: 0 });
+        }
+        if (sfxReady("waveL", 120)) { sfxNoise({ filter: "highpass", freq: 2500, freqEnd: 8000, dur: 0.18, vol: 0.07 + lv * 0.012 }); sfxTone({ type: "triangle", freq: 1600, freqEnd: 900, dur: 0.12, vol: 0.04 }); }
+      } else {
+        const n = max ? 6 : lv, gap = max ? Math.PI * 2 / 6 : 32 * Math.PI / 180;
+        for (let k = 0; k < n && meleeWaves.length < 40; k++) {
+          const a = ang + (k - (max ? 0 : (n - 1) / 2)) * gap;
+          meleeWaves.push({ style: "axe", sword: false, x: player.x, y: player.y, ox: player.x, oy: player.y, ang: a, dist: 0, out: axeOutDist(lv),
+            back: false, r: max ? 44 : 24 + lv * 4, speed: 6.5 + lv * 0.6, spin: Math.random() * 6, ticks: 0,
+            lv: lv, syn: syn, dmg: baseDmg * (0.45 + lv * 0.1), hit: new Set(), procs: 0, fade: 0, seed: Math.random() * 100, giant: max });
+        }
+        if (sfxReady("waveA", 160)) sfxNoise({ filter: "bandpass", freq: 700, freqEnd: 1800, q: 1.4, dur: 0.3, vol: 0.08 + lv * 0.012 });
+      }
+    }
+    // true 를 돌려주면 제거
+    function updateStyleWave(w) {
+      if (w.fade) return ++w.fade > WAVE_FADE;
+      if (w.style === "lance") {
+        w.d = Math.min(w.dMax, w.d + w.speed);
+        const c = Math.cos(w.ang), s = Math.sin(w.ang);
+        for (let j = monsters.length - 1; j >= 0; j--) {
+          const m = monsters[j];
+          if (w.hit.has(m)) continue;
+          const rx = m.x - w.x, ry = m.y - w.y, along = rx * c + ry * s;
+          if (along < w.d - w.len - m.radius || along > w.d + 10 + m.radius) continue;
+          if (Math.abs(rx * s - ry * c) > w.width + m.radius) continue;
+          w.hit.add(m);
+          waveHit(w, m);
+          m.hp -= hurt(m, w.dmg, w.syn.src);
+          if (slashHits.length < 40) slashHits.push({ x: m.x, y: m.y, ang: w.ang + Math.PI / 4, s: m.radius + 10, col: waveColor(w), life: 10, maxLife: 10 });
+          if (m.hp <= 0) handleMonsterDeath(m, j);
+        }
+        for (let b = enemyBullets.length - 1; b >= 0; b--) {
+          const eb = enemyBullets[b];
+          if (!eb || eb.isBossBullet) continue;
+          const rx = eb.x - w.x, ry = eb.y - w.y, along = rx * c + ry * s;
+          if (along < w.d - w.len || along > w.d + 10 || Math.abs(rx * s - ry * c) > w.width + eb.radius) continue;
+          addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: "#fef9c3" });
+          enemyBullets.splice(b, 1);
+        }
+        // 만렙: 창끝이 지나간 자리에 빛의 파편 (0.25초마다 작은 폭발)
+        if (w.giant && playTimeMs >= w.sparkAt && pendingBlasts.length < 14) {
+          w.sparkAt = playTimeMs + 250;
+          pendingBlasts.push({ x: w.x + c * w.d, y: w.y + s * w.d, exclude: null, radius: 48, damage: w.dmg * 0.35, src: w.syn.src, elem: "pierce" });
+        }
+        if (w.d >= w.dMax) w.fade = 1;
+        return false;
+      }
+      // 회전 도끼
+      w.ticks++;
+      w.spin += 0.45;
+      if (!w.back) {
+        w.dist += w.speed;
+        w.x = w.ox + Math.cos(w.ang) * w.dist;
+        w.y = w.oy + Math.sin(w.ang) * w.dist;
+        if (w.dist >= w.out) { w.back = true; w.hit = new Set(); } // 돌아올 때 다시 벰
+      } else {
+        const dx = player.x - w.x, dy = player.y - w.y, d = fastHypot(dx, dy) || 1;
+        const sp = w.speed * 1.2;
+        if (d < sp + 20) { w.fade = 1; return false; }
+        w.x += dx / d * sp; w.y += dy / d * sp;
+      }
+      if (w.ticks > 400) return true; // 안전장치
+      for (let j = monsters.length - 1; j >= 0; j--) {
+        const m = monsters[j];
+        if (w.hit.has(m) || fastHypot(m.x - w.x, m.y - w.y) > w.r + m.radius) continue;
+        w.hit.add(m);
+        waveHit(w, m);
+        m.hp -= hurt(m, w.dmg, w.syn.src);
+        addHitEffect({ x: m.x, y: m.y, radius: 16, life: 8, maxLife: 8, color: waveColor(w) });
+        if (synOn("axeFrenzy") && playTimeMs >= (player.frenzyHealAt || 0) && player.hp > 0) { // 🩸 피의 광란: 맞힐 때마다 회복 (0.1초에 한 번)
+          player.frenzyHealAt = playTimeMs + 100;
+          player.hp = Math.min(player.maxHp, player.hp + player.maxHp * 0.004);
+        }
+        if (m.hp <= 0) handleMonsterDeath(m, j);
+      }
+      for (let b = enemyBullets.length - 1; b >= 0; b--) {
+        const eb = enemyBullets[b];
+        if (!eb || eb.isBossBullet || fastHypot(eb.x - w.x, eb.y - w.y) > w.r + eb.radius) continue;
+        addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: "#fef9c3" });
+        enemyBullets.splice(b, 1);
+      }
+      return false;
+    }
+    function drawStyleWave(w, timestamp) {
+      const col = waveColor(w), a = w.fade ? 1 - w.fade / WAVE_FADE : 1;
+      if (a <= 0) return;
+      if (w.style === "lance") {
+        // 빛의 창: 꼬리(옅은 빛 막대) + 밝은 심지 + 창끝 다이아몬드 + 융합 장식
+        const c = Math.cos(w.ang), s = Math.sin(w.ang), tx = w.x + c * w.d, ty = w.y + s * w.d;
+        const t0 = Math.max(20, w.d - w.len), bx = w.x + c * t0, by = w.y + s * t0;
+        const near = Math.max(0.3, Math.min(1, (w.d - 20) / 80)); // 몸 근처에서는 옅게
+        ctx.globalCompositeOperation = "lighter";
+        ctx.lineCap = "round";
+        const lite = w.giant ? 0.6 : 1; // 만렙 거대 창은 겹치면 너무 밝아서 빛을 줄임
+        ctx.globalAlpha = 0.28 * a * near * lite;
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(tx, ty);
+        ctx.strokeStyle = col; ctx.lineWidth = w.width * (w.giant ? 1.5 : 2); ctx.stroke();
+        ctx.globalAlpha = 0.85 * a * near;
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = Math.max(2, w.width * 0.35); ctx.stroke();
+        const L = w.width * 2.4, W2 = w.width * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(tx + c * L, ty + s * L); ctx.lineTo(tx - s * W2, ty + c * W2); ctx.lineTo(tx - c * L * 0.3, ty - s * L * 0.3); ctx.lineTo(tx + s * W2, ty - c * W2);
+        ctx.closePath();
+        ctx.globalAlpha = 0.8 * a * near;
+        ctx.fillStyle = col; ctx.fill();
+        ctx.globalAlpha = a * near * lite;
+        drawGlow(ctx, w.giant ? "#fef9c3" : col, tx, ty, w.width * (w.giant ? 1.7 : 2.4));
+        if (w.syn.bolt && Math.random() < 0.5) {
+          const pts = jaggedPath([{ x: bx, y: by }, { x: tx, y: ty }], 9);
+          ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.8; ctx.stroke();
+        }
+        if (w.syn.frost) drawGlow(ctx, "#bae6fd", tx - c * 20, ty - s * 20, w.width * 1.4);
+        if (w.syn.toxic) drawGlow(ctx, "#a3e635", tx - c * 40, ty - s * 40, w.width * 1.3);
+        if (w.syn.fire) drawGlow(ctx, Math.random() < 0.5 ? "#fb923c" : "#fde047", tx - c * 10, ty - s * 10, w.width * 1.8);
+        ctx.globalAlpha = 1;
+        ctx.lineCap = "butt";
+        ctx.globalCompositeOperation = "source-over";
+        return;
+      }
+      // 회전 도끼: 빙글빙글 도는 도끼날 2개 (쌍날) + 회전 잔상 고리 + 융합 빛
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.35 * a;
+      ctx.beginPath(); ctx.arc(w.x, w.y, w.r * 0.95, w.spin, w.spin + 4.2);
+      ctx.strokeStyle = col; ctx.lineWidth = w.r * 0.35; ctx.stroke();
+      ctx.globalAlpha = 0.6 * a;
+      drawGlow(ctx, w.syn.fire ? "#fb923c" : (w.syn.frost ? "#bae6fd" : (w.syn.toxic ? "#a3e635" : (w.syn.bolt ? "#c4b5fd" : col))), w.x, w.y, w.r * 1.4);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = a;
+      const WS = meleeWeaponStyle(), k = w.r / 26;
+      ctx.save();
+      ctx.translate(w.x, w.y);
+      ctx.rotate(w.spin);
+      metalBar(ctx, -3 * k, -14 * k, 6 * k, 28 * k, ["#a16207", "#57340f", "#1c0a02"]);
+      drawAxeHead(ctx, 0, Object.assign({}, WS, { double: true }), 0, 0, k * 0.95);
+      ctx.restore();
+      if (w.syn.bolt && Math.random() < 0.4) {
+        const an = Math.random() * 6.28, pts = jaggedPath([{ x: w.x, y: w.y }, { x: w.x + Math.cos(an) * w.r * 1.5, y: w.y + Math.sin(an) * w.r * 1.5 }], 6);
+        ctx.globalCompositeOperation = "lighter";
+        ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
+        ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.6; ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      }
+      ctx.globalAlpha = 1;
+    }
     function updateMeleeWaves() {
       for (let i = waveScars.length - 1; i >= 0; i--) if (--waveScars[i].life <= 0) waveScars.splice(i, 1);
       for (let i = slashHits.length - 1; i >= 0; i--) if (--slashHits[i].life <= 0) slashHits.splice(i, 1);
       for (let i = meleeWaves.length - 1; i >= 0; i--) {
         const w = meleeWaves[i];
+        if (w.style) { if (updateStyleWave(w)) meleeWaves.splice(i, 1); continue; } // v48 창격파 · 회전 도끼
         if (w.d >= w.dMax) { if (++w.fade > WAVE_FADE) meleeWaves.splice(i, 1); continue; }
         w.d = Math.min(w.dMax, w.d + w.speed);
         // 지나간 바닥에 칼자국 (4칸마다 하나, 0.3초 동안 남음)
@@ -11149,6 +11758,7 @@
       else drawSlashHits();
       if (!meleeWaves.length) return;
       for (const w of meleeWaves) {
+        if (w.style) { if (!floor) drawStyleWave(w, timestamp); continue; } // v48 (몹 위에 그림)
         if (w.sword === !!floor) continue;
         let a = w.fade ? 0.55 * (1 - w.fade / WAVE_FADE) : Math.min(1, 0.45 + (w.dMax - w.d) / (w.dMax * 0.3));
         if (w.sword && !w.fade) a *= Math.max(0.3, Math.min(1, (w.d - w.d0) / 90)); // 몸 근처에서는 옅게 → 캐릭터를 가리지 않음
@@ -11398,7 +12008,10 @@
       hammer: { kind: "quake", name: "🌋 대지 붕괴", color: "#f59e0b", tint: "#451a03" },
       // v46: 서머너 = 발밑 거대 마법진에서 망령 떼가 소용돌이치며 화면 끝까지 퍼짐 / 트릭스터 = 거대한 카드가 화면을 가로지르고 금빛 칩이 터짐
       summoner: { kind: "spirits", name: "👻 망령 군단 강림", color: "#c084fc", tint: "#2e1065" },
-      trickster: { kind: "cards", name: "🎰 잭팟 쇼타임", color: "#f472b6", tint: "#4a044e" }
+      trickster: { kind: "cards", name: "🎰 잭팟 쇼타임", color: "#f472b6", tint: "#4a044e" },
+      // v48: 랜서 = 하늘에서 거대한 빛의 창이 쏟아져 꽂힘 / 버서커 = 거대한 도끼를 휘두르며 회오리처럼 화면을 쓸어버림
+      lancer: { kind: "spears", name: "🌠 천창 낙하", color: "#fde68a", tint: "#172554" },
+      berserker: { kind: "whirl", name: "🌪️ 학살의 회오리", color: "#f87171", tint: "#450a0a" }
     };
     // 2층 중간 보스(Lv12 · 10분 경과 기준) 체력 × 1.05. 캐릭터·강화·레벨과 상관없이 모두 같음
     function ultDamage() {
@@ -11467,6 +12080,8 @@
       if (kind === "blades") { sfxNoise({ filter: "bandpass", freq: 4200, freqEnd: 900, dur: 0.25, vol: 0.12, q: 1.2 }); sfxNoise({ filter: "bandpass", freq: 3600, freqEnd: 800, dur: 0.25, vol: 0.1, q: 1.2, delay: 0.1 }); }
       if (kind === "quake") { sfxNoise({ filter: "lowpass", freq: 160, freqEnd: 50, dur: 0.75, vol: 0.26 }); sfxTone({ freq: 46, freqEnd: 30, dur: 0.7, vol: 0.16, type: "triangle" }); }
       if (kind === "spirits") { sfxTone({ type: "sine", freq: 440, freqEnd: 220, dur: 0.6, vol: 0.08, wet: 0.8 }); sfxNoise({ filter: "bandpass", freq: 700, freqEnd: 300, q: 1.2, dur: 0.6, vol: 0.14, attack: 0.15, wet: 0.6 }); }
+      if (kind === "spears") { sfxNoise({ filter: "highpass", freq: 1500, freqEnd: 6000, dur: 0.25, vol: 0.12 }); sfxTone({ freq: 110, freqEnd: 45, dur: 0.4, vol: 0.2 }); }
+      if (kind === "whirl") { sfxNoise({ filter: "bandpass", freq: 500, freqEnd: 1800, q: 1.2, dur: 0.45, vol: 0.18, attack: 0.08 }); sfxTone({ freq: 85, freqEnd: 40, dur: 0.35, vol: 0.2, delay: 0.1 }); }
       if (kind === "cards") { for (let k = 0; k < 3; k++) sfxTone({ type: "triangle", freq: [1046, 1318, 1568][k], dur: 0.14, vol: 0.06, delay: k * 0.07, wet: 0.4 }); sfxNoise({ filter: "lowpass", freq: 1500, freqEnd: 120, dur: 0.3, vol: 0.14 }); }
     }
     // 피해 1회: 화면 안(조금 여유)의 모든 적 + 일반 탄환 지우기
@@ -11475,7 +12090,7 @@
       for (let j = monsters.length - 1; j >= 0; j--) {
         const m = monsters[j];
         if (Math.abs(m.x - player.x) > V.hw + m.radius + 30 || Math.abs(m.y - player.y) > V.hh + m.radius + 30) continue;
-        if (def.kind === "quake" && !m.isBoss) knockback(m, player.x, player.y, m.isElite ? 4 : 12);
+        if ((def.kind === "quake" || def.kind === "whirl") && !m.isBoss) knockback(m, player.x, player.y, m.isElite ? 4 : 12);
         if (def.kind === "blizzard" && !m.isBoss && !m.isElite) m.stunUntil = m.frozenUntil = playTimeMs + 600;
         m.hp -= hurt(m, dmg, "ult");
         addHitEffect({ x: m.x, y: m.y, radius: 22, life: 10, maxLife: 10, color: def.color });
@@ -11513,6 +12128,12 @@
         if (f.t === "bigcrack") f.d = Math.min(f.L, f.d + 30);
         if (f.t === "ghost") { f.r += f.sp; f.a += f.spin; f.x = player.x + Math.cos(f.a) * f.r; f.y = player.y + Math.sin(f.a) * f.r * 0.9; } // v46 나선으로 퍼지는 망령
         if (f.t === "card") f.rot += f.vr;
+        if (f.t === "wring") f.r += f.sp;
+        if (f.t === "spear" && f.life === 1) { // v48 빛의 창이 땅에 꽂힘: 충격 고리 + 꽂힌 창(바닥에 잠깐 남음)
+          ult.fx.push({ t: "stab", x: f.tx, y: f.ty, ang: f.ang, life: 70, maxLife: 70 });
+          ult.fx.push({ t: "pring", x: f.tx, y: f.ty, r: 90, life: 18, maxLife: 18 });
+          if (sfxReady("ultStab", 80)) sfxNoise({ filter: "lowpass", freq: 900, freqEnd: 100, dur: 0.22, vol: 0.1 });
+        }
         if (f.t === "ering") f.r += f.sp;
         if (f.t === "meteor" && f.life === 1) {
           ult.fx.push({ t: "boom", x: f.tx, y: f.ty, r: f.r * 5.5, life: 20, maxLife: 20 });
@@ -11613,6 +12234,13 @@
           F.push({ t: "ghost", x: cx, y: cy, a: Math.random() * Math.PI * 2, r: 10, sp: sp, spin: (Math.random() < 0.5 ? -1 : 1) * (0.025 + Math.random() * 0.02), life: life, maxLife: life, ph: Math.random() * 6 });
         }
         if (Math.random() < 0.3) F.push({ t: "rise", x: rx(), y: ry(), life: 34, maxLife: 34 });
+      } else if (def.kind === "spears") {
+        // v48 천창 낙하: 하늘에서 비스듬히 떨어지는 거대한 빛의 창 (틱당 0.5개)
+        if (Math.random() < 0.5) F.push({ t: "spear", tx: rx(), ty: ry(), ang: (Math.random() - 0.5) * 0.5, life: 16, maxLife: 16 });
+      } else if (def.kind === "whirl") {
+        // v48 학살의 회오리: 화면 곳곳을 휩쓰는 붉은 호 베기 + 퍼지는 회오리 고리
+        if (Math.random() < 0.6) F.push({ t: "arcslash", r: 70 + Math.random() * diag * 0.9, a0: Math.random() * Math.PI * 2, span: 1 + Math.random() * 1.2, w: 10 + Math.random() * 14, life: 16, maxLife: 16 });
+        if (Math.round(mainT * ULT_MAIN_MS / SIM_STEP_MS) % 14 === 0) F.push({ t: "wring", r: 40, sp: diag / 22, life: 24, maxLife: 24 });
       } else if (def.kind === "cards") {
         // v46 잭팟 쇼타임: 화면 밖에서 날아와 가로지르는 거대한 카드 + 금빛 칩 폭죽
         if (Math.random() < 0.45) {
@@ -11683,7 +12311,25 @@
       const def = ult.def;
       ctx.lineCap = "round";
       for (const f of ult.fx) {
-        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering" || f.t === "rune" || f.t === "rise") !== !!floor) continue;
+        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering" || f.t === "rune" || f.t === "rise" || f.t === "stab") !== !!floor) continue;
+        if (f.t === "stab") { // v48 땅에 꽂혀 남은 빛의 창 + 갈라진 땅
+          const fa = Math.min(1, f.life / 20);
+          ctx.globalAlpha = 0.6 * fa;
+          ctx.strokeStyle = "#1c1917"; ctx.lineWidth = 3;
+          ctx.beginPath();
+          for (let k = 0; k < 5; k++) { const an = k * 1.2566 + f.ang; ctx.moveTo(f.x, f.y); ctx.lineTo(f.x + Math.cos(an) * 34, f.y + Math.sin(an) * 18); }
+          ctx.stroke();
+          ctx.globalAlpha = fa;
+          ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(-Math.PI / 2 + f.ang);
+          metalBar(ctx, 0, -2.5, 70, 5, ["#fef9c3", "#fbbf24", "#78350f"]);
+          drawSpearTip(ctx, meleeWeaponStyle().tip ? meleeWeaponStyle() : DEFAULT_SPEAR, -8, 0, -1.6);
+          ctx.restore();
+          ctx.globalCompositeOperation = "lighter";
+          drawGlow(ctx, "#fde68a", f.x, f.y, 26 * fa);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+          continue;
+        }
         if (f.t === "rune") { // v46 서머너: 발밑에서 화면만큼 커지며 도는 소환 마법진 (원 2겹 + 오각별 + 룬 점)
           const t = playTimeMs - ult.t0, grow = Math.min(1, t / 700), R = fastHypot(ultView().hw, ultView().hh) * 0.62 * grow;
           const env = Math.min(1, (ULT_TOTAL_MS - t) / 400);
@@ -11873,6 +12519,38 @@
           drawCardShape(ctx, -f.w / 2, -f.w * 0.7, f.w, f.w * 1.4, f.suit === "J" ? { back: ["#fef9c3", "#eab308", "#713f12"] } : DEFAULT_DECK, f.suit);
           ctx.restore();
           ctx.globalCompositeOperation = "lighter";
+        } else if (f.t === "spear") {
+          // v48 떨어지는 빛의 창: 위에서 비스듬히 내리꽂힘 (빛 꼬리 + 창날)
+          const p = f.life / f.maxLife, x = f.tx + Math.sin(f.ang) * 520 * p, y = f.ty - 520 * p;
+          ctx.globalAlpha = 0.9;
+          ctx.beginPath(); ctx.moveTo(x + Math.sin(f.ang) * 160, y - 160); ctx.lineTo(x, y);
+          ctx.strokeStyle = "rgba(253, 230, 138, 0.45)"; ctx.lineWidth = 16; ctx.stroke();
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.lineWidth = 4; ctx.stroke();
+          drawGlow(ctx, "#fde68a", x, y, 40);
+          ctx.globalAlpha = 0.4 * (1 - p);
+          ctx.beginPath(); ctx.ellipse(f.tx, f.ty, 34, 14, 0, 0, Math.PI * 2);
+          ctx.strokeStyle = "#fde68a"; ctx.lineWidth = 2; ctx.stroke();
+        } else if (f.t === "pring") {
+          const p = 1 - f.life / f.maxLife, a = f.life / f.maxLife;
+          ctx.globalAlpha = a;
+          ctx.beginPath(); ctx.ellipse(f.x, f.y, f.r * (0.3 + p), f.r * (0.15 + p * 0.5), 0, 0, Math.PI * 2);
+          ctx.strokeStyle = "#fef9c3"; ctx.lineWidth = 5 * a + 1; ctx.stroke();
+          drawGlow(ctx, "#fbbf24", f.x, f.y, f.r * 0.8 * a);
+        } else if (f.t === "arcslash") {
+          // v48 붉은 호 베기: 내 주위를 크게 도는 두툼한 베기 자국이 그어졌다 사라짐
+          const p = 1 - f.life / f.maxLife, sweep = Math.min(1, p * 2.5), a = p < 0.5 ? 1 : (1 - p) / 0.5;
+          const a1 = f.a0 + f.span * sweep;
+          ctx.globalAlpha = 0.35 * a;
+          ctx.beginPath(); ctx.arc(player.x, player.y, f.r, f.a0, a1);
+          ctx.strokeStyle = "#ef4444"; ctx.lineWidth = f.w * 2.2; ctx.stroke();
+          ctx.globalAlpha = 0.9 * a;
+          ctx.strokeStyle = "#fee2e2"; ctx.lineWidth = f.w * 0.4; ctx.stroke();
+          if (sweep < 1) { ctx.globalAlpha = 1; drawGlow(ctx, "#fecaca", player.x + Math.cos(a1) * f.r, player.y + Math.sin(a1) * f.r, f.w * 2); }
+        } else if (f.t === "wring") {
+          const a = f.life / f.maxLife;
+          ctx.globalAlpha = 0.5 * a;
+          ctx.beginPath(); ctx.arc(player.x, player.y, f.r, 0, Math.PI * 2);
+          ctx.strokeStyle = "#f87171"; ctx.lineWidth = 12 * a + 2; ctx.stroke();
         } else if (f.t === "chips") {
           // v46 금빛 칩 폭죽
           const p = 1 - f.life / f.maxLife, a = f.life / f.maxLife;
@@ -11919,12 +12597,13 @@
       const env = Math.min(1, t / 300, (ULT_TOTAL_MS - t) / 400);
       ctx.fillStyle = rgba(def.tint, 0.3 * env);
       ctx.fillRect(0, 0, W, H);
-      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado" || def.kind === "blades" || def.kind === "spirits" || def.kind === "cards") {
+      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado" || def.kind === "blades" || def.kind === "spirits" || def.kind === "cards" || def.kind === "spears" || def.kind === "whirl") {
         const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
         g.addColorStop(0, "rgba(0,0,0,0)");
         g.addColorStop(1, def.kind === "blizzard" ? `rgba(224, 242, 254, ${0.55 * env})` : def.kind === "quake" ? `rgba(68, 34, 8, ${0.5 * env})`
           : def.kind === "blades" ? `rgba(56, 189, 248, ${0.2 * env})` : def.kind === "spirits" ? `rgba(46, 16, 101, ${0.6 * env})`
-          : def.kind === "cards" ? `rgba(250, 204, 21, ${0.22 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
+          : def.kind === "cards" ? `rgba(250, 204, 21, ${0.22 * env})` : def.kind === "spears" ? `rgba(253, 230, 138, ${0.25 * env})`
+          : def.kind === "whirl" ? `rgba(127, 29, 29, ${0.5 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, W, H);
       }
@@ -12327,7 +13006,7 @@
       { id: "fireRate", name: "🚀 공격 속도 (발사 속도 증폭)", key: "hasteLevel", gun: true },
       { id: "bulletCaliber", name: "💥 공격력 (대구경 탄환)", key: "bulletCaliberLevel", gun: true },
       { id: "multishot", name: "🏹 멀티 샷 · 🌙 검기 날리기 · 🌋 대지 가르기", key: "multishotLevel", gun: true },
-      { id: "meleeRange", name: "📐 공격 범위 확장 (블레이드·브레이커)", key: "meleeRangeLevel", gun: true },
+      { id: "meleeRange", name: "📐 공격 범위 확장 (근접 캐릭터)", key: "meleeRangeLevel", gun: true },
       { id: "speed", name: "⚡ 이동속도 (기동성 향상)", key: "speedLevel", walk: true },
       { id: "magnet", name: "🧲 자석 강화", key: "magnetLevel" },
       { id: "armor", name: "🦾 나노 강화 장갑", key: "armorLevel" },
@@ -12957,7 +13636,7 @@
       // 발사 (도주전·메테오 스톰 보너스 모드는 공격 없음). v38: 근접 캐릭터는 탄환 대신 근접 공격 (미리보기에서도 항상)
       if (timestamp - player.lastFired > player.fireRate && (gameState !== "preview" || previewDef.gun || isMeleeChar()) && bonusCanAttack() && !ult.active) {
         if (isMeleeChar()) {
-          if (meleeAttack()) player.lastFired = timestamp; // 휘두를 대상이 없으면 다음 프레임에 다시
+          if (meleeAttack()) player.lastFired = timestamp - player.fireRate * (1 - 1 / rageMult()); // 휘두를 대상이 없으면 다음 프레임에 다시 · v48 버서커 광폭화면 간격 단축
         } else {
           shootBullet();
           player.lastFired = timestamp;
@@ -14267,7 +14946,7 @@
       const dashing = playTimeMs < player.dashUntil;
       let drawAngle = angle;
       if (dashing && player.dashStyle === "tumble") drawAngle = player.dashAngle + (1 - (player.dashUntil - playTimeMs) / DASH_TIME) * Math.PI * 2;
-      if (!dashing) { const sw = meleeSwingPose(); if (sw) { drawSwingTrail(x, y, sw); drawAngle = sw.ang; } }
+      if (!dashing) { const sw = meleeSwingPose(); if (sw) { drawSwingTrail(x, y, sw); drawAngle = sw.ang; if (sw.poke) { x += Math.cos(sw.s.ang) * sw.poke; y += Math.sin(sw.s.ang) * sw.poke; } } }
       if (dashing && player.dashStyle === "teleport") {
         ctx.globalCompositeOperation = "lighter";
         drawGlow(ctx, "#facc15", x, y, 26 + Math.random() * 10);
@@ -15787,6 +16466,7 @@
       drawChronoFrozen(timestamp, inView); // v46 시간 정지로 멈춘 몹 표시
       drawMinions(timestamp);      // v46 서머너 영혼 하수인
       drawBonusTop(timestamp);     // v47 결계 · 악마 사도 · 고블린 진행 막대 · 떠오르는 글씨
+      drawRageAura(timestamp);     // v48 버서커 광폭화
 
       // 동료 (플레이어 뒤에서 따라다니므로 플레이어보다 먼저 그림)
       drawPetWorld(timestamp);
