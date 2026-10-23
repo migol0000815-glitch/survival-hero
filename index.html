@@ -1351,7 +1351,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v50 · 2026-10-23";
+    const GAME_VERSION = "v52 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1951,8 +1951,8 @@
         equip: Object.assign(d.equip, c.equip),
         pet: PETS[c.pet] ? c.pet : d.pet,
         petSkin: Object.assign(d.petSkin, c.petSkin),
-        lvl: Math.max(1, Math.floor(+c.lvl || 1)),
-        xp: Math.max(0, +c.xp || 0),
+        lvl: Math.min(CHAR_MAX_LV, Math.max(1, Math.floor(+c.lvl || 1))), // v52: 최대 100 (예전 저장의 100 초과 값도 100으로)
+        xp: Math.floor(+c.lvl || 1) >= CHAR_MAX_LV ? 0 : Math.max(0, +c.xp || 0),
         slotTickets: Math.max(0, Math.floor(+c.slotTickets || 0)),
         relics: c.relics && typeof c.relics === "object" ? c.relics : {},
         clears: Math.max(0, Math.floor(+c.clears || 0)),
@@ -1961,20 +1961,34 @@
     }
 
     // ===== 캐릭터 레벨: 층을 클리어하면 경험치, 10레벨마다 슬롯머신 1회 (아이템 3개 영구 귀속) =====
-    function charXpNeed(lv) { return 60 + 30 * (lv - 1); }
+    // v52: 최대 Lv100 · 레벨마다 기본 체력 +1.5% · 기본 공격력 +1% · 이동속도 +0.2% (최대 +20%)
+    //      필요 경험치 60+30×(Lv−1) → 50+20×(Lv−1): 1~10층을 한 번씩 클리어하면 약 Lv15
+    const CHAR_MAX_LV = 100;
+    const CHAR_LV_GROWTH = { hp: 0.015, atk: 0.01, spd: 0.002, spdCap: 0.2 };
+    function charXpNeed(lv) { return 50 + 20 * (lv - 1); }
+    // 레벨 보너스 배율 (Lv1 = 모두 ×1)
+    function charLvBonus(id) {
+      const l = Math.min(CHAR_MAX_LV, Math.max(1, cs(id).lvl || 1)) - 1, g = CHAR_LV_GROWTH;
+      return { hp: 1 + l * g.hp, atk: 1 + l * g.atk, spd: 1 + Math.min(g.spdCap, l * g.spd) };
+    }
+    function charLvBonusText(id) {
+      const b = charLvBonus(id);
+      return `❤️ +${Math.round((b.hp - 1) * 1000) / 10}% · ⚔️ +${Math.round((b.atk - 1) * 1000) / 10}% · 👟 +${Math.round((b.spd - 1) * 1000) / 10}%`;
+    }
     // 층 클리어 경험치: 1층 120 → 층마다 +25% (5층 240, 10층 390)
     function floorClearXp(floor) { return Math.round(120 * (1 + (floor - 1) * 0.25)); }
-    // 경험치를 더하고, 오른 레벨 목록을 돌려줌 (10의 배수 레벨마다 슬롯 기회 +1)
+    // 경험치를 더하고, 오른 레벨 목록을 돌려줌 (10의 배수 레벨마다 슬롯 기회 +1). 최대 레벨이면 경험치는 쌓이지 않음
     function addCharXp(amount, id) {
       const c = cs(id);
       const ups = [];
-      c.xp += Math.round(amount);
-      while (c.xp >= charXpNeed(c.lvl)) {
+      c.xp += Math.round(amount) || 0;
+      while (c.lvl < CHAR_MAX_LV && c.xp >= charXpNeed(c.lvl)) {
         c.xp -= charXpNeed(c.lvl);
         c.lvl++;
         ups.push(c.lvl);
         if (c.lvl % 10 === 0) { c.slotTickets++; slotAutoPending = true; }
       }
+      if (c.lvl >= CHAR_MAX_LV) c.xp = 0;
       return ups;
     }
     let slotAutoPending = false; // 새 슬롯 기회가 생기면 메인 화면에 돌아올 때 슬롯 창을 바로 띄움
@@ -2080,24 +2094,48 @@
         shooterSpread: 2, shotSpeed: 5, shooterInterval: 5500, shotColor: "#c084fc" }
     ];
     // 층 난이도는 계단식으로 튀지 않게 완만한 곡선으로 증가 (골드 보상은 층당 +50%)
-    //  - 몹 체력: 0.72 + 0.18×(층-1) + 0.004×(층-1)² → 1층 ×0.72(초보 구간), 2층 ×0.9, 5층 ×1.5, 10층 ×2.66, 20층 ×5.58
-    //  - 몹 이동속도: 1층 ×0.75 → 7층부터 ×1.0 / 몹 공격력: 1층 ×0.8 → 5층부터 ×1.0 (조금씩 올라감)
+    //  - 몹 체력·공격력·스폰 속도·보스 체력: v52부터 아래 floorCurve (FLOOR_TUNE)
+    //  - 몹 이동속도: 1층 ×0.75 → 7층부터 ×1.0
     //  - 원거리 몹: 등장 비율·탄 갈래 수·탄속·연사 속도가 층에 따라 서서히 강해짐 (floorTier 0 → 1, 15층에서 최대)
     //    맵 테마의 탄막 특징(3갈래·빠른 탄 등)은 낮은 층에서 약하게 시작해 높은 층에서 원래 세기가 됨
-    // v38: 몹 공격력은 5층 이후에도 층당 +4%, 보스 체력은 층당 +12% (예전엔 보스 체력이 층과 무관)
     const FLOOR_REWARD_STEP = 0.5;
+    // v52: 층 난이도 재설계 — 1~10층은 완만한 복리 성장, 11층에서 한 번 크게 뛰는 벽(Soft Wall), 그 뒤로 다시 완만하게
+    //  - 몹 체력: 1층 ×0.72 → 층당 +16% (10층 ×2.75) → 11층 벽 ×1.9 (×5.2) → 층당 +7%
+    //  - 몹 공격력: 1층 ×0.8 → 층당 +6% (10층 ×1.35) → 11층 ×1.2 → 층당 +4%
+    //  - 스폰 속도: 1층 ×1.0 → 층당 +3% (10층 ×1.27) → 11층 ×1.35 → 층당 +2% (최대 ×2.5)
+    //  - 보스 체력: 층당 +12% → 11층 ×1.35 → 층당 +6%
+    //  시뮬레이션(회피 봇, 10캐릭터): Lv1 무강화 1~3층 클리어 85·85·60% / 1~9층 클리어 후 10층 첫 도전(Lv13) 75%
+    //   Lv20·상점2로 1층 재진입 100%(몹 평타 0.3대) / 같은 스펙 11층 약 40% → Lv35·상점8 약 90% → Lv50·상점12 약 97%
+    // 수치는 FLOOR_TUNE 한곳에서 조절 (시뮬레이션 probe_floor.js 로 맞춤)
+    const FLOOR_TUNE = {
+      hp1: 0.72, hpGrow: 0.16, hpWall: 1.9, hpGrowLate: 0.07,
+      dmg1: 0.8, dmgGrow: 0.06, dmgWall: 1.2, dmgGrowLate: 0.04,
+      spawnGrow: 0.03, spawnWall: 1.35, spawnGrowLate: 0.02, spawnMax: 2.5,
+      bossGrow: 0.12, bossWall: 1.35, bossGrowLate: 0.06, wallFloor: 11
+    };
+    // 층 → { hp, dmg, spawn, boss } 배율. 벽 이전 구간은 복리, 벽에서 한 번 곱하고 그 뒤로 다시 복리
+    function floorCurve(floor) {
+      const T = FLOOR_TUNE, w = T.wallFloor;
+      const pre = Math.min(floor, w - 1) - 1, post = Math.max(0, floor - w), wall = floor >= w;
+      return {
+        hp: T.hp1 * Math.pow(1 + T.hpGrow, pre) * (wall ? T.hpWall * Math.pow(1 + T.hpGrowLate, post) : 1),
+        dmg: T.dmg1 * Math.pow(1 + T.dmgGrow, pre) * (wall ? T.dmgWall * Math.pow(1 + T.dmgGrowLate, post) : 1),
+        spawn: Math.min(T.spawnMax, (1 + T.spawnGrow * pre) * (wall ? T.spawnWall * (1 + T.spawnGrowLate * post) : 1)),
+        boss: (1 + T.bossGrow * pre) * (wall ? T.bossWall * Math.pow(1 + T.bossGrowLate, post) : 1)
+      };
+    }
     const stageCache = {};
     function getStage(floor) {
       if (!stageCache[floor]) {
         const theme = STAGE_THEMES[(floor - 1) % STAGE_THEMES.length];
         const f = floor - 1;
         const tier = Math.min(1, f / 14);
-        const hp = +(0.72 + f * 0.18 + f * f * 0.004).toFixed(2);
+        const curve = floorCurve(floor);
+        const hp = +curve.hp.toFixed(2);
         const mobSpeed = +(0.75 + 0.25 * Math.min(1, f / 6)).toFixed(3);
-        // v38: 5층 이후에도 몹 공격력이 층당 +4%씩 계속 오름 (예전엔 5층부터 ×1.0 고정)
-        const dmg = +(0.8 + 0.2 * Math.min(1, f / 4) + 0.04 * Math.max(0, f - 4)).toFixed(2);
-        // v38: 보스·최종 보스 체력도 층당 +12% (예전엔 모든 층 동일)
-        const bossMult = +(1 + f * 0.12).toFixed(2);
+        const dmg = +curve.dmg.toFixed(2);
+        const bossMult = +curve.boss.toFixed(2);
+        const spawn = +curve.spawn.toFixed(2);
         const reward = +(1 + f * FLOOR_REWARD_STEP).toFixed(1);
         // 여러 갈래 사격은 8층부터 2갈래, 13층부터 테마 원래 갈래 수. 갈래가 많을수록 발사 간격을 늘려 총 탄 수는 완만하게
         const spread = floor < 8 ? 1 : (floor < 13 ? Math.min(2, theme.shooterSpread) : theme.shooterSpread);
@@ -2108,9 +2146,9 @@
         stageCache[floor] = Object.assign({}, theme, {
           floor: floor, theme: theme.id, obstacle: theme.id,
           name: `${floor}층 · ${theme.name}`,
-          desc: (floor === 1 ? "초보 구간 · " : "") + `몹 체력 ×${hp}` + (mobSpeed < 1 ? ` · 몹 속도 ×${+mobSpeed.toFixed(2)}` : "") +
-            (dmg !== 1 ? ` · 몹 공격력 ×${dmg}` : "") + (bossMult > 1 ? ` · 보스 체력 ×${bossMult}` : "") + ` · 골드 보상 ×${reward} · ${attackDesc}`,
-          hp: hp, dmg: dmg, boss: bossMult, reward: reward, mobSpeed: mobSpeed, shooterLv: 10,
+          desc: (floor === 1 ? "초보 구간 · " : "") + (floor === FLOOR_TUNE.wallFloor ? "⚠️ 고난도 구간 시작 · " : "") + `몹 체력 ×${hp}` + (mobSpeed < 1 ? ` · 몹 속도 ×${+mobSpeed.toFixed(2)}` : "") +
+            (dmg !== 1 ? ` · 몹 공격력 ×${dmg}` : "") + (spawn > 1 ? ` · 몹 출현 ×${spawn}` : "") + (bossMult > 1 ? ` · 보스 체력 ×${bossMult}` : "") + ` · 골드 보상 ×${reward} · ${attackDesc}`,
+          hp: hp, dmg: dmg, boss: bossMult, spawn: spawn, reward: reward, mobSpeed: mobSpeed, shooterLv: 10,
           shooterSpread: spread, shotSpeed: shotSpeed, shooterInterval: shooterInterval, attackDesc: attackDesc,
           // 원거리 몹 등장 비율 (Lv10부터 등장, Lv10 절반 → Lv16에 최대): 1층 20% → 15층 25%
           shooterChance: 0.2 + 0.05 * tier,
@@ -3042,6 +3080,7 @@
     }
     // v48 창날 (밑동 (x, y), +x 방향으로 뻗음, 크기 k). 기본 잎 모양 / trident 삼지창 / halberd 할버드(도끼날 + 창날)
     function drawSpearTip(g, W, x, y, k) {
+      if (!W || !W.tip) W = DEFAULT_SPEAR; // v52: 창 찌르기 연출이 남은 채 다른 무기(창 아님)로 바뀌면 W.tip 이 없어 오류 → 기본 창날
       const fill = () => { const sg = g.createLinearGradient(x, y - 6 * k, x, y + 6 * k); sg.addColorStop(0, W.tip[0]); sg.addColorStop(0.5, W.tip[1]); sg.addColorStop(1, W.tip[2]); g.fillStyle = sg; g.fill(); g.strokeStyle = "#0f172a"; g.lineWidth = 0.9; g.stroke(); };
       g.fillStyle = "#475569"; g.fillRect(x - 1.5 * k, y - 2.6 * k, 3 * k, 5.2 * k); // 쇠 고리
       if (W.trident) {
@@ -5370,7 +5409,8 @@
       if (bossArena.active || finalBossDefeated || bossIntro) return;
       // v44: 초반(Lv8까지)은 스폰 간격 ×0.6 · 한 번에 +1마리 + 6초마다 한 방향에서 잡몹 떼(5~8마리)가 몰려옴
       const early = player.level <= EARLY_SPAWN_LV && !bonus;
-      const spawnInterval = Math.max(260, 920 - (player.level - 1) * 55) * (early ? 0.6 : 1);
+      // v52: 층 스폰 배율(currentStage().spawn)만큼 간격이 짧아짐 (보너스 게임은 ×1)
+      const spawnInterval = Math.max(260, 920 - (player.level - 1) * 55) * (early ? 0.6 : 1) / (bonus ? 1 : currentStage().spawn || 1);
       if (timestamp - lastSpawnTime > spawnInterval) {
         const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3) + (early ? 1 : 0), MAX_MONSTERS - monsters.length);
         for (let i = 0; i < count; i++) spawnMonster();
@@ -6913,7 +6953,13 @@
     function statOf(src) {
       return combatStats[src] || (combatStats[src] = { dmg: 0, kills: 0 });
     }
+    // v51: 피해는 항상 화면 안에서만 — 스킬이 화면 밖까지 날아가도 화면 밖 몹은 맞지도 죽지도 않음 (몸이 조금이라도 보이면 화면 안)
+    function onScreen(m) {
+      const s = currentViewScale || 1, r = m.radius || 0; // 카메라는 항상 플레이어가 가운데
+      return Math.abs(m.x - player.x) - r <= canvas.width / s / 2 && Math.abs(m.y - player.y) - r <= canvas.height / s / 2;
+    }
     function hurt(m, dmg, src) {
+      if (!onScreen(m)) return 0;
       if (m.goblin && bonus && dmg > 0 && src !== "summon") goblinHit(m); // 💰 황금 고블린: 맞을 때마다 골드·금화 (v47: 서머너 하수인 타격은 제외)
       if (dmg > 0 && m.hp > 0) statOf(src).dmg += Math.min(dmg, m.hp); // 오버킬은 제외
       m.lastSrc = src;
@@ -7635,7 +7681,7 @@
     // 대시 쿨타임 = 5초 - 상점 강화(단계당 0.1초, 최대 0.5초) - 레벨업 스킬 '대시 쿨타임 감소'(레벨당 0.3초, 최대 1.5초), 최소 3초
     function dashCooldown() {
       const cd = Math.max(DASH_COOLDOWN_MIN, DASH_COOLDOWN - (cs().shop.dash || 0) * 100 - player.dashSkillLevel * 300);
-      return bonus && bonus.mode === "devil" ? cd * 0.2 : cd; // 악마의 계약: 쿨타임 -80%
+      return bonus && bonus.mode === "devil" ? DEVIL_TUNE.dashMs : cd; // v51 타락의 탑: 대시 쿨타임 0.5초 고정
     }
     function barrierCooldown(lv) { return 14000 - (lv - 1) * 2000; } // Lv1 14초 → Lv5 6초
     function barrierReady() { return player.barrierLevel > 0 && playTimeMs >= player.barrierReadyAt; }
@@ -7651,7 +7697,9 @@
       player.dashAngle = ang;
       player.angle = ang;
       player.dashUntil = playTimeMs + DASH_TIME;
-      player.invulnUntil = playTimeMs + DASH_TIME + (devilMode() ? 0 : DASH_INVULN); // v32: 대시가 끝난 뒤에도 0.5초 더 무적 (v47 타락의 탑은 대시 중에만)
+      // v32: 대시가 끝난 뒤에도 0.5초 더 무적. v51 타락의 탑: 대시 0.5초마다 가능한 대신 무적 없음 (몸만 빠르게 빠짐)
+      if (!devilMode()) player.invulnUntil = playTimeMs + DASH_TIME + DASH_INVULN;
+      else if (DEVIL_TUNE.dashInvuln) player.invulnUntil = playTimeMs + DASH_TIME;
       player.dashReadyAt = playTimeMs + dashCooldown();
       trap.rootUntil = 0; // 늪에 묶여 있어도 대시로 탈출
       // v38: 캐릭터별 대시 모션 + 대시 중 작은 공격 효과 (startDashFx)
@@ -8303,7 +8351,8 @@
         const xp = floorClearXp(currentFloor);
         xpGain = xp;
         const ups = addCharXp(xp);
-        rewards.push(`⭐ ${currentCharacter().name} 경험치 +${xp}` + (ups.length ? ` → 캐릭터 Lv.${cs().lvl} 달성!` : ` (Lv.${cs().lvl} · ${Math.round(cs().xp)}/${charXpNeed(cs().lvl)})`));
+        rewards.push(`⭐ ${currentCharacter().name} 경험치 +${xp}` + (ups.length ? ` → 캐릭터 Lv.${cs().lvl} 달성! (${charLvBonusText()})`
+          : cs().lvl >= CHAR_MAX_LV ? ` (Lv.${CHAR_MAX_LV} MAX)` : ` (Lv.${cs().lvl} · ${Math.round(cs().xp)}/${charXpNeed(cs().lvl)})`));
         if (ups.some(l => l % 10 === 0)) rewards.push(`🎰 ${ups.filter(l => l % 10 === 0).join("·")}레벨 보상: 슬롯머신 기회 획득! (메인 화면에서 바로 돌릴 수 있어요)`);
       }
       save.gold += gold;
@@ -8344,8 +8393,10 @@
       // 메인 화면: 최고 레벨 대신 지금 고른 캐릭터의 레벨 + 경험치 바
       const c = cs();
       document.getElementById("st-best").innerText = c.lvl;
-      document.getElementById("char-xp-fill").style.width = `${Math.min(100, c.xp / charXpNeed(c.lvl) * 100)}%`;
-      document.getElementById("char-xp-text").innerText = `⭐ 캐릭터 Lv.${c.lvl} · ${Math.round(c.xp)} / ${charXpNeed(c.lvl)} EXP · 다음 슬롯 Lv.${Math.floor(c.lvl / 10) * 10 + 10}`;
+      const lvMax = c.lvl >= CHAR_MAX_LV;
+      document.getElementById("char-xp-fill").style.width = lvMax ? "100%" : `${Math.min(100, c.xp / charXpNeed(c.lvl) * 100)}%`;
+      document.getElementById("char-xp-text").innerText = lvMax ? `⭐ 캐릭터 Lv.${CHAR_MAX_LV} (MAX) · ${charLvBonusText()}`
+        : `⭐ 캐릭터 Lv.${c.lvl} · ${Math.round(c.xp)} / ${charXpNeed(c.lvl)} EXP · 다음 슬롯 Lv.${Math.floor(c.lvl / 10) * 10 + 10}`;
       const coins = save.slotCoins || 0;
       document.getElementById("menu-slot-sub").innerText = c.slotTickets || coins ? `🎟️ ${c.slotTickets}회 · 🪙 코인 ${coins}개` : "10레벨 · 보너스 클리어 보상";
       document.getElementById("btn-slot-menu").className = "menu-btn gold" + (c.slotTickets || coins ? " ready" : "");
@@ -8462,7 +8513,7 @@
         list.appendChild(btn);
       }
       const ch = currentCharacter(), atk = ATTACK_TYPES[ch.attack];
-      document.getElementById("char-desc").innerText = `⭐ 캐릭터 레벨 ${cs().lvl} · 클리어 ${cs().clears}회 (무사망 ${cs().noDeathClears}회)\n기본 공격 ${atk.name}: ${atk.desc}\n${ch.passive}`;
+      document.getElementById("char-desc").innerText = `⭐ 캐릭터 레벨 ${cs().lvl}${cs().lvl >= CHAR_MAX_LV ? " (MAX)" : ""} · 클리어 ${cs().clears}회 (무사망 ${cs().noDeathClears}회)\n레벨 보너스: ${charLvBonusText()}\n기본 공격 ${atk.name}: ${atk.desc}\n${ch.passive}`;
     }
 
     // 층은 끝없이 이어지므로 6개씩 페이지로 보여줌 (◀ ▶ 로 넘김)
@@ -8842,7 +8893,8 @@
         sec("🔗 융합 스킬 (두 스킬을 랜덤 레벨업으로 모두 배우면 자동 발동)", SYNERGIES.filter(s => s.fusion).map(s => [s.name, `${synComboText(s)}<br>${s.desc}`])) +
         sec("🎁 보너스 스테이지 (목숨 2개 · 광고 부활 1회 · 무사망 보너스)", Object.values(BONUS_MODES).map(d => [`${d.name} (${d.diffName})`, `${d.desc}<br>💰 클리어 ${d.gold}G · 무사망 +${d.noDeathGold}G`])) +
         sec("⭐ 캐릭터 레벨 · 🎰 슬롯머신", [
-          ["캐릭터 레벨", `층을 클리어하면 경험치 (1층 ${floorClearXp(1)} → 층마다 +25%, 10층 ${floorClearXp(10)}). 레벨업 필요량 60 + 30×(Lv−1). 캐릭터마다 따로 오름`],
+          ["캐릭터 레벨", `층을 클리어하면 경험치 (1층 ${floorClearXp(1)} → 층마다 +25%, 10층 ${floorClearXp(10)}). 레벨업 필요량 50 + 20×(Lv−1), 최대 Lv.${CHAR_MAX_LV}. 캐릭터마다 따로 오름`],
+          ["레벨 보너스", `레벨마다 기본 체력 +${CHAR_LV_GROWTH.hp * 100}% · 기본 공격력 +${CHAR_LV_GROWTH.atk * 100}% · 이동속도 +${CHAR_LV_GROWTH.spd * 100}% (최대 +${CHAR_LV_GROWTH.spdCap * 100}%). Lv.100이면 체력 +148.5% · 공격력 +99% · 이속 +19.8%`],
           ["슬롯머신", "캐릭터 10·20·30…레벨마다 1회. 3칸을 돌려 나온 아이템 3개가 그 캐릭터에게 영구 귀속 (골드 아이템은 즉시 지급)"]
         ].concat(RELICS.map(r => [`${r.icon} ${r.name}`, `확률 ${r.weight}%`]))) +
         sec("⚠️ 환경 함정 (판마다 무작위 · 1~9층 1종 · 10층부터 2종 동시 · 1층은 가벼운 함정만)", Object.keys(TRAP_TYPES).map(id =>
@@ -8947,9 +8999,9 @@
       // v47: 보상 3배 · 처치 목표 · 골드 피버 / 고블린 순간이동·마름쇠 덫으로 난이도 상향
       goblin: { name: "💰 황금 고블린 추격전", diff: "hard", diffName: "어려움", timeMs: 45000, gold: 600, noDeathGold: 500, speedMult: 1.15, floor: 1, attack: true,
         desc: `순간이동하고 마름쇠 덫을 뿌리며 도망치는 황금 고블린을 45초 안에 ${GOBLIN_KILL_HITS}번 때려 잡기! (멀리서 쏘면 절반은 피함 · 바짝 쫓으면 지쳐서 헛디딤) 타격마다 금화·황금 보석, 25타마다 💰 보석 주머니, 30타마다 🪙 슬롯 코인. 연속 타격으로 게이지를 채우면 10초 🔥 골드 피버(이속 ×1.5 · 금화 자동 흡수 · 골드 2배). 처치하면 🏆 황금 상자 ${GOBLIN_CHEST_GOLD.toLocaleString()}G + 슬롯 코인 1개 추가` },
-      // v47: 스치면 사망(방벽·보호막·회피 무시 · 필살기 봉인) · 몹 이속·사격 35% 빠르게 · 악마 사도 난입 · 줄어드는 결계 · 낙석·낙뢰
+      // v47: 스치면 사망(방벽·보호막·회피 무시 · 필살기 봉인) · 몹 이속·사격 35% 빠르게 · 악마 사도 난입 · 낙석·낙뢰 (v51: 결계 삭제 → 몹 체력 ×10 · 무리·포위진)
       devil: { name: "😈 악마의 계약 - 타락의 탑", diff: "hell", diffName: "지옥", timeMs: 90000, gold: 3500, noDeathGold: 1500, speedMult: 1, floor: 5, attack: true, lives: 1, noAd: true,
-        desc: "계약 조건: 체력 1 · 스치기만 해도 즉사 (방벽·보호막·회피 무시 · 부활 없음 · 필살기 봉인 · 대시 무적은 대시 중에만). 몹 이속·사격 35% 빠름 · 12초마다 유도탄/부채꼴 탄막을 쏘는 악마 사도 난입 · 15초마다 좁아지는 결계(밖에 0.6초 있으면 사망) · 낙석과 발밑 낙뢰. 대가로 쿨타임 -80% · 피해 ×5 · 무작위 스킬 4개(Lv3). 90초 생존" }
+        desc: "계약 조건: 체력 1 · 스치기만 해도 즉사 (방벽·보호막·회피 무시 · 부활 없음 · 필살기 봉인). 몹 이속 50%·사격 35% 빠름 · 12초마다 유도탄/부채꼴 탄막을 쏘는 악마 사도 난입 · 몹 체력 ×10 · 사방에서 몰려오는 무리와 포위진 · 낙석과 발밑 낙뢰. 대가로 쿨타임 -80% · 대시 0.5초(무적 없음) · 피해 ×5 · 무작위 스킬 4개(Lv3). 90초 생존" }
     };
     const BONUS_LIVES = 2;
     function bonusSpeedMult() { return bonus ? BONUS_MODES[bonus.mode].speedMult * (goldFever() ? FEVER_SPEED : 1) : 1; }
@@ -9072,7 +9124,6 @@
         (bonus.mode === "bossrush" ? ` · 보스 ${bonus.bossKills}/3` : "") +
         (bonus.mode === "goblin" ? ` · 💰 ${(bonus.goblinGold + bonus.coinGold).toLocaleString()}G · 🎯 ${bonus.goblinHits}/${GOBLIN_KILL_HITS}` +
           (goldFever() ? ` · 🔥 피버 ${Math.ceil((bonus.feverUntil - playTimeMs) / 1000)}초` : ` · 🔥 ${Math.floor(bonus.fever)}%`) : "") +
-        (bonus.mode === "devil" && bonus.zone ? ` · 🔮 결계 ${Math.round(bonus.zone.r)}` : "") +
         (bonus.mode === "devil" ? ` · 처치 ${kills} · ${bonus.skills.map(s => s.name.split(" ")[0]).join("")}` : "");
       expFill.style.width = `${Math.min(100, playTimeMs / def.timeMs * 100)}%`;
       hpFill.style.width = `${Math.max(0, player.hp / player.maxHp * 100)}%`;
@@ -9266,30 +9317,11 @@
         if (fastHypot(player.x - mk.x, player.y - mk.y) < mk.r + player.radius * 0.4) takeDamage(22);
       }
     }
-    // v47 보너스 위쪽 그림 (월드 좌표, 몹 위): 결계 · 악마 사도 예고 · 고블린 진행 막대 · 떠오르는 글씨
+    // v47 보너스 위쪽 그림 (월드 좌표, 몹 위): 악마 사도 예고 · 고블린 진행 막대 · 떠오르는 글씨
     function drawBonusTop(timestamp) {
       if (!bonus) return;
       const g = ctx;
-      if (bonus.mode === "devil" && bonus.zone) {
-        const z = bonus.zone, out = !!bonus.outSince;
-        // 결계 밖: 붉은 어둠 (큰 사각형 - 원, evenodd)
-        g.beginPath();
-        g.rect(z.x - 6000, z.y - 6000, 12000, 12000);
-        g.arc(z.x, z.y, z.r, 0, Math.PI * 2, true);
-        g.fillStyle = out ? `rgba(127, 29, 29, ${0.42 + Math.sin(timestamp / 60) * 0.12})` : "rgba(76, 5, 25, 0.32)";
-        g.fill("evenodd");
-        g.beginPath(); g.arc(z.x, z.y, z.r, 0, Math.PI * 2);
-        g.strokeStyle = "#f43f5e"; g.lineWidth = 6; g.stroke();
-        g.globalCompositeOperation = "lighter";
-        g.strokeStyle = "rgba(251, 113, 133, 0.5)"; g.lineWidth = 16; g.stroke();
-        g.globalCompositeOperation = "source-over";
-        const next = devilZoneWarn();
-        if (next) { // 다음에 줄어들 자리 (깜빡이는 점선)
-          g.setLineDash([18, 12]);
-          g.beginPath(); g.arc(z.x, z.y, next, 0, Math.PI * 2);
-          g.strokeStyle = Math.floor(timestamp / 160) % 2 ? "rgba(254, 205, 211, 0.95)" : "rgba(244, 63, 94, 0.6)"; g.lineWidth = 3; g.stroke();
-          g.setLineDash([]);
-        }
+      if (bonus.mode === "devil") { // v51: 결계(좁아지는 원) 삭제
         for (const m of monsters) {
           if (!m.devilCaster || m.dead) continue;
           g.beginPath(); g.arc(m.x, m.y, m.radius + 9 + (m.castWarn ? Math.sin(timestamp / 40) * 4 : 0), 0, Math.PI * 2);
@@ -9545,7 +9577,7 @@
         : tk ? `캐릭터 Lv.${Math.floor(c.lvl / 10) * 10} 달성 보상!<br>뽑힌 아이템 3개는 <b>${currentCharacter().name}</b>에게 영구 귀속돼요`
           : coins ? `🪙 행운의 슬롯 코인 ${coins}개 보유 (보너스 스테이지 클리어 보상)<br>뽑힌 아이템은 <b>${currentCharacter().name}</b>에게 영구 귀속 · 골드는 즉시 지급` +
               (inGame ? "<br><span style='color:#94a3b8'>능력치 아이템은 다음 판부터 적용돼요</span>" : "")
-            : `다음 기회: 캐릭터 Lv.${Math.floor(c.lvl / 10) * 10 + 10} (지금 Lv.${c.lvl}) · 🪙 코인: 보너스 스테이지 클리어`);
+            : (c.lvl >= CHAR_MAX_LV ? `캐릭터 Lv.${CHAR_MAX_LV} (MAX) · 🪙 코인: 보너스 스테이지 클리어` : `다음 기회: 캐릭터 Lv.${Math.floor(c.lvl / 10) * 10 + 10} (지금 Lv.${c.lvl}) · 🪙 코인: 보너스 스테이지 클리어`));
       document.getElementById("slot-skip").innerText = !slotTest && t > 0 ? (inGame ? "닫고 게임으로 돌아가기" : "나중에 돌리기 (메인 화면 🎰 버튼으로 언제든 가능)") : "닫기";
     }
     function spinSlot() {
@@ -9627,7 +9659,7 @@
       f = Math.max(1, Math.round(+f || 1));
       document.getElementById("dev-data-label").innerText = `${f}F`;
       const st = getStage(f);
-      const spawnIv = lv => Math.max(260, 920 - (lv - 1) * 55);
+      const spawnIv = lv => Math.max(260, 920 - (lv - 1) * 55) / (st.spawn || 1);
       const spawnN = lv => Math.min(5, 1 + Math.floor((lv - 1) / 3));
       const perMin = lv => 60000 / spawnIv(lv) * spawnN(lv);
       const shooterP = lv => lv < st.shooterLv ? 0 : Math.min(1, st.shooterChance * Math.min(1, 0.5 + (lv - st.shooterLv) * 0.085));
@@ -9645,7 +9677,20 @@
       document.getElementById("dev-floor-data").innerHTML =
         `<table class="floor-table"><tr><th>${f}F 몹 수</th><th>${r(total)}</th></tr>` +
         `<tr><td>일반</td><td>${r(cnt.normal)}</td></tr><tr><td>돌격</td><td>${r(cnt.runner)}</td></tr>` +
-        `<tr><td>탱커</td><td>${r(cnt.tanker)}</td></tr><tr><td>원거리</td><td>${r(cnt.shooter)}</td></tr></table>`;
+        `<tr><td>탱커</td><td>${r(cnt.tanker)}</td></tr><tr><td>원거리</td><td>${r(cnt.shooter)}</td></tr></table>` + floorScaleTableHtml(f);
+    }
+    // v52: 1층 ~ 최고 층(최소 15층) 난이도 표 — 일반 몹 기본 체력(Lv1·Lv12 기준), 공격력 배율(접촉 피해/초), 스폰 속도, 보스 체력
+    function floorScaleTableHtml(sel) {
+      const top = Math.max(15, save.unlockedFloor || 1, sel || 1);
+      let rows = "";
+      for (let f = 1; f <= top; f++) {
+        const s = getStage(f), wall = f === FLOOR_TUNE.wallFloor;
+        const style = f === sel ? ' style="background: rgba(56, 189, 248, 0.18)"' : wall ? ' style="background: rgba(248, 113, 113, 0.16)"' : "";
+        rows += `<tr${style}><td>${f}F${wall ? " ⚠️" : ""}</td><td>×${s.hp}</td><td>${Math.floor(10 * s.hp)} / ${Math.floor((10 + 11 * 1.6) * s.hp)}</td>` +
+          `<td>×${s.dmg} (${Math.round(0.38 * 60 * s.dmg)}/초)</td><td>×${s.spawn}</td><td>×${s.boss}</td></tr>`;
+      }
+      return `<h5>📈 층별 난이도 (1F ~ ${top}F)</h5><table class="floor-table"><tr><th>층</th><th>체력</th><th>몹 HP Lv1/12</th><th>공격력 (접촉)</th><th>스폰</th><th>보스</th></tr>${rows}</table>` +
+        `<div class="lobby-hint" style="margin-top: 4px;">몹 HP는 일반 몹 기준(시간·후반 레벨 보정 전). ${FLOOR_TUNE.wallFloor}층부터 고난도 구간(체력 ×${FLOOR_TUNE.hpWall} · 스폰 ×${FLOOR_TUNE.spawnWall}). 수치는 FLOOR_TUNE</div>`;
     }
 
     // ╔══════════════════════════════════════════════════════════════╗
@@ -11162,31 +11207,49 @@
       for (const s of bonus.skills) { player[s.key] = 3; if (s.after) s.after(3); }
       updateSynergies();
       Sound.devilPact();
-      // v47 지옥 난이도: 결계(안전 구역) · 낙석 함정 · 낙뢰 표식 · 악마 사도 난입
+      // v47 지옥 난이도: 낙석 함정 · 낙뢰 표식 · 악마 사도 난입 (v51: 결계 삭제)
       activeTraps = ["hazard"];
       trap.nextHazard = 6000;
       updateTrapHud();
-      Object.assign(bonus, { zone: { x: player.x, y: player.y, r: DEVIL_ZONE_R0, from: DEVIL_ZONE_R0, to: DEVIL_ZONE_R0, shrinkAt: DEVIL_SHRINK_MS, moveFrom: 0 },
-        outSince: 0, nextCaster: 8000, casterKind: 0, nextMark: 5000 });
+      Object.assign(bonus, { nextCaster: 8000, casterKind: 0, nextMark: 5000, nextHorde: 1500, hordeNo: 0 });
     }
     // ===== v47 😈 타락의 탑 난이도 상향 =====
     //   · 스치면 사망: 체력 1 고정 + 회피·보호막·방벽·장갑 무시 (takeDamage), 대시 후 추가 무적 없음, 필살기 봉인
     //   · 몹 이동속도 ×1.35 · 원거리 몹 발사 주기 ×0.74 (약 35% 빠르게)
     //   · 악마 사도(엘리트 사수) 12초마다 난입: 유도탄 / 넓은 부채꼴 탄막 번갈아 (45초부터 2마리씩)
-    //   · 결계: 15초마다 안전 구역이 150씩 줄어듦 (1000 → 최소 320, 3초 전 예고). 결계 밖에 0.6초 있으면 사망
+    //   · (v51 삭제) 결계: 15초마다 좁아지던 안전 구역
     //   · 바닥: 낙석 함정 + 내 발밑을 노리는 낙뢰 표식 (점점 자주)
     const DEVIL_SPEED = 1.35, DEVIL_FIRE = 0.74;
-    const DEVIL_ZONE_R0 = 1000, DEVIL_ZONE_MIN = 320, DEVIL_ZONE_STEP = 150, DEVIL_SHRINK_MS = 15000, DEVIL_SHRINK_WARN = 3000, DEVIL_OUT_GRACE = 600;
+    // v51: 결계 삭제 · 대시 0.5초(무적 없음) · 몹 체력 ×10 · 이속 ×1.5 · 무리(3.2초마다 8마리 → 1.5초마다 18마리), 22초(25%)부터 매번 포위진(빈틈 2곳)
+    //   회피 봇 시뮬레이션(9캐릭터 × 5판): 체력 ×3이면 거의 전부 생존 → ×10에서 생존 약 60% · 평균 75초 (봇은 사람보다 반응이 빨라 실제로는 더 어려움)
+    const DEVIL_TUNE = { dashMs: 500, dashInvuln: false, hp: 10, hordeMs0: 3200, hordeMs1: 1500, horde0: 8, horde1: 18, ringT: 0.25, ringEvery: 1, gaps: 2, speed: 1.5 };
     function devilMode() { return !!bonus && bonus.mode === "devil"; }
+    // 포위진: 화면 밖 둘레에 n마리를 고르게 세우되, 마주 보지 않는 두 곳은 비워 둠 (대시로 빠져나갈 길)
+    function devilRing(n) {
+      const viewHalf = fastHypot(canvas.width / currentViewScale, canvas.height / currentViewScale) / 2 + 40;
+      const a0 = Math.random() * Math.PI * 2, gap1 = Math.floor(Math.random() * n), gap2 = (gap1 + Math.floor(n / 3) + Math.floor(Math.random() * (n / 3))) % n;
+      for (let i = 0; i < n && monsters.length < MAX_MONSTERS; i++) {
+        if (Math.abs(i - gap1) <= 1 || (DEVIL_TUNE.gaps > 1 && Math.abs(i - gap2) <= 1)) continue;
+        const a = a0 + i / n * Math.PI * 2;
+        spawnMonster(player.x + Math.cos(a) * viewHalf, player.y + Math.sin(a) * viewHalf, 0.3 + Math.random() * 0.5);
+      }
+    }
     function updateDevilMode(timestamp) {
       handleMonsterSpawns(timestamp);
       handleEliteSpawns();
       const t = Math.min(1, playTimeMs / BONUS_MODES.devil.timeMs);
+      if (playTimeMs >= bonus.nextHorde) { // 무리: 화면 밖 한두 방향에서 동시에 몰려옴
+        bonus.nextHorde = playTimeMs + DEVIL_TUNE.hordeMs0 + (DEVIL_TUNE.hordeMs1 - DEVIL_TUNE.hordeMs0) * t;
+        const n = Math.round(DEVIL_TUNE.horde0 + (DEVIL_TUNE.horde1 - DEVIL_TUNE.horde0) * t);
+        if (t >= DEVIL_TUNE.ringT && bonus.hordeNo++ % DEVIL_TUNE.ringEvery === 0) devilRing(n + 6); // 후반: 사방을 둘러싸는 포위 (빈틈 2곳)
+        else if (t > 0.4) { spawnPack(Math.ceil(n / 2)); spawnPack(Math.floor(n / 2)); } else spawnPack(n);
+      }
       for (const m of monsters) {
         if (m.devilBuff) continue;
         m.devilBuff = true;
-        m.speed *= DEVIL_SPEED; m.baseSpeed *= DEVIL_SPEED;
+        m.speed *= DEVIL_TUNE.speed; m.baseSpeed *= DEVIL_TUNE.speed;
         if (m.shootInterval < 1e8) m.shootInterval *= DEVIL_FIRE;
+        m.hp *= DEVIL_TUNE.hp; m.maxHp *= DEVIL_TUNE.hp;
       }
       // 악마 사도 난입
       if (playTimeMs >= bonus.nextCaster) {
@@ -11202,23 +11265,7 @@
         bonus.marks.push({ x: player.x + Math.cos(player.angle) * lead, y: player.y + Math.sin(player.angle) * lead, r: 62, born: playTimeMs, hitAt: playTimeMs + 1000 });
         if (t > 0.35) { const a = Math.random() * Math.PI * 2, d = 90 + Math.random() * 160; bonus.marks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 62, born: playTimeMs, hitAt: playTimeMs + 1000 }); }
       }
-      updateDevilZone();
     }
-    // 결계: 정해진 시각마다 목표 반지름을 줄이고 2초 동안 서서히 좁혀짐
-    function updateDevilZone() {
-      const z = bonus.zone;
-      if (playTimeMs >= z.shrinkAt && z.to > DEVIL_ZONE_MIN) {
-        z.from = z.r; z.to = Math.max(DEVIL_ZONE_MIN, z.r - DEVIL_ZONE_STEP); z.moveFrom = playTimeMs;
-        z.shrinkAt = playTimeMs + DEVIL_SHRINK_MS;
-        if (sfxReady("zone", 400)) sfxTone({ type: "sawtooth", freq: 220, freqEnd: 110, dur: 0.6, vol: 0.07, wet: 0.4 });
-      }
-      if (z.moveFrom) z.r = z.from + (z.to - z.from) * Math.min(1, (playTimeMs - z.moveFrom) / 2000);
-      const out = fastHypot(player.x - z.x, player.y - z.y) > z.r - player.radius * 0.5;
-      if (!out) { bonus.outSince = 0; return; }
-      if (!bonus.outSince) bonus.outSince = playTimeMs;
-      if (playTimeMs - bonus.outSince >= DEVIL_OUT_GRACE) { bonus.outSince = 0; takeDamage(999); }
-    }
-    function devilZoneWarn() { const z = bonus.zone; return z.to > DEVIL_ZONE_MIN && z.shrinkAt - playTimeMs < DEVIL_SHRINK_WARN ? Math.max(DEVIL_ZONE_MIN, z.r - DEVIL_ZONE_STEP) : 0; }
     // 악마 사도: 화면 가장자리에서 등장 · 거리를 두고 0.6초 빛난 뒤 발사 (homing = 유도탄 3발 / fan = 110° 부채꼴 13발)
     function spawnDevilCaster(kind) {
       const viewHalf = fastHypot(canvas.width / currentViewScale, canvas.height / currentViewScale) / 2;
@@ -12017,7 +12064,7 @@
     };
     // 2층 중간 보스(Lv12 · 10분 경과 기준) 체력 × 1.05. 캐릭터·강화·레벨과 상관없이 모두 같음
     function ultDamage() {
-      return Math.ceil((10 + 11 * 1.6) * getStage(2).hp * 1.3 * ELITE_HP_MULT * 1.05);
+      return Math.ceil((10 + 11 * 1.6) * 0.9 * 1.3 * ELITE_HP_MULT * 1.05); // 0.9 = v51까지의 2층 몹 체력 배율 (v52 층 공식이 바뀌어도 2,035 유지)
     }
     let ult = { readyAt: ULT_COOLDOWN_MS, cdTotal: ULT_COOLDOWN_MS, active: false, fx: [] };
     let ultShown = "";
@@ -12361,7 +12408,7 @@
           ctx.globalAlpha = fa;
           ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(-Math.PI / 2 + f.ang);
           metalBar(ctx, 0, -2.5, 70, 5, ["#fef9c3", "#fbbf24", "#78350f"]);
-          drawSpearTip(ctx, meleeWeaponStyle().tip ? meleeWeaponStyle() : DEFAULT_SPEAR, -8, 0, -1.6);
+          drawSpearTip(ctx, meleeWeaponStyle(), -8, 0, -1.6);
           ctx.restore();
           ctx.globalCompositeOperation = "lighter";
           drawGlow(ctx, "#fde68a", f.x, f.y, 26 * fa);
@@ -12747,19 +12794,28 @@
         if (!s) continue;
         if (playTimeMs >= s.until || !isSummoner()) { spawnBurst(s.x, s.y, col, 4, 3); minions.splice(i, 1); continue; }
         // 목표: 하수인에게 가장 가까운 적 (주인에게서 너무 먼 적은 쫓지 않음) / 없으면 주인 주위를 맴돎
-        if (!s.tgt || s.tgt.dead || fastHypot(s.tgt.x - player.x, s.tgt.y - player.y) > 560) {
-          s.tgt = nearestMonsterTo(s.x, s.y, 480);
-          if (s.tgt && fastHypot(s.tgt.x - player.x, s.tgt.y - player.y) > 560) s.tgt = null;
+        // v51 버그 수정: 목록에서 사라진 적(dead 표시 없이 지워진 적)을 계속 쫓거나, 관성 때문에 적 주위를 빙글빙글 돌기만 하던 문제
+        //   → 0.4초마다 화면 안의 가장 가까운 적으로 다시 고르고, 가까워지면 관성 없이 곧장 들이받음
+        if (!s.tgt || s.tgt.dead || s.tgt.hp <= 0 || playTimeMs >= (s.pickAt || 0) || monsters.indexOf(s.tgt) < 0 || !onScreen(s.tgt)) {
+          s.pickAt = playTimeMs + 400;
+          s.tgt = null;
+          let bd = Infinity; // 예전: 하수인 기준 480 · 주인 기준 560 안만 찾아서 화면 끝의 적은 못 보고 주인 주위만 맴돌았음 → 화면 안 전체에서 찾음
+          for (const m of monsters) {
+            if (m.dead || m.hp <= 0 || !onScreen(m)) continue;
+            const dd = (m.x - s.x) * (m.x - s.x) + (m.y - s.y) * (m.y - s.y);
+            if (dd < bd) { bd = dd; s.tgt = m; }
+          }
         }
         let tx, ty, sp;
         if (s.tgt) { tx = s.tgt.x; ty = s.tgt.y; sp = 6.4; }
         else { const an = playTimeMs / 650 + s.ph; tx = player.x + Math.cos(an) * 62; ty = player.y + Math.sin(an) * 46; sp = 5.5; }
         const dx = tx - s.x, dy = ty - s.y, d = fastHypot(dx, dy) || 1;
-        s.vx += (dx / d * sp - s.vx) * 0.16;
-        s.vy += (dy / d * sp - s.vy) * 0.16;
+        const steer = s.tgt && d < 120 ? 0.5 : 0.16;
+        s.vx += (dx / d * sp - s.vx) * steer;
+        s.vy += (dy / d * sp - s.vy) * steer;
         s.x += s.vx; s.y += s.vy;
         if (s.bite > 0) s.bite--;
-        if (s.tgt && d < s.tgt.radius + 14 && playTimeMs >= s.hitAt) {
+        if (s.tgt && d < s.tgt.radius + 18 && playTimeMs >= s.hitAt) {
           s.hitAt = playTimeMs + SUMMON_HIT_MS;
           s.vx = -s.vx * 0.7; s.vy = -s.vy * 0.7; // 들이받고 살짝 튕겨 나왔다가 다시 덤빔
           s.bite = 8;
@@ -13398,11 +13454,12 @@
       const bonus = getBonusStats();
       const ch = currentCharacter();
       const shop = cs().shop;
+      const lv = charLvBonus(); // v52: 캐릭터 영구 레벨 보너스 (상점·클리어 보너스와 곱연산)
       // 슬롯머신 영구 아이템: 공격력 +5(고정), 체력 +20, 이동속도 +5%
       return {
-        maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult) + relicCount("hp") * 20,
-        damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100)) + relicCount("atk") * 5,
-        speed: +(BASE_MOVE_SPEED * ch.speedMult * (1 + shop.spd * 0.03 + relicCount("spd") * 0.05)).toFixed(2),
+        maxHp: Math.round((100 + bonus.hp + shop.hp * 10) * ch.hpMult * lv.hp) + relicCount("hp") * 20,
+        damage: Math.round(13 * (1 + (bonus.damagePct + shop.atk * 4) / 100) * lv.atk) + relicCount("atk") * 5,
+        speed: +(BASE_MOVE_SPEED * ch.speedMult * (1 + shop.spd * 0.03 + relicCount("spd") * 0.05) * lv.spd).toFixed(2),
         fireRate: Math.round(620 * ch.fireRateMult)
       };
     }
@@ -14419,7 +14476,8 @@
           m.y = Math.max(bossArena.y - half, Math.min(bossArena.y + half, m.y));
         }
 
-        for (let j = bullets.length - 1; j >= 0; j--) {
+        const vis = bullets.length > 0 && onScreen(m); // v51: 화면 밖 몹은 탄환이 그냥 지나감
+        for (let j = bullets.length - 1; vis && j >= 0; j--) {
           const b = bullets[j];
           if (b.lastHit === m) continue; // 방금 튕겨 나온 적은 다시 맞지 않음
           if (b.hitSet && b.hitSet.has(m)) continue; // 관통탄은 같은 적을 두 번 맞히지 않음
@@ -16541,7 +16599,7 @@
       drawDashFx(timestamp);
       drawChronoFrozen(timestamp, inView); // v46 시간 정지로 멈춘 몹 표시
       drawMinions(timestamp);      // v46 서머너 영혼 하수인
-      drawBonusTop(timestamp);     // v47 결계 · 악마 사도 · 고블린 진행 막대 · 떠오르는 글씨
+      drawBonusTop(timestamp);     // v47 악마 사도 · 고블린 진행 막대 · 떠오르는 글씨
       drawRageAura(timestamp);     // v48 버서커 광폭화
 
       // 동료 (플레이어 뒤에서 따라다니므로 플레이어보다 먼저 그림)
