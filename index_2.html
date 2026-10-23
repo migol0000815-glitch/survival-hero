@@ -1349,7 +1349,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v43 · 2026-10-23";
+    const GAME_VERSION = "v44 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -4728,11 +4728,29 @@
         startBossIntro(false);
       }
       if (bossArena.active || finalBossDefeated || bossIntro) return;
-      const spawnInterval = Math.max(260, 920 - (player.level - 1) * 55);
+      // v44: 초반(Lv8까지)은 스폰 간격 ×0.6 · 한 번에 +1마리 + 6초마다 한 방향에서 잡몹 떼(5~8마리)가 몰려옴
+      const early = player.level <= EARLY_SPAWN_LV && !bonus;
+      const spawnInterval = Math.max(260, 920 - (player.level - 1) * 55) * (early ? 0.6 : 1);
       if (timestamp - lastSpawnTime > spawnInterval) {
-        const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3), MAX_MONSTERS - monsters.length);
+        const count = Math.min(5, 1 + Math.floor((player.level - 1) / 3) + (early ? 1 : 0), MAX_MONSTERS - monsters.length);
         for (let i = 0; i < count; i++) spawnMonster();
         lastSpawnTime = timestamp;
+      }
+      if (early && playTimeMs >= nextPackAt) {
+        nextPackAt = playTimeMs + EARLY_PACK_MS;
+        spawnPack(5 + Math.min(3, player.level - 1));
+      }
+    }
+    const EARLY_SPAWN_LV = 8, EARLY_PACK_MS = 6000;
+    let nextPackAt = 1500; // restartGame 에서 1.5초로 초기화 (시작 직후 첫 무리)
+    // 화면 밖 한 방향에 n마리를 뭉쳐서 소환 (잡몹 떼)
+    function spawnPack(n) {
+      const viewW = canvas.width / currentViewScale, viewH = canvas.height / currentViewScale;
+      const dist = fastHypot(viewW, viewH) / 2 + 60, a = Math.random() * Math.PI * 2;
+      const cx = player.x + Math.cos(a) * dist, cy = player.y + Math.sin(a) * dist;
+      for (let i = 0; i < n && monsters.length < MAX_MONSTERS; i++) {
+        const t = Math.random() * Math.PI * 2, r = 20 + Math.random() * 70;
+        spawnMonster(cx + Math.cos(t) * r, cy + Math.sin(t) * r, 0.3 + Math.random() * 0.5); // 일반 몹 + 가끔 돌격 몹 (원거리·탱커 제외)
       }
     }
 
@@ -5243,8 +5261,9 @@
     let lastBootsSpawnTime = 0;
 
     // ===== 층별 환경 함정: 1~9층은 1종, 10층부터 2종 동시 작동 =====
-    // 층 번호로 정해지므로 같은 층은 항상 같은 함정 (층 선택 창에서 미리 확인 가능). 스킬 미리보기에서는 꺼짐
+    // v44: 매 판 층에 들어갈 때마다 함정 풀에서 무작위 배정 (trapSeed). 1층은 가벼운 함정(TRAP_LIGHT)만. 스킬 미리보기에서는 꺼짐
     const TRAP_TYPES = {
+      slime:   { name: "🟢 끈적이 슬라임", desc: "바닥에 끈적한 슬라임 웅덩이가 생겨요. 밟고 있는 동안 이동속도 40% 감소 (묶이지는 않음)" },
       wind:    { name: "🌬️ 돌풍", desc: "몇 초마다 한 방향으로 강풍이 불어요. 바람을 거슬러 가면 이동속도 최대 35% 감소, 바람 방향으로 가면 최대 35% 증가 (가만히 있으면 살짝 밀림)" },
       gravity: { name: "🌀 중력 왜곡", desc: "근처에 중력장이 생겨 플레이어와 모든 탄환을 서서히 끌어당겨요" },
       bog:     { name: "🕸️ 속박 늪", desc: "주변에 늪이 생겨요. 들어가면 1.2초 동안 발이 묶이고(대시로 탈출 가능), 늪 안에서는 이동속도 70% 감소" },
@@ -5270,9 +5289,11 @@
       }
       if (fastHypot(player.x - ob.x, player.y - ob.y) < R * 0.75 + player.radius) takeDamage(monsterDmg(22));
     }
-    function floorTraps(floor) {
-      const ids = Object.keys(TRAP_TYPES);
-      let h = (Math.imul(floor, 2654435761) ^ 0x5bd1e995) >>> 0;
+    const TRAP_LIGHT = ["slime", "hazard"]; // 1층용 가벼운 함정
+    let trapSeed = 0; // 판마다 resetTraps 에서 새로 뽑음 → 같은 층이라도 판마다 함정이 다름
+    function floorTraps(floor, seed) {
+      const ids = floor <= 1 ? TRAP_LIGHT : Object.keys(TRAP_TYPES);
+      let h = (Math.imul(floor, 2654435761) ^ 0x5bd1e995 ^ Math.imul(seed === undefined ? trapSeed : seed, 374761393)) >>> 0;
       const rand = () => { h = Math.imul(h ^ (h >>> 15), 2246822519) >>> 0; h = (h ^ (h >>> 13)) >>> 0; return h / 4294967296; };
       const out = [];
       const n = floor >= 10 ? 2 : 1;
@@ -5289,10 +5310,12 @@
 
     let activeTraps = [];
     const trap = {};
-    function resetTraps() {
+    function resetTraps(keepSeed) {
+      if (!keepSeed) trapSeed = (Math.random() * 0x7fffffff) | 0;
       activeTraps = floorTraps(currentFloor);
       // 시작 직후 몇 초는 함정 없이 적응할 시간
       Object.assign(trap, {
+        slimes: [], nextSlime: 4000,
         windAngle: 0, windStart: 0, windUntil: 0, nextWind: 7000,
         wells: [], nextWell: 9000,
         bogs: [], nextBog: 6000, rootUntil: 0, rootCdUntil: 0,
@@ -5309,6 +5332,10 @@
       }
       return false;
     }
+    function inSlime() {
+      for (const s of trap.slimes) if (playTimeMs >= s.readyAt && fastHypot(player.x - s.x, (player.y - s.y) / 0.75) < s.r) return true;
+      return false;
+    }
     // 이동 입력 방향(ux, uy: 단위벡터)에 대한 이동속도 배율. 묶여 있으면 0
     function trapMoveMult(ux, uy) {
       if (!activeTraps.length || gameState !== "playing") return 1;
@@ -5319,6 +5346,7 @@
         m *= 1 + 0.35 * dot; // 정면으로 거스르면 -35%, 바람을 등지고 가면 +35% (옆으로는 그대로)
       }
       if (hasTrap("bog") && inBog()) m *= 0.3;
+      if (hasTrap("slime") && inSlime()) m *= 0.6;
       return m;
     }
     // 상단 HUD에 이번 층 함정 표시 (돌풍이 부는 중이면 방향 화살표)
@@ -5336,6 +5364,7 @@
             s += " " + arrows[Math.round(a / (Math.PI / 4)) % 8] + " 부는 중";
           }
           if (id === "bog" && playTimeMs < trap.rootUntil) s += " 🔒 묶임!";
+          if (id === "slime" && inSlime()) s += " 🐌 느려짐";
           return s;
         }).join(" · ");
       }
@@ -5348,6 +5377,18 @@
     function updateTraps() {
       if (!activeTraps.length) return;
       const t = playTimeMs, step = frameDtMs / 16.67;
+
+      // 🟢 끈적이 슬라임: 5.5초마다 주변에 웅덩이 3개 (0.6초 동안 퍼짐 → 9초 유지). 안에서는 이동 -40%
+      if (hasTrap("slime")) {
+        if (t >= trap.nextSlime) {
+          for (let k = 0; k < 3; k++) {
+            const a = Math.random() * Math.PI * 2, d = 70 + Math.random() * 230;
+            trap.slimes.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 60 + Math.random() * 25, readyAt: t + 600, until: t + 9600, seed: Math.random() * 10 });
+          }
+          trap.nextSlime = t + 5500;
+        }
+        for (let i = trap.slimes.length - 1; i >= 0; i--) if (t >= trap.slimes[i].until) trap.slimes.splice(i, 1);
+      }
 
       // 🌬️ 돌풍: 4.5초 동안 불고 5~8초 쉼. 바람 방향으로 살짝 밀림
       if (hasTrap("wind")) {
@@ -5444,6 +5485,29 @@
     function drawTrapsGround(g, timestamp, inView) {
       if (!activeTraps.length) return;
       const t = playTimeMs;
+      // 끈적이 슬라임 웅덩이: 반투명 초록 + 윤기 하이라이트 + 천천히 부푸는 방울
+      for (const s of trap.slimes) {
+        if (!inView(s.x, s.y)) continue;
+        const grow = Math.max(0.15, Math.min(1, 1 - (s.readyAt - t) / 600));
+        const fade = Math.max(0, Math.min(1, (s.until - t) / 500));
+        const r = s.r * grow;
+        g.globalAlpha = 0.55 * fade;
+        g.fillStyle = "#4d7c0f";
+        g.beginPath(); g.ellipse(s.x, s.y, r, r * 0.75, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#84cc16";
+        g.beginPath(); g.ellipse(s.x, s.y, r * 0.8, r * 0.58, 0, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 0.5 * fade;
+        g.fillStyle = "#ecfccb";
+        g.beginPath(); g.ellipse(s.x - r * 0.3, s.y - r * 0.28, r * 0.28, r * 0.09, -0.3, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 0.7 * fade;
+        g.fillStyle = "#bef264";
+        for (let k = 0; k < 4; k++) {
+          const a = s.seed + k * 1.7, rr = r * (0.15 + ((k * 0.29 + s.seed) % 0.5));
+          const bs = 2.5 + (Math.sin(timestamp / 420 + k * 1.9 + s.seed) + 1) * 2.2;
+          g.beginPath(); g.arc(s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr * 0.75, bs, 0, Math.PI * 2); g.fill();
+        }
+        g.globalAlpha = 1;
+      }
       for (const b of trap.bogs) {
         if (!inView(b.x, b.y)) continue;
         const grow = Math.max(0, Math.min(1, 1 - (b.readyAt - t) / 900));
@@ -7008,6 +7072,8 @@
         t[L] = Math.round(n);
         n *= (1.4 - 0.27 * Math.min(1, (L - 1) / 20)) * ((L + 1) % 5 === 0 ? 1.05 : 1);
       }
+      // v44: 초반 몹이 많아진 만큼 Lv1~5 요구량 상향 (3,4,6,8,11 → 6,8,10,12,14). 시작하자마자 연속 레벨업 방지
+      [6, 8, 10, 12, 14].forEach((v, i) => { t[i + 1] = v; });
       return t;
     })();
     const LEVELUP_INVULN_MS = 800; // 레벨업 카드를 고른 뒤 무적 시간
@@ -7727,11 +7793,11 @@
       list.appendChild(top);
       nav("다음 ▶", floorPage + 1, floorPage < maxPage);
       const sel = getStage(save.selectedFloor);
-      const traps = floorTraps(save.selectedFloor);
-      // 함정 정보는 개발자 모드에서만 공개 (배포판은 직접 플레이하며 체감)
+      // v44: 함정은 판마다 무작위 → 여기서는 후보만 보여줌. 함정 정보는 개발자 모드에서만 공개
+      const pool = save.selectedFloor <= 1 ? TRAP_LIGHT : Object.keys(TRAP_TYPES);
       document.getElementById("floor-desc").innerHTML = `${sel.name} — ${sel.desc}` + (IS_DEV_MODE
-        ? `<div class="trap-tag">🛠️ [DEV] 환경 함정${traps.length > 1 ? " 2종 동시" : ""}: ` +
-          traps.map(id => `<b>${trapName(id, save.selectedFloor)}</b> ${TRAP_TYPES[id].desc}`).join("<br>") + "</div>"
+        ? `<div class="trap-tag">🛠️ [DEV] 환경 함정: 판마다 무작위 ${save.selectedFloor >= 10 ? "2종" : "1종"} · 후보 ` +
+          pool.map(id => `<b>${trapName(id, save.selectedFloor)}</b>`).join(" · ") + "</div>"
         : "");
     }
 
@@ -8049,7 +8115,7 @@
           ["캐릭터 레벨", `층을 클리어하면 경험치 (1층 ${floorClearXp(1)} → 층마다 +25%, 10층 ${floorClearXp(10)}). 레벨업 필요량 60 + 30×(Lv−1). 캐릭터마다 따로 오름`],
           ["슬롯머신", "캐릭터 10·20·30…레벨마다 1회. 3칸을 돌려 나온 아이템 3개가 그 캐릭터에게 영구 귀속 (골드 아이템은 즉시 지급)"]
         ].concat(RELICS.map(r => [`${r.icon} ${r.name}`, `확률 ${r.weight}%`]))) +
-        sec("⚠️ 환경 함정 (1~9층 1종 · 10층부터 2종 동시)", Object.keys(TRAP_TYPES).map(id =>
+        sec("⚠️ 환경 함정 (판마다 무작위 · 1~9층 1종 · 10층부터 2종 동시 · 1층은 가벼운 함정만)", Object.keys(TRAP_TYPES).map(id =>
           [TRAP_TYPES[id].name + (TRAP_TYPES[id].lavaName ? ` / ${TRAP_TYPES[id].lavaName}(용암 층)` : ""), TRAP_TYPES[id].desc])) +
         sec("💎 경험치 보석", [
           ["🟢 일반 보석", "경험치 1"],
@@ -9199,7 +9265,9 @@
       if (hits.length && player.ricochetLevel > 0) Sound.ricochet();
       if (player.multishotLevel > 0) launchMeleeWaves(ang, player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1), sword);
       meleeFx.push({ kind: sword ? "slash" : (full ? "sweep" : "slam"), x: player.x, y: player.y, ang: ang, half: half, r: r,
-        life: sword ? 11 : 16, maxLife: sword ? 11 : 16, dir: step % 2 ? -1 : 1, crit: crit, big: step === 2 });
+        life: sword ? 13 : 18, maxLife: sword ? 13 : 18, dir: step % 2 ? -1 : 1, crit: crit, big: step === 2 });
+      // v44: 몸 휘두르기 모션 (meleeSwingPose)
+      player.swing = { at: playTimeMs, ang: ang, dir: step % 2 ? -1 : 1, sword: sword, full: full, big: step === 2 };
       if (!sword) {
         if (!full) addShake(2.5);
         Sound.smash(full);
@@ -9207,6 +9275,40 @@
         Sound.slash(step);
       }
       return true;
+    }
+    // v44 근접 휘두르기 모션: 공격 순간 몸(스프라이트 방향 = 무기 방향)을 뒤에서 앞으로 힘차게 돌림
+    //   블레이드 0.2초 수평 베기 (-70° → +50°, 3타는 더 크게) · 브레이커 0.28초 (뒤로 젖혔다가 내려침, 3타는 한 바퀴 회전)
+    const SWING_MS = { sword: 200, hammer: 280 };
+    function meleeSwingPose() {
+      const s = player.swing;
+      if (!s || !currentCharacter().melee) return null;
+      const dur = s.sword ? SWING_MS.sword : SWING_MS.hammer, t = (playTimeMs - s.at) / dur;
+      if (t < 0 || t >= 1) return null;
+      const e = 1 - Math.pow(1 - t, 3); // 빠르게 휘두르고 끝에서 멈춤
+      let from, to;
+      if (s.full) { from = -Math.PI; to = Math.PI; }
+      else if (s.sword) { const k = s.big ? 1.3 : 1; from = -70 * k; to = 50 * k; from *= Math.PI / 180; to *= Math.PI / 180; }
+      else { from = -85 * Math.PI / 180; to = 35 * Math.PI / 180; }
+      const off = (from + (to - from) * e) * s.dir;
+      return { ang: s.ang + off, a0: s.ang + from * s.dir, t: t, s: s };
+    }
+    // 휘두른 궤적: 몸 둘레 반원형 은은한 무기 궤적 (a0 → 현재 각도)
+    function drawSwingTrail(x, y, sw) {
+      const s = sw.s, ccw = s.dir < 0, fade = 1 - sw.t;
+      const r = s.sword ? 46 : 52, col = meleeWeaponStyle().glow || (s.sword ? "#bae6fd" : "#fbbf24");
+      ctx.globalCompositeOperation = "lighter";
+      ctx.beginPath();
+      ctx.arc(x, y, r, sw.a0, sw.ang, ccw);
+      ctx.arc(x, y, r * 0.55, sw.ang, sw.a0, !ccw);
+      ctx.closePath();
+      ctx.fillStyle = rgba(col.length === 7 ? col : "#bae6fd", 0.28 * fade);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, r, sw.a0, sw.ang, ccw);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.7 * fade})`;
+      ctx.lineWidth = s.sword ? 2.5 : 4;
+      ctx.stroke();
+      ctx.globalCompositeOperation = "source-over";
     }
     // 가만히 서서 모은 차지 공격의 근접판: 크게 한 바퀴 회전 베기/내려찍기 (피해 ×4, 360도, 탄환 상쇄)
     function meleeChargedSpin() {
@@ -10024,8 +10126,10 @@
     // ── 🌙 검기 날리기(블레이드) / 🌋 대지 가르기(브레이커) ──
     //   Lv = 멀티 샷을 고른 횟수(최대 5). 휘두를 때마다 Lv개를 앞쪽으로 날림 (적 관통, 한 적은 한 번만)
     //   검기(v42): 크기가 정해진 초승달 투사체 (가운데 두툼 + 양 끝이 뒤로 깊게 휘어진 뿔). 맞는 판정도 초승달 모양 (crescentHit)
-    //     v43: 옆 폭 104~152 · 두께 37~52, 여러 개는 30° 간격 부채꼴, 검기마다 뒤에 작은 바람폭풍(피해 35%)이 따라감
-    //     만렙은 초승달 대신 360° 고리 검기(ring) 1개 + 바람폭풍 8방향
+    //     v44: 크기 2배 (옆 폭 Lv1 208 → Lv4 280 · 두께 74 → 104), 여러 개는 40° 간격 부채꼴. 바람폭풍·360° 고리는 삭제
+    //     만렙: 전방으로 거대 초승달 검풍 1개(옆 폭 460) + 양옆 ±55°에 Lv4 크기 2개. 지나간 바닥에 칼자국 0.3초(waveScars), 맞으면 X자 칼선(slashHits)
+    //     속도 v44: 검기 7.5+Lv · 균열 5.5+Lv (예전 10+1.3Lv · 7.5+1.3Lv), 발동 간격 검기 0.52초 · 균열 0.72초
+    //     캐릭터를 가리지 않게: 몸 바로 앞(두께/2+24)에서 출발 + 처음 90px 동안 옅게 시작
     //   균열: 맞붙은 부채꼴 (간격 = 폭). 덮는 각도 Lv1 28° · Lv2 72° · Lv3 132° · Lv4 208° · 만렙 5줄기 × 72° = 360°
     //   사거리 Lv1 240 → Lv4 480 · 만렙은 화면 끝까지. 레벨마다 크기도 커짐
     //   균열은 바닥 효과 → 캐릭터·몹 아래에 그림 (drawMeleeWaves(t, true) 가 몹보다 먼저)
@@ -10033,15 +10137,17 @@
     const WAVE_NAMES = { swordsman: "🌙 검기 날리기", hammer: "🌋 대지 가르기" };
     const WAVE_HALF_DEG = { hammer: [0, 14, 18, 22, 26, 36] };
     const waveHalf = (kind, lv) => WAVE_HALF_DEG.hammer[lv] * Math.PI / 180;
-    const SWORD_WAVE_GAP = 30 * Math.PI / 180;
+    const SWORD_WAVE_GAP = 40 * Math.PI / 180;
+    const SWORD_MAX_SIDE = 55 * Math.PI / 180; // 만렙 양옆 검기 각도
     // 초승달 크기 (Lv별): hw 옆 반폭 · depth 가운데 두께 · back 뿔이 뒤로 휘는 깊이
-    //   v43: 더 크게 (옆 폭 Lv1 104 → Lv4 152 · 두께 37 → 52)
-    function crescentSize(lv) { const hw = 46 + lv * 6; return { hw: hw, depth: 32 + lv * 5, back: hw * 0.85 }; }
-    // v43: 검기 뒤를 따라가는 작은 바람폭풍 (검기 1개당 1개, 만렙은 고리 검기 뒤로 8방향)
-    const STORM_LAG = 70;
-    const stormRadius = lv => 24 + lv * 3;
-    // v43: 만렙 360° 고리 검기 두께
-    const RING_THICK = 64;
+    //   v44: v43의 2배 (옆 폭 Lv1 208 → Lv4 280 · 두께 74 → 104). giant = 만렙 가운데 거대 검풍
+    function crescentSize(lv, giant) {
+      if (giant) return { hw: 230, depth: 120, back: 230 * 0.8 };
+      const L = Math.min(4, lv), hw = 92 + L * 12;
+      return { hw: hw, depth: 64 + L * 10, back: hw * 0.85 };
+    }
+    const WAVE_SCAR_LIFE = 18; // 바닥 칼자국 0.3초
+    let waveScars = [], slashHits = [];
     // 점(x,y)·반지름 r 이 초승달 검기 w 와 겹치는지. 진행 방향 u, 옆 방향 v 의 지역 좌표로 바꿔 두 포물선 사이인지 봄
     function crescentHit(w, x, y, r) {
       const dx = x - w.x, dy = y - w.y, c = Math.cos(w.ang), s = Math.sin(w.ang);
@@ -10062,9 +10168,9 @@
       const sword = save.character !== "hammer";
       if (lv <= 1) return sword ? "휘두를 때마다 전방으로 초승달 검기 1개를 날림 (적 관통 · 일반 탄환을 벰)"
         : "내려칠 때마다 전방으로 땅이 갈라지는 균열 1줄기 (적 관통 · 밀쳐냄)";
-      if (lv >= 5) return sword ? "★ 최종 진화: 360°를 쓸어버리는 고리 검기가 화면 끝까지 + 바람폭풍 8개!"
+      if (lv >= 5) return sword ? "★ 최종 진화: 거대한 초승달 검풍이 화면 끝까지 + 양옆 검기 2개 · 지나간 자리에 칼자국!"
         : "★ 최종 진화: 균열 5줄기가 360°를 빈틈없이 덮으며 화면 끝까지 · 용암이 솟구침!";
-      if (sword) return `초승달 검기 ${lv}개 + 뒤따르는 바람폭풍 ${lv}개 · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
+      if (sword) return `큼직한 초승달 검기 ${lv}개 (부채꼴) · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
       return `균열 ${lv}줄기가 앞쪽 ${Math.round(WAVE_HALF_DEG.hammer[lv] * 2 * lv)}°를 덮음 · 더 크고 더 멀리 (사거리 ${waveRange(lv)})`;
     }
     // 지금 발동 중인 융합 (검기·균열 공통 처리, 출처 이름은 융합 id)
@@ -10096,31 +10202,23 @@
     }
     function launchMeleeWaves(ang, baseDmg, sword) {
       if (playTimeMs < (player.waveReadyAt || 0)) return;
-      player.waveReadyAt = playTimeMs + (sword ? 420 : 600); // 공격 속도를 많이 올려도 너무 촘촘하지 않게
+      player.waveReadyAt = playTimeMs + (sword ? 520 : 720); // 공격 속도를 많이 올려도 너무 촘촘하지 않게 (v44: 묵직하게 조금 느리게)
       const lv = Math.min(5, player.multishotLevel), kind = sword ? "swordsman" : "hammer";
       const syn = waveSynergy(sword);
       const range = waveRange(lv), half = sword ? 0 : waveHalf(kind, lv);
-      const gap = sword ? (lv >= 5 ? Math.PI * 2 / 5 : SWORD_WAVE_GAP) : (lv >= 5 ? Math.PI * 2 / 5 : half * 2);
+      const gap = sword ? SWORD_WAVE_GAP : (lv >= 5 ? Math.PI * 2 / 5 : half * 2);
       const dmg = baseDmg * (sword ? 0.5 + lv * 0.1 : 0.45 + lv * 0.1);
-      const pushStorm = (a, spd) => meleeWaves.push({ sword: true, storm: true, x: player.x, y: player.y, ang: a, d: 30 - STORM_LAG, dMax: range, lv: lv, syn: syn,
-        dmg: dmg * 0.35, speed: spd, r: stormRadius(lv), hit: new Set(), fade: 0, procs: 6, ph: Math.random() * 6, seed: Math.random() * 100 });
-      if (sword && lv >= 5) {
-        // 만렙: 360° 고리 검기 1개 + 그 뒤로 바람폭풍 8개
-        if (meleeWaves.length < 60) {
-          const sp = 10 + lv * 1.3;
-          meleeWaves.push({ sword: true, ring: true, x: player.x, y: player.y, ang: ang, d: 30, dMax: range, lv: lv, syn: syn, dmg: dmg,
-            speed: sp, thick: RING_THICK, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 });
-          for (let k = 0; k < 8; k++) pushStorm(ang + k * Math.PI / 4 + Math.PI / 8, sp);
-        }
-      }
-      for (let i = 0; i < lv && meleeWaves.length < 60 && !(sword && lv >= 5); i++) {
-        const a = ang + (i - (lv - 1) / 2) * gap;
-        const w = { sword: sword, x: player.x, y: player.y, ang: a, half: half, d: 30, dMax: range, lv: lv, syn: syn, dmg: dmg,
-          speed: (sword ? 10 : 7.5) + lv * 1.3, thick: 34 + lv * 6, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100 };
-        if (sword) Object.assign(w, crescentSize(lv));
+      const speed = (sword ? 7.5 : 5.5) + lv;
+      // 검기 방향 목록: Lv개 부채꼴 / 만렙은 가운데 거대 검풍 + 양옆 2개
+      const dirs = sword && lv >= 5 ? [{ a: ang, giant: true }, { a: ang - SWORD_MAX_SIDE }, { a: ang + SWORD_MAX_SIDE }]
+        : Array.from({ length: lv }, (_, i) => ({ a: ang + (i - (lv - 1) / 2) * gap }));
+      for (const dd of dirs) {
+        if (meleeWaves.length >= 40) break;
+        const w = { sword: sword, x: player.x, y: player.y, ang: dd.a, half: half, d: 30, dMax: range, lv: lv, syn: syn, dmg: dmg,
+          speed: speed, thick: 34 + lv * 6, hit: new Set(), fade: 0, procs: 0, seed: Math.random() * 100, giant: !!dd.giant };
+        if (sword) { Object.assign(w, crescentSize(lv, dd.giant)); w.d = w.depth / 2 + 24; w.d0 = w.d; }
         else w.crack = crackPath(range);
         meleeWaves.push(w);
-        if (sword) pushStorm(a, w.speed);
       }
       if (sword) { if (sfxReady("waveS", 120)) sfxNoise({ filter: "bandpass", freq: 3200, freqEnd: 700, dur: 0.22, vol: 0.06 + lv * 0.012, q: 1.2 }); }
       else if (sfxReady("waveH", 200)) {
@@ -10144,31 +10242,20 @@
       if (w.syn.fire) { pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 44 + w.lv * 6, damage: w.dmg * 0.45, src: w.syn.src, fire: true, elem: "fire" }); w.procs++; }
     }
     function updateMeleeWaves() {
+      for (let i = waveScars.length - 1; i >= 0; i--) if (--waveScars[i].life <= 0) waveScars.splice(i, 1);
+      for (let i = slashHits.length - 1; i >= 0; i--) if (--slashHits[i].life <= 0) slashHits.splice(i, 1);
       for (let i = meleeWaves.length - 1; i >= 0; i--) {
         const w = meleeWaves[i];
         if (w.d >= w.dMax) { if (++w.fade > WAVE_FADE) meleeWaves.splice(i, 1); continue; }
         w.d = Math.min(w.dMax, w.d + w.speed);
-        if (w.storm) { // 바람폭풍: 검기 뒤를 같은 속도로 따라가며 닿는 적을 약하게 베고 살짝 밀침
-          w.ph += 0.35;
-          if (w.d < 20) continue;
-          const sx = w.x + Math.cos(w.ang) * w.d, sy = w.y + Math.sin(w.ang) * w.d;
-          for (let j = monsters.length - 1; j >= 0; j--) {
-            const m = monsters[j];
-            if (w.hit.has(m) || fastHypot(m.x - sx, m.y - sy) > w.r + m.radius) continue;
-            w.hit.add(m);
-            waveHit(w, m);
-            if (!m.isBoss) knockback(m, sx, sy, m.isElite ? 3 : 9);
-            m.hp -= hurt(m, w.dmg, w.syn.src);
-            if (m.hp <= 0) handleMonsterDeath(m, j);
-          }
-          continue;
-        }
+        // 지나간 바닥에 칼자국 (4칸마다 하나, 0.3초 동안 남음)
+        if (w.sword && (w.scarTick = (w.scarTick || 0) + 1) % 4 === 0 && waveScars.length < 70)
+          waveScars.push({ x: w.x, y: w.y, ang: w.ang, d: w.d, hw: w.hw, depth: w.depth, back: w.back, giant: w.giant, life: WAVE_SCAR_LIFE });
         const r0 = w.d - w.thick / 2, r1 = w.d + w.thick / 2;
         for (let j = monsters.length - 1; j >= 0; j--) {
           const m = monsters[j];
           if (w.hit.has(m)) continue;
-          if (w.ring) { const d = fastHypot(m.x - w.x, m.y - w.y); if (d < r0 - m.radius || d > r1 + m.radius) continue; }
-          else if (w.sword) { if (!crescentHit(w, m.x, m.y, m.radius)) continue; }
+          if (w.sword) { if (!crescentHit(w, m.x, m.y, m.radius)) continue; }
           else {
             const dx = m.x - w.x, dy = m.y - w.y, d = fastHypot(dx, dy);
             if (d < r0 - m.radius || d > r1 + m.radius) continue;
@@ -10177,7 +10264,9 @@
           w.hit.add(m);
           waveHit(w, m);
           m.hp -= hurt(m, w.dmg, w.syn.src);
-          addHitEffect({ x: m.x, y: m.y, radius: 14, life: 8, maxLife: 8, color: waveColor(w) });
+          // 검기: 뭉툭한 폭발 대신 맞은 자리에 X자 칼선 / 균열: 기존 빛
+          if (w.sword) { if (slashHits.length < 40) slashHits.push({ x: m.x, y: m.y, ang: w.ang + (Math.random() - 0.5) * 0.5, s: m.radius + 14 + (w.giant ? 10 : 0), col: waveColor(w), life: 12, maxLife: 12 }); }
+          else addHitEffect({ x: m.x, y: m.y, radius: 14, life: 8, maxLife: 8, color: waveColor(w) });
           if (m.hp <= 0) handleMonsterDeath(m, j);
         }
         // 검기는 지나가는 길의 일반 탄환을 벰
@@ -10185,8 +10274,7 @@
           for (let b = enemyBullets.length - 1; b >= 0; b--) {
             const eb = enemyBullets[b];
             if (!eb || eb.isBossBullet) continue;
-            if (w.ring) { const d = fastHypot(eb.x - w.x, eb.y - w.y); if (d < r0 - eb.radius || d > r1 + eb.radius) continue; }
-            else if (!crescentHit(w, eb.x, eb.y, eb.radius)) continue;
+            if (!crescentHit(w, eb.x, eb.y, eb.radius)) continue;
             addHitEffect({ x: eb.x, y: eb.y, radius: 10, life: 6, maxLife: 6, color: "#fef9c3" });
             enemyBullets.splice(b, 1);
           }
@@ -10196,14 +10284,15 @@
     const hash01 = n => { const s = Math.sin(n * 12.9898) * 43758.5453; return s - Math.floor(s); };
     // floor = true: 바닥 층(균열, 몹·캐릭터보다 먼저) / false: 위 층(검기)
     function drawMeleeWaves(timestamp, floor) {
+      if (floor) drawWaveScars();
+      else drawSlashHits();
       if (!meleeWaves.length) return;
       for (const w of meleeWaves) {
         if (w.sword === !!floor) continue;
-        const a = w.fade ? 0.55 * (1 - w.fade / WAVE_FADE) : Math.min(1, 0.45 + (w.dMax - w.d) / (w.dMax * 0.3));
+        let a = w.fade ? 0.55 * (1 - w.fade / WAVE_FADE) : Math.min(1, 0.45 + (w.dMax - w.d) / (w.dMax * 0.3));
+        if (w.sword && !w.fade) a *= Math.max(0.3, Math.min(1, (w.d - w.d0) / 90)); // 몸 근처에서는 옅게 → 캐릭터를 가리지 않음
         if (a <= 0) continue;
-        if (w.storm) drawWindStorm(w, a, timestamp);
-        else if (w.ring) drawRingWave(w, a, timestamp);
-        else if (w.sword) drawSwordWave(w, a, timestamp); else drawQuakeWave(w, a, timestamp);
+        if (w.sword) drawSwordWave(w, a, timestamp); else drawQuakeWave(w, a, timestamp);
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
@@ -10219,148 +10308,135 @@
       g.quadraticCurveTo(ui, 0, tip, -hw);  // 안쪽 호
       g.closePath();
     }
+    // v44: 단면이 선명한 검풍 — 본체는 옅게(가운데가 캐릭터·몹을 가리지 않게), 날(바깥 호)은 굵고 밝은 흰 선 + 테두리 선
+    //   잔상 1겹 · 만렙 거대 검풍은 금빛 날 + 날을 따라 흐르는 속도선
     function drawSwordWave(w, a, timestamp) {
       if (w.fade) return;
       const col = waveColor(w);
+      const tip = w.d - w.back, outerCtl = 2 * (w.d + w.depth / 2) - tip;
+      const edge = (d, hw, depth, back) => { // 바깥 호(날)만
+        const tp = d - back;
+        ctx.beginPath();
+        ctx.moveTo(tp, -hw);
+        ctx.quadraticCurveTo(2 * (d + depth / 2) - tp, 0, tp, hw);
+      };
       ctx.save();
       ctx.translate(w.x, w.y);
       ctx.rotate(w.ang);
       ctx.globalCompositeOperation = "lighter";
-      // 잔상 (뒤로 2겹)
-      for (let k = 2; k >= 1; k--) {
-        ctx.globalAlpha = (0.32 - k * 0.1) * a;
-        crescentPath(ctx, w.d - w.speed * k * 1.6, w.hw * (1 - k * 0.06), w.depth * 0.8, w.back);
-        ctx.fillStyle = col;
-        ctx.fill();
-      }
-      // 본체
-      ctx.globalAlpha = 0.7 * a;
+      ctx.lineCap = "round";
+      // 잔상 (뒤로 1겹, 아주 옅게)
+      ctx.globalAlpha = 0.14 * a;
+      crescentPath(ctx, w.d - w.speed * 2.2, w.hw * 0.95, w.depth * 0.8, w.back);
+      ctx.fillStyle = col;
+      ctx.fill();
+      // 본체: 옅은 속성 색
+      ctx.globalAlpha = 0.3 * a;
       crescentPath(ctx, w.d, w.hw, w.depth, w.back);
       ctx.fillStyle = col;
       ctx.fill();
-      // 흰 날 (앞쪽에 붙은 얇은 초승달)
-      ctx.globalAlpha = 0.9 * a;
-      crescentPath(ctx, w.d + w.depth * 0.22, w.hw * 0.94, w.depth * 0.45, w.back * 0.92);
+      // 앞쪽 날 띠 (두께의 35%만 밝게) → 단면이 선명하게
+      ctx.globalAlpha = 0.75 * a;
+      crescentPath(ctx, w.d + w.depth * 0.3, w.hw * 0.97, w.depth * 0.4, w.back * 0.97);
+      ctx.fillStyle = col;
+      ctx.fill();
+      ctx.globalAlpha = 0.95 * a;
+      crescentPath(ctx, w.d + w.depth * 0.4, w.hw * 0.95, w.depth * 0.18, w.back * 0.95);
       ctx.fillStyle = "#ffffff";
       ctx.fill();
-      // 날 선
+      // 날 선 (바깥 호) + 안쪽 호 테두리 (얇게)
       ctx.globalAlpha = a;
-      const tip = w.d - w.back;
+      edge(w.d, w.hw, w.depth, w.back);
+      ctx.strokeStyle = w.giant ? "#fde68a" : "#ffffff";
+      ctx.lineWidth = w.giant ? 4 : 2.5;
+      ctx.stroke();
+      ctx.globalAlpha = 0.45 * a;
       ctx.beginPath();
       ctx.moveTo(tip, -w.hw);
-      ctx.quadraticCurveTo(2 * (w.d + w.depth / 2) - tip, 0, tip, w.hw);
-      ctx.strokeStyle = w.lv >= 5 ? "#fde68a" : "#ffffff";
-      ctx.lineWidth = w.lv >= 5 ? 3 : 2;
+      ctx.quadraticCurveTo(2 * (w.d - w.depth / 2) - tip, 0, tip, w.hw);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      // 융합 장식: 번개 / 얼음 / 독 / 불씨 (초승달 안쪽 호를 따라)
-      const n = 3 + w.lv;
-      for (let k = 0; k < n; k++) {
-        const t = (k + 0.5) / n * 2 - 1, kk = t * t;
-        const bu = (w.d - w.depth * 0.2) - (w.d - w.depth * 0.2 - tip) * kk, bv = t * w.hw * 0.9;
-        ctx.globalAlpha = 0.8 * a;
-        if (w.syn.bolt && Math.random() < 0.5) {
-          const pts = jaggedPath([{ x: bu, y: bv }, { x: bu + 26, y: bv + (Math.random() - 0.5) * 10 }], 7);
-          ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.8; ctx.stroke();
+      // 만렙 거대 검풍: 날 뒤로 흐르는 가는 속도선
+      if (w.giant) {
+        ctx.globalAlpha = 0.5 * a;
+        ctx.strokeStyle = "#fef9c3";
+        ctx.lineWidth = 1.5;
+        for (let k = 0; k < 9; k++) {
+          const t = (k + 0.5) / 9 * 2 - 1, kk = t * t;
+          const u = (w.d + w.depth / 2) - (w.d + w.depth / 2 - tip) * kk, v = t * w.hw * 0.96;
+          const len = 30 + hash01(w.seed + k) * 50;
+          ctx.beginPath(); ctx.moveTo(u - 6, v); ctx.lineTo(u - 6 - len, v); ctx.stroke();
         }
-        if (w.syn.frost) drawGlow(ctx, "#bae6fd", bu, bv, 9);
-        if (w.syn.toxic) drawGlow(ctx, "#a3e635", bu - 8, bv, 8);
-        if (w.syn.fire) drawGlow(ctx, Math.random() < 0.5 ? "#fb923c" : "#fde047", bu, bv, 11 + Math.random() * 5);
-        if (w.lv >= 5 && k % 2 === 0) drawGlow(ctx, "#fde68a", bu + w.depth * 0.7, bv, 7);
       }
-      ctx.restore();
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-    }
-    // v43 바람폭풍: 바닥 소용돌이 고리 + 비틀며 위로 넓어지는 작은 깔때기 + 도는 바람결·먼지 + 뒤로 끌리는 바람 줄기
-    function drawWindStorm(w, a, timestamp) {
-      if (w.fade || w.d < 20) return;
-      const col = (w.syn.bolt || w.syn.frost || w.syn.toxic || w.syn.fire) ? waveColor(w) : "#bae6fd";
-      const x = w.x + Math.cos(w.ang) * w.d, y = w.y + Math.sin(w.ang) * w.d, r = w.r, ph = w.ph;
-      const fadeIn = Math.min(1, (w.d - 20) / 40);
-      a *= fadeIn;
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      ctx.lineCap = "round";
-      // 뒤로 끌리는 바람 줄기 3가닥
-      const bx = -Math.cos(w.ang), by = -Math.sin(w.ang), nx = -by, ny = bx;
-      for (let k = -1; k <= 1; k++) {
-        const o = k * r * 0.55 + Math.sin(ph + k * 2) * 4;
-        ctx.globalAlpha = 0.35 * a;
-        ctx.beginPath();
-        ctx.moveTo(x + nx * o, y + ny * o);
-        ctx.quadraticCurveTo(x + bx * r * 1.6 + nx * (o + 8 * Math.sin(ph + k)), y + by * r * 1.6 + ny * (o + 8 * Math.sin(ph + k)),
-          x + bx * r * (2.6 + Math.abs(k) * 0.4) + nx * o * 1.3, y + by * r * (2.6 + Math.abs(k) * 0.4) + ny * o * 1.3);
-        ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.stroke();
-      }
-      // 바닥 빛 + 바닥 소용돌이 고리
-      ctx.globalAlpha = 0.45 * a;
-      drawGlow(ctx, col, x, y, r * 1.7);
-      ctx.translate(x, y);
-      for (let k = 0; k < 2; k++) {
-        ctx.globalAlpha = (0.6 - k * 0.2) * a;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r * (1.05 - k * 0.35), r * (0.42 - k * 0.14), 0, ph * (1.4 + k * 0.6), ph * (1.4 + k * 0.6) + Math.PI * 1.4);
-        ctx.strokeStyle = k ? "#ffffff" : col; ctx.lineWidth = 3 - k; ctx.stroke();
-      }
-      // 깔때기: 위로 갈수록 넓어지는 타원 고리를 비틀며 쌓음
-      const N = 7, H = r * 2.2;
-      for (let i = 0; i < N; i++) {
-        const f = i / (N - 1), ox = Math.sin(ph + i * 0.8) * (2 + f * r * 0.25), oy = -f * H, rr = r * (0.3 + f * 0.75);
-        ctx.globalAlpha = (0.4 + f * 0.35) * a;
-        ctx.beginPath();
-        ctx.ellipse(ox, oy, rr, rr * 0.3, 0, ph * 1.6 + i, ph * 1.6 + i + Math.PI * 1.5);
-        ctx.strokeStyle = i % 2 ? col : "#f0f9ff"; ctx.lineWidth = 2 + f * 1.6; ctx.stroke();
-      }
-      // 도는 먼지·바람 조각
-      for (let k = 0; k < 5; k++) {
-        const an = ph * 1.8 + k * 1.256, hh = -((k * 0.21 + ph * 0.05) % 1) * H;
-        const rr = r * (0.4 + (-hh / H) * 0.7);
-        ctx.globalAlpha = 0.8 * a;
-        drawGlow(ctx, k % 2 ? "#ffffff" : col, Math.cos(an) * rr, hh + Math.sin(an) * rr * 0.3, 4 + w.lv * 0.4);
-      }
-      ctx.globalAlpha = 0.5 * a;
-      drawGlow(ctx, "#f0f9ff", Math.sin(ph) * 3, -H, r * 0.9);
-      ctx.restore();
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = "source-over";
-    }
-    // v43 만렙 고리 검기: 사방으로 퍼지는 360° 칼바람 고리 (잔상 2겹 + 본체 + 흰 날 + 금빛 테 + 날 위 반짝임·짧은 검흔)
-    function drawRingWave(w, a, timestamp) {
-      if (w.fade) return;
-      const col = waveColor(w), T = w.thick;
-      ctx.save();
-      ctx.globalCompositeOperation = "lighter";
-      const ring = (r, lw, style, alpha) => {
-        if (r <= lw / 2) return;
-        ctx.globalAlpha = alpha;
-        ctx.beginPath(); ctx.arc(w.x, w.y, r, 0, Math.PI * 2);
-        ctx.strokeStyle = style; ctx.lineWidth = lw; ctx.stroke();
-      };
-      for (let k = 2; k >= 1; k--) ring(w.d - w.speed * k * 2, T * (0.7 - k * 0.12), col, (0.3 - k * 0.08) * a);
-      ring(w.d, T, col, 0.32 * a);
-      ring(w.d + T * 0.08, T * 0.55, col, 0.55 * a);
-      ring(w.d + T * 0.2, T * 0.22, "#ffffff", 0.9 * a);
-      ring(w.d + T * 0.5, 3, "#fde68a", a);
-      // 날 위의 짧은 검흔 + 반짝임 (고리를 따라 돎)
-      const n = 18, rot = timestamp / 600 + w.seed;
-      ctx.lineCap = "round";
-      for (let k = 0; k < n; k++) {
-        const an = rot + k * Math.PI * 2 / n, r = w.d + T * 0.3;
-        ctx.globalAlpha = 0.85 * a;
-        ctx.beginPath(); ctx.arc(w.x, w.y, r, an, an + 0.12);
-        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.stroke();
-        if (k % 2 === 0) drawGlow(ctx, k % 4 ? col : "#fde68a", w.x + Math.cos(an) * r, w.y + Math.sin(an) * r, 12);
-        if (w.syn.bolt && Math.random() < 0.3) {
-          const p0 = { x: w.x + Math.cos(an) * w.d, y: w.y + Math.sin(an) * w.d }, p1 = { x: w.x + Math.cos(an) * (w.d + 40), y: w.y + Math.sin(an) * (w.d + 40) };
-          const pts = jaggedPath([p0, p1], 7);
-          ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.8; ctx.stroke();
+      // 융합 장식: 번개 / 얼음 / 독 / 불씨 (날을 따라)
+      if (w.syn.bolt || w.syn.frost || w.syn.toxic || w.syn.fire) {
+        const n = 3 + Math.min(4, w.lv);
+        for (let k = 0; k < n; k++) {
+          const t = (k + 0.5) / n * 2 - 1, kk = t * t;
+          const bu = (w.d + w.depth * 0.2) - (w.d + w.depth * 0.2 - tip) * kk, bv = t * w.hw * 0.9;
+          ctx.globalAlpha = 0.8 * a;
+          if (w.syn.bolt && Math.random() < 0.5) {
+            const pts = jaggedPath([{ x: bu, y: bv }, { x: bu + 26, y: bv + (Math.random() - 0.5) * 10 }], 7);
+            ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 1.8; ctx.stroke();
+          }
+          if (w.syn.frost) drawGlow(ctx, "#bae6fd", bu, bv, 9);
+          if (w.syn.toxic) drawGlow(ctx, "#a3e635", bu - 8, bv, 8);
+          if (w.syn.fire) drawGlow(ctx, Math.random() < 0.5 ? "#fb923c" : "#fde047", bu, bv, 11 + Math.random() * 5);
         }
       }
       ctx.restore();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
+      ctx.lineCap = "butt";
+    }
+    // v44 바닥 칼자국: 검기가 지나간 자리에 날(바깥 호) 모양의 가는 베인 자국이 0.3초 남음 (몹·캐릭터 아래)
+    function drawWaveScars() {
+      if (!waveScars.length) return;
+      ctx.lineCap = "round";
+      for (const s of waveScars) {
+        const p = s.life / WAVE_SCAR_LIFE, tip = s.d - s.back;
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.ang);
+        ctx.beginPath();
+        ctx.moveTo(tip * 0.9 + s.d * 0.1, -s.hw * 0.85);
+        ctx.quadraticCurveTo(2 * (s.d + s.depth * 0.35) - tip, 0, tip * 0.9 + s.d * 0.1, s.hw * 0.85);
+        ctx.globalAlpha = 0.45 * p;
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = s.giant ? 4 : 3;
+        ctx.stroke();
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.55 * p;
+        ctx.strokeStyle = s.giant ? "#fde68a" : "#bae6fd";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineCap = "butt";
+    }
+    // v44 검기 적중: 맞은 자리에 날카로운 X자 칼선 (빠르게 그어졌다가 사라짐)
+    function drawSlashHits() {
+      if (!slashHits.length) return;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      for (const h of slashHits) {
+        const p = 1 - h.life / h.maxLife, grow = Math.min(1, p * 4), a = p < 0.4 ? 1 : (1 - p) / 0.6;
+        for (const da of [Math.PI / 4, -Math.PI / 4]) {
+          const an = h.ang + da, L = h.s * grow, c = Math.cos(an) * L, s = Math.sin(an) * L;
+          ctx.beginPath(); ctx.moveTo(h.x - c, h.y - s); ctx.lineTo(h.x + c, h.y + s);
+          ctx.globalAlpha = 0.55 * a;
+          ctx.strokeStyle = h.col; ctx.lineWidth = 6; ctx.stroke();
+          ctx.globalAlpha = a;
+          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+      ctx.lineCap = "butt";
     }
     // 땅 갈라짐: 가운데 지그재그 균열(속에서 빛) + 잔가지 + 앞쪽 부채꼴 띠에 솟는 바위 가시와 흙먼지
     function drawQuakeWave(w, a, timestamp) {
@@ -10552,6 +10628,7 @@
       if (mainT >= 0 && mainT <= 1) spawnUltFx(mainT);
       while (ult.pulse < ULT_PULSES.length && mainT >= ULT_PULSES[ult.pulse]) { ultPulse(); ult.pulse++; }
       if (ult.def.kind === "quake" && mainT >= 0 && mainT <= 1) addShake(6);
+      if (ult.def.kind === "tornado" && mainT >= 0 && mainT <= 1) addShake(2.5); // v44: 스파크도 계속 흔들림
       for (let i = ult.fx.length - 1; i >= 0; i--) {
         const f = ult.fx[i];
         if (f.vx !== undefined) { f.x += f.vx; f.y += f.vy; }
@@ -10567,6 +10644,7 @@
           }
         }
         if (f.t === "bigcrack") f.d = Math.min(f.L, f.d + 30);
+        if (f.t === "ering") f.r += f.sp;
         if (f.t === "meteor" && f.life === 1) {
           ult.fx.push({ t: "boom", x: f.tx, y: f.ty, r: f.r * 5.5, life: 20, maxLife: 20 });
           ult.fx.push({ t: "scorch", x: f.tx, y: f.ty, r: f.r * 3.4, life: 80, maxLife: 80 });
@@ -10579,6 +10657,9 @@
         // 착지: 충격파 + 흙먼지
         ult.active = false;
         ult.fx = [];
+        // v44: 착지 후 1초 무적 + 황금 보호막 (보스전 착지 직후 의문사 방지)
+        ult.landShieldUntil = playTimeMs + ULT_LAND_INVULN_MS;
+        player.invulnUntil = Math.max(player.invulnUntil || 0, ult.landShieldUntil);
         explosions.push({ x: player.x, y: player.y, radius: 120, life: 20, maxLife: 20, lv: 0, color: ult.def.color });
         spawnBurst(player.x, player.y, ult.def.color, 18, 7);
         addShake(7);
@@ -10621,13 +10702,38 @@
           F.push({ t: "flake", x: rx() - wx * diag * 0.6, y: ry() - wy * diag * 0.6, vx: wx * sp + (Math.random() - 0.5) * 3, vy: wy * sp + (Math.random() - 0.5) * 3, r: 2 + Math.random() * 3, life: Math.ceil(diag * 1.6 / sp), maxLife: 99 });
         }
       } else if (def.kind === "blades") {
-        // v43: 화면 끝에서 끝까지 가로지르는 거대한 일직선 검격 (가끔 X자로 2개 겹침), 틱마다 1~2개
-        const n = Math.random() < 0.3 ? 2 : 1;
-        for (let k = 0; k < n; k++) {
-          const x = rx(), y = ry(), an = Math.random() * Math.PI, wd = 46 + Math.random() * 50;
+        // v43: 화면 끝에서 끝까지 가로지르는 일직선 검격. v44: 개수·굵기 줄임 (틱당 35% · 굵기 28~50 · X자 12%) → 화면에 6~9줄 정도
+        if (Math.random() < 0.35) {
+          const x = rx(), y = ry(), an = Math.random() * Math.PI, wd = 28 + Math.random() * 22;
           F.push({ t: "slash", x: x, y: y, ang: an, L: diag * 2.3, w: wd, life: 20, maxLife: 20 });
-          if (Math.random() < 0.18) F.push({ t: "slash", x: x, y: y, ang: an + Math.PI / 2 + (Math.random() - 0.5) * 0.5, L: diag * 2.3, w: wd * 0.85, life: 20, maxLife: 20 });
+          if (Math.random() < 0.12) F.push({ t: "slash", x: x, y: y, ang: an + Math.PI / 2 + (Math.random() - 0.5) * 0.5, L: diag * 2.3, w: wd * 0.85, life: 20, maxLife: 20 });
         }
+      } else if (def.kind === "tornado") {
+        // v44 스파크 강화: 화면 중앙(나)에서 사방으로 뻗는 굵은 연쇄 낙뢰 + 하늘에서 내리꽂는 벼락 + 바닥 전류 고리
+        if (Math.random() < 0.3) {
+          const a = Math.random() * Math.PI * 2, L = diag * (0.75 + Math.random() * 0.4);
+          const end = { x: cx + Math.cos(a) * L, y: cy + Math.sin(a) * L };
+          const way = [];
+          for (let s = 0; s <= 6; s++) {
+            const k = s / 6, off = s === 0 ? 0 : (Math.random() - 0.5) * 70;
+            way.push({ x: cx + (end.x - cx) * k - Math.sin(a) * off, y: cy - ultLift() * (1 - k) + (end.y - cy) * k + Math.cos(a) * off });
+          }
+          const pts = jaggedPath(way, 14);
+          const branches = [];
+          for (let b = 0; b < 3; b++) {
+            const p0 = pts[4 + Math.floor(Math.random() * (pts.length - 6))], ba = a + (Math.random() - 0.5) * 1.6, bl = 80 + Math.random() * 140;
+            branches.push(jaggedPath([p0, { x: p0.x + Math.cos(ba) * bl, y: p0.y + Math.sin(ba) * bl }], 7));
+          }
+          F.push({ t: "bigzap", pts: pts, branches: branches, w: 9 + Math.random() * 6, life: 11, maxLife: 11 });
+          ult.flash = 5;
+          addShake(4);
+        }
+        if (Math.random() < 0.35) {
+          const tx = rx(), ty = ry();
+          F.push({ t: "zap", pts: jaggedPath([{ x: tx + (Math.random() - 0.5) * 60, y: ty - 320 }, { x: tx, y: ty }], 16), life: 8, maxLife: 8 });
+          F.push({ t: "flash", x: tx, y: ty, life: 7, maxLife: 7, r: 46 });
+        }
+        if (Math.round(mainT * ULT_MAIN_MS / SIM_STEP_MS) % 24 === 0) F.push({ t: "ering", r: 40, sp: diag / 34, life: 40, maxLife: 40, seed: Math.random() * 100 });
       } else if (def.kind === "quake") {
         if (Math.random() < 0.55) F.push({ t: "spike", x: rx(), y: ry(), h: 34 + Math.random() * 34, w: 16 + Math.random() * 14, life: 30, maxLife: 30 });
         if (Math.random() < 0.4) F.push({ t: "dust", x: rx(), y: ry(), r: 40 + Math.random() * 40, life: 34, maxLife: 34 });
@@ -10660,12 +10766,56 @@
     }
     // 연출 그리기 (월드 좌표, 몹·플레이어 위)
     // floor = true: 바닥 층(그을음·대지 붕괴 균열)만, 몹·캐릭터보다 먼저 그림
+    const ULT_LAND_INVULN_MS = 1000;
+    // 착지 무적 동안: 캐릭터를 감싸는 은은한 황금 보호막 + 도는 잔광 (끝날 무렵 깜빡임)
+    function drawUltLandShield(timestamp) {
+      const left = (ult.landShieldUntil || 0) - playTimeMs;
+      if (left <= 0 || ult.active) return;
+      const k = left / ULT_LAND_INVULN_MS, blink = left < 300 ? (Math.sin(timestamp / 30) > 0 ? 1 : 0.35) : 1;
+      const x = player.x, y = player.y;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 0.22 * blink * (0.5 + k * 0.5);
+      drawGlow(ctx, "#fbbf24", x, y, 50);
+      ctx.globalAlpha = 0.8 * blink;
+      ctx.beginPath(); ctx.arc(x, y, 34 + Math.sin(timestamp / 90) * 2, 0, Math.PI * 2);
+      ctx.strokeStyle = "#fde68a"; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.globalAlpha = 0.6 * blink;
+      ctx.lineCap = "round";
+      for (let i = 0; i < 3; i++) {
+        const a = timestamp / 220 + i * Math.PI * 2 / 3;
+        ctx.beginPath(); ctx.arc(x, y, 40, a, a + 0.7);
+        ctx.strokeStyle = "#fef3c7"; ctx.lineWidth = 3; ctx.stroke();
+      }
+      ctx.lineCap = "butt";
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
+    }
     function drawUltWorld(timestamp, floor) {
+      if (!floor) drawUltLandShield(timestamp);
       if (!ult.active || !ult.fx.length) return;
       const def = ult.def;
       ctx.lineCap = "round";
       for (const f of ult.fx) {
-        if ((f.t === "scorch" || f.t === "bigcrack") !== !!floor) continue;
+        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering") !== !!floor) continue;
+        if (f.t === "ering") { // v44 스파크: 바닥에 퍼지는 푸른 전류 고리 (울퉁불퉁한 원 + 안쪽 옅은 전기장)
+          const a = f.life / f.maxLife, N = 48;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.18 * a;
+          ctx.beginPath(); ctx.arc(player.x, player.y, f.r, 0, Math.PI * 2);
+          ctx.strokeStyle = "#60a5fa"; ctx.lineWidth = 26; ctx.stroke();
+          ctx.beginPath();
+          for (let k = 0; k <= N; k++) {
+            const an = k / N * Math.PI * 2, rr = f.r + (k % N === 0 ? 0 : (hash01(f.seed + k + (f.life >> 1) * 7) - 0.5) * 18);
+            const px = player.x + Math.cos(an) * rr, py = player.y + Math.sin(an) * rr;
+            if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.globalAlpha = 0.85 * a;
+          ctx.strokeStyle = "#93c5fd"; ctx.lineWidth = 4; ctx.stroke();
+          ctx.globalAlpha = a;
+          ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.globalCompositeOperation = "source-over";
+          continue;
+        }
         if (f.t === "scorch") { // 바닥에 남는 그을음 (보통 합성)
           ctx.globalAlpha = 0.5 * f.life / f.maxLife;
           ctx.fillStyle = "#1c1917";
@@ -10757,6 +10907,22 @@
           }
           ctx.globalAlpha = 0.5;
           drawGlow(ctx, "#a78bfa", f.x, f.y - 70, 70);
+        } else if (f.t === "bigzap") {
+          // v44 스파크: 중앙에서 뻗는 굵은 낙뢰 줄기 + 잔가지 + 끝 섬광
+          const a = f.life / f.maxLife;
+          const line = (pts, w1, w2) => {
+            ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = "rgba(96, 165, 250, 0.55)"; ctx.lineWidth = w1; ctx.stroke();
+            ctx.strokeStyle = "#e0f2fe"; ctx.lineWidth = w2; ctx.stroke();
+          };
+          ctx.globalAlpha = a;
+          line(f.pts, f.w * 2.2, f.w * 0.55);
+          ctx.globalAlpha = 0.8 * a;
+          for (const b of f.branches) line(b, f.w, f.w * 0.3);
+          ctx.globalAlpha = a;
+          const e = f.pts[f.pts.length - 1];
+          drawGlow(ctx, "#93c5fd", e.x, e.y, 60);
+          drawGlow(ctx, "#ffffff", f.pts[0].x, f.pts[0].y, 40);
         } else if (f.t === "zap") {
           ctx.globalAlpha = f.life / f.maxLife;
           ctx.beginPath(); ctx.moveTo(f.pts[0].x, f.pts[0].y); for (const q of f.pts) ctx.lineTo(q.x, q.y);
@@ -10780,11 +10946,11 @@
             ctx.fillStyle = col;
             ctx.fill();
           };
-          ctx.globalAlpha = 0.16 * a;
+          ctx.globalAlpha = 0.12 * a;
           blade(2.6, "#38bdf8");
-          ctx.globalAlpha = 0.4 * a;
+          ctx.globalAlpha = 0.3 * a;
           blade(1.3, "#7dd3fc");
-          ctx.globalAlpha = 0.95 * a;
+          ctx.globalAlpha = 0.8 * a;
           blade(0.5, "#ffffff");
           if (head < 1) { ctx.globalAlpha = 1; drawGlow(ctx, "#e0f2fe", x0 + c * f.L * head, y0 + s * f.L * head, f.w * 1.8); }
           else if (p < 0.45) { ctx.globalAlpha = (0.45 - p) * 1.2; drawGlow(ctx, "#ffffff", f.x, f.y, f.w * 1.8); }
@@ -10805,7 +10971,7 @@
         const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
         g.addColorStop(0, "rgba(0,0,0,0)");
         g.addColorStop(1, def.kind === "blizzard" ? `rgba(224, 242, 254, ${0.55 * env})` : def.kind === "quake" ? `rgba(68, 34, 8, ${0.5 * env})`
-          : def.kind === "blades" ? `rgba(56, 189, 248, ${0.35 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
+          : def.kind === "blades" ? `rgba(56, 189, 248, ${0.2 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, W, H);
       }
@@ -11039,6 +11205,7 @@
         if (d.after) d.after(lv);
       }
       meleeWaves = [];
+      waveScars = []; slashHits = [];
       poisonClouds = [];
       player.poisonTimer = 0;
       updateSynergies();
@@ -11211,6 +11378,7 @@
       player.speedLevel = 0;
       player.magnetLevel = 0;
       meleeWaves = [];
+      waveScars = []; slashHits = [];
       player.waveReadyAt = 0; // v40.1 버그 수정: 이전 판의 대기 시각이 남으면 새 판(playTimeMs 0)에서 검기·균열이 한동안 안 나감
       resetUlt();
       player.damage = start.damage;
@@ -11297,6 +11465,7 @@
       activeSynergies = [];
       vortices = [];
       lastEliteSpawn = 0;
+      nextPackAt = 1500; // v44: 시작 1.5초 뒤 첫 잡몹 떼
       eliteSummons = [];
       resetTraps();
       // 동료: 이번 캐릭터가 고른 동료로 시작 (증폭 필드 배율은 위에서 공격력·스킬 범위를 새로 정했으므로 그냥 끔)
@@ -12778,6 +12947,7 @@
       const dashing = playTimeMs < player.dashUntil;
       let drawAngle = angle;
       if (dashing && player.dashStyle === "tumble") drawAngle = player.dashAngle + (1 - (player.dashUntil - playTimeMs) / DASH_TIME) * Math.PI * 2;
+      if (!dashing) { const sw = meleeSwingPose(); if (sw) { drawSwingTrail(x, y, sw); drawAngle = sw.ang; } }
       if (dashing && player.dashStyle === "teleport") {
         ctx.globalCompositeOperation = "lighter";
         drawGlow(ctx, "#facc15", x, y, 26 + Math.random() * 10);
