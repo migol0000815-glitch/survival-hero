@@ -1351,7 +1351,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v52 · 2026-10-24";
+    const GAME_VERSION = "v53 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -2214,7 +2214,7 @@
       // v46 신규 캐릭터 2종 (원거리 계열 → 기존 스킬 트리·강화 카드를 그대로 씀)
       //   서머너: 처치한 적의 영혼을 하수인으로 부림 (멀티 샷 = 👻 영혼 군단: 영혼탄 +1 · 하수인 최대 수 +1)
       //   트릭스터: 카드 문양마다 다른 효과 + 13장째 조커 대폭발 (운에 기대는 대신 순간 화력이 큼)
-      summoner: { name: "🔮 서머너", attack: "soul", summoner: true, passive: "소환형 · 4초마다 영혼 하수인 1마리를 부르고, 쓰러뜨린 적도 25% 확률로 하수인이 됨 (최대 3마리 + 영혼 군단 1번마다 +1 · 12초 유지) · 모든 스킬 피해 +10% · 체력 -15% · 대시: 영혼 도약 (출발 자리 영혼 폭발 + 하수인 1마리 소환)",
+      summoner: { name: "🔮 서머너", attack: "soul", summoner: true, passive: "소환형 · 4초마다 영혼 하수인 1마리를 부르고, 쓰러뜨린 적도 25% 확률로 하수인이 됨 (최대 3마리 + 영혼 군단 1번마다 +1, 영혼 군단 최대 Lv5 → 8마리 · 12초 유지) · 모든 스킬 피해 +10% · 체력 -15% · 대시: 영혼 도약 (출발 자리 영혼 폭발 + 하수인 1마리 소환)",
         hpMult: 0.85, speedMult: 1, fireRateMult: 1.05, armor: 0, dodge: 0, skillMult: 1.1, crit: 0, skin: "summoner" },
       trickster: { name: "🃏 트릭스터", attack: "card", passive: "기교형 · 카드 문양마다 다른 효과 · 13장째마다 조커 대폭발 · 이동속도 +10% · 8% 확률로 피해 회피 · 대시: 카드 셔플 (주위로 카드를 흩뿌려 적 기절)",
         hpMult: 0.95, speedMult: 1.1, fireRateMult: 0.95, armor: 0, dodge: 0.08, skillMult: 1, crit: 0, skin: "trickster" },
@@ -4959,7 +4959,8 @@
         }
       });
       // v40: 근접 캐릭터의 '공격 범위 확장'은 검기 날리기(블레이드) / 대지 가르기(브레이커) — 최대 Lv5
-      if (!isMeleeChar() || player.multishotLevel < 5) {
+      // v52: 서머너 👻 영혼 군단도 최대 Lv5 (하수인 최대 8마리) — 예전엔 제한이 없어 계속 뜨고 하수인이 끝없이 늘어남
+      if (!(isMeleeChar() || isSummoner()) || player.multishotLevel < SUMMON_LEGION_MAX) {
         allUpgrades.push({
           id: "multishot",
           isOwned: true,
@@ -5325,7 +5326,7 @@
       // v46: 서머너 멀티 샷 = 👻 영혼 군단 (영혼탄 +1 · 하수인 최대 +1) / 트릭스터 = 🃏 카드 부채
       const ms = allUpgrades.find(u => u.id === "multishot");
       if (ms && isSummoner()) {
-        ms.title = `👻 영혼 군단 (+1) [하수인 ${summonMax()} → ${summonMax() + 1}]`;
+        ms.title = `👻 영혼 군단 [Lv. ${player.multishotLevel} ➔ ${player.multishotLevel + 1}/${SUMMON_LEGION_MAX}] [하수인 ${summonMax()} → ${summonMax() + 1}]`;
         ms.desc = "영혼탄이 1발 늘고, 함께 싸우는 영혼 하수인 최대 수가 1 늘어납니다.";
       } else if (ms && save.character === "trickster") {
         ms.title = "🃏 카드 부채 (+1)";
@@ -12762,7 +12763,8 @@
     const SUMMON_BASE_MAX = 3;
     let minions = [];
     function isSummoner() { return save.character === "summoner"; }
-    function summonMax() { return SUMMON_BASE_MAX + (player.multishotLevel || 0); }
+    const SUMMON_LEGION_MAX = 5; // 영혼 군단(멀티 샷) 최대 Lv → 하수인 최대 3 + 5 = 8마리
+    function summonMax() { return SUMMON_BASE_MAX + Math.min(SUMMON_LEGION_MAX, player.multishotLevel || 0); }
     function soulColor() { return newCharWeaponStyle("summoner").glow; }
     function summonMinion(x, y) {
       if (!isSummoner()) return false;
@@ -12830,7 +12832,7 @@
         b.tgt = null;
         let bd = 420 * 420;
         for (const m of monsters) {
-          if (m === b.lastHit || (b.hitSet && b.hitSet.has(m))) continue;
+          if (m === b.lastHit || (b.hitSet && b.hitSet.has(m)) || !onScreen(m)) continue; // v52: 맞힐 수 없는 화면 밖 적은 쫓지 않음
           const dx = m.x - b.x, dy = m.y - b.y, dd = dx * dx + dy * dy;
           if (dd < bd) { bd = dd; b.tgt = m; }
         }
@@ -12840,7 +12842,9 @@
       let diff = Math.atan2(b.tgt.y - b.y, b.tgt.x - b.x) - cur;
       while (diff < -Math.PI) diff += Math.PI * 2;
       while (diff > Math.PI) diff -= Math.PI * 2;
-      const na = cur + Math.max(-0.14, Math.min(0.14, diff));
+      // v52: 적이 회전 반경(약 57) 안쪽 옆에 있으면 0.14씩으로는 못 꺾어 적 주위를 영원히 맴돌았음 → 가까우면 크게 꺾음
+      const turn = fastHypot(b.tgt.x - b.x, b.tgt.y - b.y) < 110 ? 0.45 : 0.14;
+      const na = cur + Math.max(-turn, Math.min(turn, diff));
       b.dx = Math.cos(na) * sp;
       b.dy = Math.sin(na) * sp;
     }
@@ -14288,6 +14292,8 @@
         if (b.kind === "soul") steerSoulBullet(b); // v46 서머너 영혼탄: 가까운 적 쪽으로 방향을 틂
         b.x += b.dx; b.y += b.dy;
         if (fastHypot(b.x - player.x, b.y - player.y) > (b.range || 950)) { bullets.splice(i, 1); continue; }
+        // v52: 유도 영혼탄은 플레이어 근처에서 맴돌면 위 조건으로는 안 사라짐 → 날아간 거리가 사거리 ×1.6(약 3초)을 넘으면 소멸
+        if (b.kind === "soul" && (b.trav = (b.trav || 0) + fastHypot(b.dx, b.dy)) > (b.range || 950) * 1.6) { spawnBurst(b.x, b.y, soulColor(), 3, 2); bullets.splice(i, 1); continue; }
         // 장애물에 막히면 소멸 (화염탄은 그 자리에서 폭발)
         const ob = obstacles.length ? obstacleAt(b.x, b.y, b.radius * 0.5) : null;
         if (ob) {
