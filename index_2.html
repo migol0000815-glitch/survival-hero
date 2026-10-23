@@ -1351,7 +1351,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v45 · 2026-10-23";
+    const GAME_VERSION = "v47 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -1504,6 +1504,17 @@
           sfxNoise({ filter: "bandpass", freq: 5600, freqEnd: 1600, q: 4, dur: 0.1, vol: 0.18, wet: 0.3 });
           sfxTone({ type: "square", freq: 1200, freqEnd: 300, dur: 0.08, vol: 0.045 });
           sfxTone({ type: "sawtooth", freq: 160, freqEnd: 90, dur: 0.06, vol: 0.06, delay: 0.02 });
+        } else if (kind === "soul") {
+          // v46 서머너 영혼탄: 낮게 흐느끼는 유령 소리 (위아래로 흔들리는 사인파) + 바람 숨소리
+          if (!sfxReady("atkSoul", 90)) return;
+          sfxTone({ type: "sine", freq: 520, freqEnd: 330, dur: 0.24, vol: 0.06, wet: 0.7 });
+          sfxTone({ type: "triangle", freq: 780, freqEnd: 620, dur: 0.18, vol: 0.03, wet: 0.8, delay: 0.04 });
+          sfxNoise({ filter: "bandpass", freq: 900, freqEnd: 500, q: 1.5, dur: 0.2, vol: 0.06, attack: 0.05, wet: 0.5 });
+        } else if (kind === "card") {
+          // v46 트릭스터 카드: 손목 스냅 '촥' (짧은 고음 노이즈) + 종이가 공기를 가르는 '휙'
+          if (!sfxReady("atkCard", 70)) return;
+          sfxNoise({ filter: "highpass", freq: 4200, dur: 0.03, vol: 0.14 });
+          sfxNoise({ filter: "bandpass", freq: 2600, freqEnd: 1200, q: 2, dur: 0.12, vol: 0.08, delay: 0.02, wet: 0.2 });
         } else {
           this.shoot();
         }
@@ -1847,7 +1858,10 @@
       golem: { name: "🗿 에너지 실드 골렘", short: "골렘", hpMult: 1.4, dmg: 1.0, atkMs: 1300, range: 330, specialMs: 14000,
         attackDesc: "적 무리에 떨어지는 광역 충격파 (주변 적을 밀쳐냄)", specialDesc: "14초마다 최대 체력 15% 보호막 + 내 주위 대형 충격파" },
       wisp: { name: "✨ 증폭술사 정령", short: "정령", hpMult: 0.7, dmg: 0.55, atkMs: 800, range: 480, specialMs: 16000,
-        attackDesc: "적을 따라가 터지는 마력탄 (작은 범위 피해)", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%, 필드 안 적에게 지속 피해)" }
+        attackDesc: "적을 따라가 터지는 마력탄 (작은 범위 피해)", specialDesc: "16초마다 6초간 증폭 필드 (안에 있으면 공격력 +20% · 스킬 범위 +15%, 필드 안 적에게 지속 피해)" },
+      // v46 신규 동료: 공격은 약하지만 특수 능력이 전투 흐름을 바꿈 (시간 정지 동안 일반 몹은 공격도 접촉 피해도 못 함)
+      owl: { name: "🦉 시간술사 부엉이", short: "부엉이", hpMult: 0.9, dmg: 0.6, atkMs: 1000, range: 450, specialMs: 20000,
+        attackDesc: "적 2명을 꿰뚫는 시계 바늘 (맞은 적 1초간 40% 둔화)", specialDesc: "20초마다 ⏳ 시간 정지 3초: 화면의 적과 적 탄환이 모두 멈춤 (중간 보스·보스는 70% 둔화) + 그동안 내 공격 속도 +30%" }
     };
     // 방전된 동료는 시간이 지나도 자동으로 살아나지 않음. 방전 후 경험치 보석을 이만큼 모아야 재가동
     const PET_RECHARGE_GEMS = 100;
@@ -1858,20 +1872,31 @@
         { id: "crimson", name: "🔴 크림슨 스트라이커", price: 1200, c: ["#fee2e2", "#b91c1c", "#2a0606"], glow: "#fb7185" },
         { id: "gold", name: "🌟 골드 에이스", price: 2500, c: ["#fef9c3", "#ca8a04", "#422006"], glow: "#fde047" },
         // v38 코스튬: form 이 있으면 모양 자체가 바뀜 (drawPetForm)
-        { id: "neonwing", name: "🦋 네온 윙 드론", price: 3500, c: ["#fdf4ff", "#c026d3", "#2e0537"], glow: "#f0abfc", form: "neonWings" }
+        { id: "neonwing", name: "🦋 네온 윙 드론", price: 3500, c: ["#fdf4ff", "#c026d3", "#2e0537"], glow: "#f0abfc", form: "neonWings" },
+        { id: "bee", name: "🐝 꿀벌 드론", price: 3000, c: ["#fef9c3", "#facc15", "#713f12"], glow: "#fde047", form: "bee" } // v46 귀여운 코스튬
       ],
       golem: [
         { id: "", name: "기본 강철", c: ["#e2e8f0", "#64748b", "#1e293b"], glow: "#60a5fa" },
         { id: "moss", name: "🌿 이끼 수호자", price: 1200, c: ["#d9f99d", "#4d7c0f", "#1a2e05"], glow: "#86efac" },
         { id: "obsidian", name: "🌑 흑요석 거인", price: 2500, c: ["#a1a1aa", "#27272a", "#030303"], glow: "#c084fc" },
-        { id: "goldarmor", name: "🛡️ 황금 갑주 골렘", price: 3500, c: ["#e2e8f0", "#64748b", "#1e293b"], glow: "#fde047", form: "goldArmor" }
+        { id: "goldarmor", name: "🛡️ 황금 갑주 골렘", price: 3500, c: ["#e2e8f0", "#64748b", "#1e293b"], glow: "#fde047", form: "goldArmor" },
+        { id: "teddy", name: "🧸 곰돌이 골렘", price: 3000, c: ["#e7c9a9", "#a16207", "#422006"], glow: "#fca5a5", form: "teddy" } // v46
       ],
       wisp: [
         { id: "", name: "기본 비전", c: ["#f5d0fe", "#a855f7", "#3b0764"], glow: "#c084fc" },
         { id: "frost", name: "❄️ 서리 정령", price: 1200, c: ["#e0f2fe", "#38bdf8", "#0c4a6e"], glow: "#7dd3fc" },
         { id: "solar", name: "☀️ 태양 정령", price: 2500, c: ["#fef3c7", "#f97316", "#7c2d12"], glow: "#fdba74" },
         { id: "angel", name: "👼 아기 천사", price: 3500, c: ["#fff7ed", "#fde68a", "#b45309"], glow: "#fef9c3", form: "angel" },
-        { id: "dragon", name: "🐉 미니 드래곤", price: 4000, c: ["#dcfce7", "#16a34a", "#052e16"], glow: "#fb923c", form: "dragon" }
+        { id: "dragon", name: "🐉 미니 드래곤", price: 4000, c: ["#dcfce7", "#16a34a", "#052e16"], glow: "#fb923c", form: "dragon" },
+        { id: "bunny", name: "🐰 솜사탕 토끼", price: 3000, c: ["#ffffff", "#fce7f3", "#f9a8d4"], glow: "#f9a8d4", form: "bunny" },   // v46
+        { id: "penguin", name: "🐧 아기 펭귄", price: 3000, c: ["#475569", "#1e293b", "#020617"], glow: "#7dd3fc", form: "penguin" } // v46
+      ],
+      // v46 신규 동료
+      owl: [
+        { id: "", name: "기본 갈색 깃털", c: ["#e7d3b5", "#92643a", "#3b2412"], glow: "#fbbf24" },
+        { id: "snow", name: "❄️ 눈올빼미", price: 1200, c: ["#ffffff", "#e2e8f0", "#64748b"], glow: "#7dd3fc" },
+        { id: "starry", name: "🌌 별빛 부엉이", price: 2500, c: ["#c7d2fe", "#3730a3", "#0f0a2e"], glow: "#c4b5fd" },
+        { id: "gentleman", name: "🎩 신사 부엉이", price: 3500, c: ["#e7d3b5", "#92643a", "#3b2412"], glow: "#fde047", form: "owlHat" }
       ]
     };
     function petSkinOf(petId, skinId) {
@@ -1889,7 +1914,7 @@
         owned: [],                                      // 구매한 외형 ("slot:id", 동료 외형은 "pet:동료ID:외형ID")
         equip: { hat: "", armor: "", weapon: "", aura: "", costume: "" }, // 장착 중인 외형 (v38: costume = 몸 전체 코스튬)
         pet: "drone",                                   // 함께하는 동료
-        petSkin: { drone: "", golem: "", wisp: "" },    // 동료별 장착 외형 ("" = 기본)
+        petSkin: { drone: "", golem: "", wisp: "", owl: "" }, // 동료별 장착 외형 ("" = 기본, v46 owl 추가)
         lvl: 1, xp: 0,                                  // 캐릭터 레벨 (층 클리어 경험치로 오름)
         slotTickets: 0,                                 // 아직 돌리지 않은 슬롯머신 기회 (10레벨마다 +1)
         relics: {},                                     // 슬롯머신으로 얻은 영구 아이템 { 아이템ID: 개수 }
@@ -1953,6 +1978,7 @@
       return RELICS[0];
     }
     const charSaves = {};
+    let looksReady = false; // v47: 외형 데이터(COSMETICS)가 준비된 뒤부터 불러올 때마다 sanitizeLook 으로 바로잡음
     // cs(): 지금 고른 캐릭터(또는 지정한 캐릭터)의 상점 데이터
     function cs(id) {
       id = id || save.character;
@@ -1960,14 +1986,19 @@
         let data = null;
         try { data = JSON.parse(localStorage.getItem(CHAR_SAVE_PREFIX + id)); } catch (e) {}
         charSaves[id] = normalizeCharSave(data);
+        if (looksReady) sanitizeLook(charSaves[id]);
       }
       return charSaves[id];
     }
+    let saveWarned = false;
     function writeSave() {
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(save));
         for (const id in charSaves) localStorage.setItem(CHAR_SAVE_PREFIX + id, JSON.stringify(charSaves[id]));
-      } catch (e) {}
+      } catch (e) {
+        // v47: 저장 실패(저장 공간 부족·사생활 보호 모드 등)를 조용히 넘기지 않고 한 번 알려 줌
+        if (!saveWarned && typeof showShopToast === "function") { saveWarned = true; try { showShopToast("⚠️ 저장하지 못했어요 (브라우저 저장 공간을 확인해 주세요)"); } catch (e2) {} }
+      }
     }
     let save = loadSave();
     // 예전 저장 데이터에 새 항목이 빠져 있어도 동작하도록 기본값 채움
@@ -2091,7 +2122,13 @@
       slash:    { name: "⚔️ 3단 연속 베기", desc: "전방 부채꼴을 빠르게 3번 연속으로 벰 (3타는 넓고 강하게 ×1.6) · 범위 안 일반 탄환을 칼로 쳐냄",
         melee: true, reach: 112, arc: 110, speed: 0, dmgMult: 1.0, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#bae6fd" },
       smash:    { name: "🔨 지면 강타 · 휩쓸기", desc: "전방 지면 강타 2번 후 360도 휩쓸기 (적을 밀쳐냄, 한 방 ×1.9) · 범위 안 일반 탄환을 해머로 쳐냄",
-        melee: true, reach: 120, arc: 150, speed: 0, dmgMult: 1.9, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#fbbf24" }
+        melee: true, reach: 120, arc: 150, speed: 0, dmgMult: 1.9, range: 0, radiusMult: 1, tailLen: 0, tail: "rgba(0,0,0,0)", glow: "#fbbf24" },
+      // v46 신규 캐릭터 평타. homing: 가장 가까운 적을 향해 방향을 틂 (steerSoulBullet)
+      soul:     { name: "👻 영혼탄", desc: "적을 끝까지 쫓아가는 유도 영혼탄 (피해 ×1.0 · 2명까지 꿰뚫고 다음 적을 다시 쫓아감) · 하수인을 불러 함께 싸움",
+        speed: 8, dmgMult: 1.0, range: 900, radiusMult: 1.15, tailLen: 2.4, tail: "rgba(167, 139, 250, 0.45)", glow: "#a78bfa", core: "#f5f3ff", homing: true, pierce: 1 },
+      // 카드 문양은 던질 때 정함 (drawCardSuit): ♠ 관통 2 · ♥ 체력 회복 · ♦ 치명타 · ♣ 작은 폭발 · 13장째 조커
+      card:     { name: "🃏 마술 카드", desc: "던질 때마다 무작위 문양: ♠ 2명 관통 · ♥ 체력 회복 · ♦ 치명타 ×2 · ♣ 작은 폭발 / 13장째는 🃏 조커 (피해 ×3 + 거대 폭발)",
+        speed: 15, dmgMult: 0.95, range: 950, radiusMult: 0.95, tailLen: 2.0, tail: "rgba(244, 114, 182, 0.4)", glow: "#f472b6" }
     };
 
     // ===== 게임 데이터: 캐릭터 =====
@@ -2110,9 +2147,16 @@
       swordsman: { name: "⚔️ 블레이드", attack: "slash", melee: true, passive: "빠른 연계형 · 이동속도 +27% · 치명타 확률 +10% (피해 ×2) · 공격 속도 +20% · 대시: 쾌속 발도 돌진 (경로의 적 베기)",
         hpMult: 1, speedMult: 1.265, fireRateMult: 0.62, armor: 0, dodge: 0, skillMult: 1, crit: 0.1, skin: "swordsman" },
       hammer: { name: "🔨 브레이커", attack: "smash", melee: true, passive: "묵직한 파워형 · 이동속도 +10% · 최대 체력 +40% · 받는 피해 -15% · 처치 시 체력 흡수 (최대 체력 1%) · 대시: 바디 슬램 (적 넉백)",
-        hpMult: 1.4, speedMult: 1.1, fireRateMult: 1.25, armor: 0.15, dodge: 0, skillMult: 1, crit: 0, lifeOnKill: 0.01, skin: "hammer" }
+        hpMult: 1.4, speedMult: 1.1, fireRateMult: 1.25, armor: 0.15, dodge: 0, skillMult: 1, crit: 0, lifeOnKill: 0.01, skin: "hammer" },
+      // v46 신규 캐릭터 2종 (원거리 계열 → 기존 스킬 트리·강화 카드를 그대로 씀)
+      //   서머너: 처치한 적의 영혼을 하수인으로 부림 (멀티 샷 = 👻 영혼 군단: 영혼탄 +1 · 하수인 최대 수 +1)
+      //   트릭스터: 카드 문양마다 다른 효과 + 13장째 조커 대폭발 (운에 기대는 대신 순간 화력이 큼)
+      summoner: { name: "🔮 서머너", attack: "soul", summoner: true, passive: "소환형 · 4초마다 영혼 하수인 1마리를 부르고, 쓰러뜨린 적도 25% 확률로 하수인이 됨 (최대 3마리 + 영혼 군단 1번마다 +1 · 12초 유지) · 모든 스킬 피해 +10% · 체력 -15% · 대시: 영혼 도약 (출발 자리 영혼 폭발 + 하수인 1마리 소환)",
+        hpMult: 0.85, speedMult: 1, fireRateMult: 1.05, armor: 0, dodge: 0, skillMult: 1.1, crit: 0, skin: "summoner" },
+      trickster: { name: "🃏 트릭스터", attack: "card", passive: "기교형 · 카드 문양마다 다른 효과 · 13장째마다 조커 대폭발 · 이동속도 +10% · 8% 확률로 피해 회피 · 대시: 카드 셔플 (주위로 카드를 흩뿌려 적 기절)",
+        hpMult: 0.95, speedMult: 1.1, fireRateMult: 0.95, armor: 0, dodge: 0.08, skillMult: 1, crit: 0, skin: "trickster" }
     };
-    const CHARACTER_ORDER = ["survivor", "warrior", "assassin", "mage", "swordsman", "hammer"]; // 건슬링어 → 파이로 → 프로스트 → 스파크 → 블레이드 → 브레이커
+    const CHARACTER_ORDER = ["survivor", "warrior", "assassin", "mage", "swordsman", "hammer", "summoner", "trickster"]; // 건슬링어 → 파이로 → 프로스트 → 스파크 → 블레이드 → 브레이커 → 서머너 → 트릭스터
     function currentCharacter() { return CHARACTERS[save.character] || CHARACTERS.survivor; }
     function currentAttack() { return ATTACK_TYPES[currentCharacter().attack] || ATTACK_TYPES.energy; }
 
@@ -2188,7 +2232,15 @@
         { id: "voidblade", cls: "blade", name: "🌌 공허의 검", price: 3000, blade: ["#f5d0fe", "#9333ea", "#1e0838"], glow: "#c084fc", guard: "#facc15", wide: 1.25 },
         { id: "goldhammer", cls: "hammer", name: "👑 황금 망치", price: 1500, head: ["#fef9c3", "#eab308", "#713f12"], band: "#ef4444", glow: "#fde047" },
         { id: "spikemace", cls: "hammer", name: "🌵 가시 철퇴", price: 2000, head: ["#d6d3d1", "#57534e", "#1c1917"], band: "#78350f", glow: "#fca5a5", spikes: true },
-        { id: "thunderhammer", cls: "hammer", name: "⚡ 뇌신의 망치", price: 3000, head: ["#e0e7ff", "#6366f1", "#1e1b4b"], band: "#facc15", glow: "#facc15", bolt: true }
+        { id: "thunderhammer", cls: "hammer", name: "⚡ 뇌신의 망치", price: 3000, head: ["#e0e7ff", "#6366f1", "#1e1b4b"], band: "#facc15", glow: "#facc15", bolt: true },
+        // v46 서머너 지팡이 (tome): 지팡이 머리 모양 + 영혼탄·하수인 색(glow)이 바뀜
+        { id: "skullstaff", cls: "tome", name: "💀 해골 지팡이", price: 1500, head: "skull", glow: "#a3e635", shaft: ["#e7e5e4", "#78716c", "#1c1917"] },
+        { id: "moonorb", cls: "tome", name: "🌙 월광 수정구", price: 2000, head: "orb", glow: "#7dd3fc", shaft: ["#e0f2fe", "#64748b", "#0f172a"] },
+        { id: "grimoire", cls: "tome", name: "📕 금단의 마도서", price: 3000, head: "book", glow: "#fb7185", shaft: ["#fecdd3", "#9f1239", "#2a0410"] },
+        // v46 트릭스터 카드 (card): 카드 뒷면 색·무늬 + 던지는 카드 색이 바뀜
+        { id: "rosecard", cls: "card", name: "🌹 장미 카드", price: 1500, back: ["#ffe4e6", "#e11d48", "#4c0519"], glow: "#fb7185" },
+        { id: "goldcard", cls: "card", name: "💎 황금 카드", price: 2000, back: ["#fef9c3", "#eab308", "#713f12"], glow: "#fde047" },
+        { id: "tarot", cls: "card", name: "🌌 타로 카드", price: 3000, back: ["#f3e8ff", "#7e22ce", "#1e0838"], glow: "#c084fc", stars: true }
       ],
       aura: [
         { id: "flame", name: "🔥 불꽃 오라", price: 1500, color: "#f97316" },
@@ -2210,24 +2262,60 @@
       return id ? COSMETICS[slot].find(c => c.id === id) : null;
     }
     function cosmeticKey() { return `${cs().equip.hat || "-"}_${cs().equip.armor || "-"}_${cs().equip.weapon || "-"}_${cs().equip.costume || "-"}`; }
-    // 없으면 구매, 있으면 장착/해제
+    // ===== v47 외형 구매/장착 정리 =====
+    //   구매 상태 = cs().owned ("slot:id", 동료는 "pet:동료:외형") / 장착 상태 = cs().equip[slot], cs().petSkin[동료] — 캐릭터별 localStorage 키에 저장
+    //   예전 문제: ① 코스튬을 입은 채 모자·갑옷을 사면 코스튬에 가려져 '장착 중'인데 안 보임
+    //              ② 구매 직후 같은 자리 버튼이 '장착 중(누르면 해제)'로 바뀌어, 두 번 탭하면 바로 해제됨
+    //              ③ 지금 데려가지 않는 동료의 외형을 장착하면 화면에 아무 변화가 없음
+    //   → 코스튬 ↔ 모자·갑옷은 동시에 장착하지 않음, 장착 중인 아이템을 다시 눌러도 해제되지 않고 '해제'는 따로,
+    //     다른 동료의 외형을 장착하면 그 동료로 바꿈, 장착하면 알림
+    const LOOK_EXCLUSIVE = { costume: ["hat", "armor"], hat: ["costume"], armor: ["costume"] };
+    // 저장 데이터의 외형 상태를 바로잡음 (없는 아이템 → 해제, 장착했는데 보유 목록에 없으면 보유로, 코스튬과 모자·갑옷 동시 장착 → 코스튬만)
+    function sanitizeLook(c) {
+      c.owned = Array.from(new Set((c.owned || []).filter(k => typeof k === "string")));
+      for (const slot in c.equip) {
+        const id = c.equip[slot];
+        if (!id) { c.equip[slot] = ""; continue; }
+        if (!COSMETICS[slot] || !COSMETICS[slot].some(it => it.id === id)) { c.equip[slot] = ""; continue; }
+        if (!c.owned.includes(slot + ":" + id)) c.owned.push(slot + ":" + id);
+      }
+      if (c.equip.costume) { c.equip.hat = ""; c.equip.armor = ""; }
+      if (!c.petSkin || typeof c.petSkin !== "object") c.petSkin = {};
+      for (const pid in PETS) {
+        const sid = c.petSkin[pid] || "";
+        c.petSkin[pid] = PET_SKINS[pid].some(s => s.id === sid) ? sid : "";
+        if (c.petSkin[pid] && !c.owned.includes(`pet:${pid}:${c.petSkin[pid]}`)) c.owned.push(`pet:${pid}:${c.petSkin[pid]}`);
+      }
+      return c;
+    }
+    looksReady = true;
+    for (const id in charSaves) sanitizeLook(charSaves[id]);
+    // 없으면 구매(+장착), 있으면 장착. 해제는 unequipCosmetic
     function useCosmetic(slot, id) {
-      const item = COSMETICS[slot].find(c => c.id === id);
+      const item = COSMETICS[slot] && COSMETICS[slot].find(c => c.id === id);
       if (!item) return;
       const key = slot + ":" + id;
       if (!cs().owned.includes(key)) {
         if (save.gold < item.price) return;
         save.gold -= item.price;
         cs().owned.push(key);
-        cs().equip[slot] = id;
         Sound.itemPickup();
-      } else {
-        cs().equip[slot] = cs().equip[slot] === id ? "" : id;
+      } else if (cs().equip[slot] === id) {
+        return; // 이미 장착 중 (예전에는 여기서 해제돼서 두 번 탭하면 풀렸음)
       }
+      cs().equip[slot] = id;
+      for (const other of LOOK_EXCLUSIVE[slot] || []) cs().equip[other] = "";
+      writeSave();
+      showShopToast(`✔ 장착 완료: ${item.name}` + ((LOOK_EXCLUSIVE[slot] || []).length ? (slot === "costume" ? " (모자·갑옷은 벗음)" : " (코스튬은 벗음)") : ""));
+      renderLobby();
+    }
+    function unequipCosmetic(slot) {
+      if (!cs().equip[slot]) return;
+      cs().equip[slot] = "";
       writeSave();
       renderLobby();
     }
-    // 동료 외형: 없으면 구매(+장착), 있으면 장착 (기본 외형은 항상 보유)
+    // 동료 외형: 없으면 구매(+장착), 있으면 장착 (기본 외형은 항상 보유). v47: 다른 동료의 외형이면 그 동료로 바꿈
     function usePetSkin(petId, skinId) {
       const item = PET_SKINS[petId] && PET_SKINS[petId].find(s => s.id === skinId);
       if (!item) return;
@@ -2239,8 +2327,26 @@
         Sound.itemPickup();
       }
       cs().petSkin[petId] = skinId;
+      const switched = cs().pet !== petId;
+      cs().pet = petId;
       writeSave();
+      showShopToast(`✔ 장착 완료: ${item.name}` + (switched ? ` · 동료를 ${PETS[petId].short}(으)로 바꿨어요` : ""));
       renderLobby();
+    }
+    // 상점 알림 (화면 아래쪽에 잠깐)
+    function showShopToast(text) {
+      let el = document.getElementById("shop-toast");
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "shop-toast";
+        el.style.cssText = "position:fixed;left:50%;bottom:110px;transform:translateX(-50%);z-index:80;padding:10px 16px;border-radius:14px;max-width:86vw;" +
+          "background:rgba(6,78,59,0.95);border:1.5px solid #34d399;color:#ecfdf5;font-weight:800;font-size:14px;text-align:center;pointer-events:none;transition:opacity .3s";
+        document.body.appendChild(el);
+      }
+      el.textContent = text;
+      el.style.opacity = "1";
+      clearTimeout(showShopToast.t);
+      showShopToast.t = setTimeout(() => { el.style.opacity = "0"; }, 1800);
     }
     function selectPet(petId) {
       if (!PETS[petId]) return;
@@ -2340,18 +2446,21 @@
       mage: { name: "스파크 후디", armor: ["#ede9fe", "#7c3aed", "#2e1065"], helmet: ["#fef9c3", "#facc15", "#713f12"], hair: ["#fef9c3", "#facc15", "#a16207"], trim: "#facc15", visor: "#fde047", gun: ["#ede9fe", "#7c3aed", "#1e0b4b"] },
       // v38 근접 캐릭터
       swordsman: { name: "블레이드 검객복", armor: ["#e0e7ff", "#3730a3", "#111036"], helmet: ["#f8fafc", "#cbd5e1", "#334155"], hair: ["#475569", "#1e293b", "#020617"], trim: "#dc2626", visor: "#38bdf8", gun: ["#f8fafc", "#94a3b8", "#1e293b"] },
-      hammer: { name: "브레이커 철갑", armor: ["#fed7aa", "#c2410c", "#431407"], helmet: ["#fef3c7", "#a8a29e", "#292524"], hair: ["#fdba74", "#c2410c", "#7c2d12"], trim: "#fbbf24", visor: "#fbbf24", gun: ["#e7e5e4", "#57534e", "#1c1917"] }
+      hammer: { name: "브레이커 철갑", armor: ["#fed7aa", "#c2410c", "#431407"], helmet: ["#fef3c7", "#a8a29e", "#292524"], hair: ["#fdba74", "#c2410c", "#7c2d12"], trim: "#fbbf24", visor: "#fbbf24", gun: ["#e7e5e4", "#57534e", "#1c1917"] },
+      // v46 신규 캐릭터
+      summoner: { name: "서머너 영혼 로브", armor: ["#ede9fe", "#6d28d9", "#1e0b4b"], helmet: ["#c4b5fd", "#4c1d95", "#12052e"], hair: ["#f5f3ff", "#c4b5fd", "#6d28d9"], trim: "#facc15", visor: "#c084fc", gun: ["#ede9fe", "#6d28d9", "#1e0b4b"] },
+      trickster: { name: "트릭스터 마술 연미복", armor: ["#ffe4e6", "#be123c", "#3f0716"], helmet: ["#e5e7eb", "#1f2937", "#030712"], hair: ["#fef3c7", "#f59e0b", "#78350f"], trim: "#fde047", visor: "#f472b6", gun: ["#ffe4e6", "#be123c", "#3f0716"] }
     };
     const SKIN_TONE = ["#fff1e6", "#f9cdb0", "#b97a5c"];
     // 외형 키 → 캐릭터 종류 (머리 모양·모자·무기)
-    function heroKind(skin) { return ({ warrior: "pyro", assassin: "frost", mage: "spark", swordsman: "swordsman", hammer: "hammer" })[skin] || "gunslinger"; }
+    function heroKind(skin) { return ({ warrior: "pyro", assassin: "frost", mage: "spark", swordsman: "swordsman", hammer: "hammer", summoner: "summoner", trickster: "trickster" })[skin] || "gunslinger"; }
     // v38: 장착한 코스튬 (equip 을 넘기면 그것 기준 — 상점 입어보기)
     function costumeOf(equip) {
       const id = (equip || cs().equip).costume;
       return id ? COSMETICS.costume.find(c => c.id === id) : null;
     }
     // v38.1 외형 무기: 캐릭터 계열에 맞는 무기만 적용 (원거리 = 총, 블레이드 = 검, 브레이커 = 망치)
-    function weaponClassOfKind(kind) { return kind === "swordsman" ? "blade" : (kind === "hammer" ? "hammer" : "gun"); }
+    function weaponClassOfKind(kind) { return ({ swordsman: "blade", hammer: "hammer", summoner: "tome", trickster: "card" })[kind] || "gun"; }
     function weaponClassOfChar(id) { return weaponClassOfKind(heroKind((CHARACTERS[id] || {}).skin || "default")); }
     function weaponItemFor(equip, kind) {
       const id = equip && equip.weapon;
@@ -2364,6 +2473,12 @@
     function meleeWeaponStyle() {
       const kind = heroKind(getSkin());
       return weaponItemFor(cs().equip, kind) || (kind === "hammer" ? DEFAULT_HAMMER : DEFAULT_BLADE);
+    }
+    // v46 서머너 지팡이 · 트릭스터 카드 기본 모양 (상점 무기를 끼면 그 색이 영혼탄·하수인·던지는 카드에도 반영)
+    const DEFAULT_TOME = { head: "lantern", glow: "#a78bfa", shaft: ["#d6a36b", "#6b3f1d", "#2a1608"] };
+    const DEFAULT_DECK = { back: ["#e0e7ff", "#4338ca", "#1e1b4b"], glow: "#f472b6" };
+    function newCharWeaponStyle(kind, equip) {
+      return weaponItemFor(equip || cs().equip, kind) || (kind === "summoner" ? DEFAULT_TOME : DEFAULT_DECK);
     }
     // 외형 팔레트: 코스튬 > 갑옷 색 > 캐릭터 기본
     function heroPalette(skin, equip) {
@@ -2412,8 +2527,8 @@
       const kind0 = heroKind(skin);
       const wItem = weaponItemFor(cs().equip, kind0);
       const weapon = wItem ? wItem.id : "";
-      if (kind0 === "swordsman" || kind0 === "hammer") {
-        drawSignatureWeapon(g, a, skin, p, wItem); // 근접 캐릭터: 상점 무기는 검·망치 모양 그대로 색·장식이 바뀜
+      if (kind0 === "swordsman" || kind0 === "hammer" || kind0 === "summoner" || kind0 === "trickster") {
+        drawSignatureWeapon(g, a, skin, p, wItem); // 근접·v46 캐릭터: 상점 무기는 고유 무기 모양 그대로 색·장식이 바뀜
       } else if (weapon === "rifle") {
         // v38.1: 위에서 봐도 확 달라 보이게 크게 (긴 총열 + 조준경 + 개머리판)
         metalBar(g, 4, 6.5, 33, 5, ["#d6d3d1", "#57534e", "#1c1917"]);
@@ -2442,6 +2557,10 @@
       if (armorItem) drawArmorTop(g, a, armorItem, "front");             // 갑옷 견갑
       shadedBall(g, 2, -12, 3.6, 3.6, a, SKIN_TONE, "#5c2e1a");            // 반대쪽 손
       if (kind === "frost" && !costume) shadedBall(g, -7, 0, 9, 14, a, p.helmet, "#0c2440"); // 후드 망토 자락
+      if (kind === "summoner" && !costume) shadedBall(g, -9, 0, 10, 16, a, p.helmet, "#12052e"); // v46 서머너 로브 자락
+      if (kind === "trickster" && !costume) {                                // v46 트릭스터 연미복 꼬리 두 갈래
+        for (const side of [-1, 1]) shadedBall(g, -14, side * 6, 7, 4, a, p.helmet, "#030712");
+      }
       g.strokeStyle = p.trim;                                               // 스카프·벨트 포인트
       g.lineWidth = 2.2;
       g.beginPath();
@@ -2536,6 +2655,35 @@
           for (const side of [-1, 1]) shadedBall(g, 1, side * 13.5, 4, 4.6, a, p.armor, "#1e0b4b");
           glowDot(g, -9, 0, 1.6, p.visor);
         }
+        return;
+      }
+      if (kind === "summoner") {
+        // v46 서머너: 끝이 뒤로 길게 늘어진 보라 고깔 후드 + 은빛 앞머리 + 이마의 영혼 보석
+        if (plain) { backArc(13.5, 2, Math.PI * 0.45, Math.PI * 1.55); g.fill(); return; }
+        g.beginPath();                                                         // 뒤로 늘어진 후드 끝
+        g.moveTo(-6, -9); g.quadraticCurveTo(-18, -4, -26, 3); g.quadraticCurveTo(-16, 2, -6, 9); g.closePath();
+        g.fillStyle = p.helmet[1]; g.fill();
+        g.strokeStyle = p.helmet[2]; g.lineWidth = 0.9; g.stroke();
+        shadedBall(g, -1, 0, 14.5, 15, a, p.helmet, "#12052e");
+        g.strokeStyle = p.trim; g.lineWidth = 2;                               // 후드 테두리 금실
+        g.beginPath(); g.arc(3, 0, 13, -Math.PI * 0.42, Math.PI * 0.42); g.stroke();
+        g.fillStyle = hg;                                                      // 후드 안 은빛 앞머리
+        g.beginPath(); g.ellipse(9, 0, 3.4, 9, 0, 0, Math.PI * 2); g.fill();
+        glowDot(g, 13.5, 0, 1.6, p.visor);
+        return;
+      }
+      if (kind === "trickster") {
+        // v46 트릭스터: 위에서 본 실크 해트 (넓은 챙 + 둥근 윗면 + 노란 띠 + 띠에 꽂은 카드)
+        if (plain) { backArc(13.5, 2, Math.PI * 0.45, Math.PI * 1.55); g.fill(); return; }
+        shadedBall(g, 0, 0, 17, 16.5, a, p.helmet, "#030712");               // 챙
+        shadedBall(g, -1, 0, 10.5, 10.5, a, [p.helmet[0], p.helmet[1], "#000000"], "#030712"); // 윗면
+        g.strokeStyle = p.trim; g.lineWidth = 2.2;
+        g.beginPath(); g.arc(-1, 0, 11, 0, Math.PI * 2); g.stroke();
+        g.save(); g.translate(-6, -10); g.rotate(-0.5);                        // 띠에 꽂은 카드
+        g.fillStyle = "#ffffff"; g.fillRect(-3, -4.5, 6, 9);
+        g.strokeStyle = "#be123c"; g.lineWidth = 0.8; g.strokeRect(-3, -4.5, 6, 9);
+        g.fillStyle = "#e11d48"; g.beginPath(); g.arc(0, 0, 1.5, 0, Math.PI * 2); g.fill();
+        g.restore();
         return;
       }
       if (kind === "swordsman") {
@@ -2636,6 +2784,28 @@
         g.fillRect(2, 8.2, 11, 3.6);
         g.fillStyle = p.trim;
         for (const x of [4, 7, 10]) g.fillRect(x, 8.2, 1.2, 3.6);
+        return;
+      }
+      if (skin === "summoner") {
+        // v46 서머너: 긴 지팡이 + 머리 장식 (기본 영혼 등불 / 해골 / 월광 수정구 / 떠 있는 마도서) — 머리에서 영혼 빛
+        const W = wItem || DEFAULT_TOME;
+        glowLine(32, 50, 10, 16, W.glow);
+        metalBar(g, -2, 8.3, 36, 3.4, W.shaft);
+        drawTomeHeadTop(g, a, W, 42, 10);
+        return;
+      }
+      if (skin === "trickster") {
+        // v46 트릭스터: 손에 부채꼴로 펼쳐 든 카드 3장 + 앞쪽에 떠 있는 카드 1장
+        const W = wItem || DEFAULT_DECK;
+        glowLine(18, 40, 10, 12, W.glow);
+        for (let k = -1; k <= 1; k++) {
+          g.save(); g.translate(17, 10); g.rotate(k * 0.42);
+          drawCardShape(g, 9, -4, 13, 9, W, k === 0 ? "♥" : (k < 0 ? "♠" : "♦"));
+          g.restore();
+        }
+        g.save(); g.translate(38, 10); g.rotate(0.3);
+        drawCardShape(g, -5, -7, 10, 14, W, null);
+        g.restore();
         return;
       }
       if (skin === "hammer") {
@@ -2739,6 +2909,69 @@
         g.fillStyle = "#78350f"; g.fillRect(2, 7, 9, 6);                      // 나무 손잡이
         g.fillStyle = "#a16207"; g.fillRect(3, 8, 7, 1.2);
       }
+    }
+
+    // v46 서머너 지팡이 머리 (위에서 본 모양 · 중심 (x, y)). W.head: lantern(기본 영혼 등불) / skull / orb / book
+    function drawTomeHeadTop(g, a, W, x, y) {
+      if (W.head === "skull") {
+        shadedBall(g, x, y, 7.5, 7, a, ["#fafaf9", "#d6d3d1", "#57534e"], "#1c1917");
+        g.fillStyle = "#1c1917";
+        for (const s of [-1, 1]) { g.beginPath(); g.arc(x + 2.5, y + s * 2.8, 1.7, 0, Math.PI * 2); g.fill(); }
+        glowDot(g, x + 2.5, y - 2.8, 1, W.glow); glowDot(g, x + 2.5, y + 2.8, 1, W.glow);
+      } else if (W.head === "orb") {
+        for (const s of [-1, 1]) {                                            // 수정구를 받친 초승달 갈퀴
+          g.beginPath(); g.moveTo(x - 7, y + s * 2); g.quadraticCurveTo(x - 4, y + s * 11, x + 4, y + s * 9);
+          g.strokeStyle = "#cbd5e1"; g.lineWidth = 1.8; g.stroke();
+        }
+        glowDot(g, x, y, 6, W.glow);
+        shadedBall(g, x, y, 6.5, 6.5, a, ["#ffffff", W.glow, "#0c4a6e"], "#0f172a");
+      } else if (W.head === "book") {
+        g.save(); g.translate(x + 2, y); g.rotate(Math.PI / 2);               // 지팡이 끝에 떠 있는 펼친 마도서
+        g.fillStyle = "#4c0519"; roundRect(g, -11, -7, 22, 14, 2); g.fill();
+        g.fillStyle = "#fff7ed"; g.fillRect(-10, -6, 9.5, 12); g.fillRect(0.5, -6, 9.5, 12);
+        g.strokeStyle = rgba(W.glow, 0.9); g.lineWidth = 1;
+        g.beginPath(); for (const yy of [-3, 0, 3]) { g.moveTo(-8.5, yy); g.lineTo(-2.5, yy); g.moveTo(2, yy); g.lineTo(8.5, yy); } g.stroke();
+        g.restore();
+        glowDot(g, x + 2, y, 3, W.glow);
+      } else {
+        // 기본: 영혼 등불 (금속 틀 + 안에서 일렁이는 영혼 불꽃)
+        g.fillStyle = "#292524"; roundRect(g, x - 6, y - 6, 12, 12, 3); g.fill();
+        g.globalCompositeOperation = "lighter";
+        drawGlow(g, W.glow, x, y, 10);
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, x, y, 4, 4, a, ["#ffffff", W.glow, "#4c1d95"], null);
+        g.strokeStyle = "#a8a29e"; g.lineWidth = 1.2;
+        g.strokeRect(x - 6, y - 6, 12, 12);
+        g.beginPath(); g.moveTo(x - 6, y); g.lineTo(x + 6, y); g.moveTo(x, y - 6); g.lineTo(x, y + 6); g.stroke();
+      }
+    }
+    // v46 카드 한 장 (왼쪽 위 (x, y), 폭 w, 높이 h). suit 가 있으면 앞면(흰 바탕 + 문양), 없으면 뒷면(무기 색 + 무늬)
+    function drawCardShape(g, x, y, w, h, W, suit) {
+      const r = Math.min(w, h) * 0.16;
+      roundRect(g, x, y, w, h, r);
+      if (suit) {
+        g.fillStyle = "#ffffff"; g.fill();
+        g.strokeStyle = W.back[2]; g.lineWidth = Math.max(0.6, w * 0.06); g.stroke();
+        g.fillStyle = suit === "♥" || suit === "♦" ? "#e11d48" : (suit === "J" ? "#ca8a04" : "#111827");
+        g.font = `bold ${Math.round(Math.min(w, h) * 0.8)}px sans-serif`;
+        g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(suit === "J" ? "★" : suit, x + w / 2, y + h / 2 + 0.5);
+        g.textBaseline = "alphabetic";
+        return;
+      }
+      const bg = g.createLinearGradient(x, y, x + w, y + h);
+      bg.addColorStop(0, W.back[0]); bg.addColorStop(0.5, W.back[1]); bg.addColorStop(1, W.back[2]);
+      g.fillStyle = bg; g.fill();
+      g.strokeStyle = "#ffffff"; g.lineWidth = Math.max(0.6, w * 0.07); g.stroke();
+      g.strokeStyle = rgba("#ffffff", 0.55); g.lineWidth = Math.max(0.5, w * 0.04);   // 뒷면 마름모 무늬 / 타로는 별
+      g.beginPath();
+      if (W.stars) {
+        for (let k = 0; k < 5; k++) { const an = -Math.PI / 2 + k * Math.PI * 4 / 5; const px = x + w / 2 + Math.cos(an) * w * 0.28, py = y + h / 2 + Math.sin(an) * w * 0.28; if (k) g.lineTo(px, py); else g.moveTo(px, py); }
+        g.closePath();
+      } else {
+        g.moveTo(x + w / 2, y + h * 0.18); g.lineTo(x + w * 0.8, y + h / 2); g.lineTo(x + w / 2, y + h * 0.82); g.lineTo(x + w * 0.2, y + h / 2); g.closePath();
+      }
+      g.stroke();
     }
 
     // 모자 (위에서 내려다본 모양, 머리 중심은 (1, 0))
@@ -3179,6 +3412,24 @@
         g.fillStyle = "#ffffff";
         g.fillRect(-21, 33, 42, 3.5);
       }
+      // v46 서머너: 발목까지 내려오는 로브 자락 + 금실 룬 테두리 / 트릭스터: 연미복 꼬리
+      if (kind === "summoner" && !costume) {
+        g.beginPath();
+        g.moveTo(-15, 12); g.lineTo(15, 12); g.lineTo(23, 42); g.quadraticCurveTo(0, 47, -23, 42);
+        g.closePath();
+        g.fillStyle = frontShade(g, -23, 23, p.helmet);
+        g.fill();
+        g.strokeStyle = p.trim; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(-22, 39); g.quadraticCurveTo(0, 44, 22, 39); g.stroke();
+        g.fillStyle = p.trim;
+        for (const xx of [-12, 0, 12]) { g.beginPath(); g.arc(xx, 41.5 + (xx ? -0.6 : 0.6), 1.5, 0, Math.PI * 2); g.fill(); }
+      }
+      if (kind === "trickster" && !costume) {
+        for (const side of [-1, 1]) {
+          g.beginPath(); g.moveTo(side * 6, 16); g.lineTo(side * 16, 16); g.lineTo(side * 20, 40 + Math.sin(t / 240 + side) * 1.5); g.lineTo(side * 9, 34); g.closePath();
+          g.fillStyle = frontShade(g, -20, 20, p.helmet); g.fill();
+        }
+      }
       // 몸통
       g.save();
       g.scale(wide, 1);
@@ -3197,6 +3448,27 @@
         g.beginPath(); g.moveTo(-9, -4); g.lineTo(0, 12); g.lineTo(9, -4); g.lineTo(5, -4); g.lineTo(0, 6); g.lineTo(-5, -4); g.closePath(); g.fill();
         g.fillStyle = p.trim; g.fillRect(-16, 16, 32, 4.5);          // 붉은 허리띠 + 매듭
         g.beginPath(); g.moveTo(10, 18); g.lineTo(16, 30 + Math.sin(t / 200) * 2); g.lineTo(12, 30); g.closePath(); g.fill();
+      } else if (kind === "summoner") {
+        g.fillStyle = p.helmet[1];                                   // v46 서머너: 겹친 로브 앞섶 + 가슴의 영혼 보석 + 금실 허리끈
+        g.beginPath(); g.moveTo(-10, -4); g.lineTo(0, 14); g.lineTo(10, -4); g.closePath(); g.fill();
+        g.fillStyle = p.trim; g.fillRect(-16, 17, 32, 3.5);
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.6 + Math.sin(t / 260) * 0.25;
+        drawGlow(g, p.visor, 0, 6, 12);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        shadedBall(g, 0, 6, 4, 4.5, 0, ["#ffffff", p.visor, "#4c1d95"], "#1e0b4b");
+      } else if (kind === "trickster") {
+        g.fillStyle = "#fff7ed";                                     // v46 트릭스터: 흰 셔츠 + 붉은 조끼 + 나비넥타이 + 금단추
+        g.beginPath(); g.moveTo(-7, -4); g.lineTo(7, -4); g.lineTo(3, 20); g.lineTo(-3, 20); g.closePath(); g.fill();
+        g.fillStyle = p.trim;
+        for (const yy of [6, 12]) { g.beginPath(); g.arc(0, yy, 1.4, 0, Math.PI * 2); g.fill(); }
+        g.fillStyle = "#111827";
+        g.beginPath(); g.moveTo(0, -2); g.lineTo(-8, -6); g.lineTo(-8, 2); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(0, -2); g.lineTo(8, -6); g.lineTo(8, 2); g.closePath(); g.fill();
+        g.fillStyle = p.visor; g.beginPath(); g.arc(0, -2, 2, 0, Math.PI * 2); g.fill();
+        g.font = "bold 7px sans-serif"; g.textAlign = "center";        // 조끼의 카드 문양 자수
+        g.fillStyle = "#fde68a"; g.fillText("♠", -11, 14); g.fillText("♥", 11, 14);
       } else if (kind === "hammer") {
         g.fillStyle = "#57534e";                                     // 가슴 철판 + 리벳
         roundRect(g, -12, 0, 24, 14, 4); g.fill();
@@ -3254,6 +3526,16 @@
       if (kind === "frost" && !hatCos && !costume) { // 후드 뒤판
         shadedBall(g, 0, -30, 31, 30, 0, p.helmet, "#1e3a5f");
       }
+      if (kind === "summoner" && !hatCos && !costume) { // v46 서머너 고깔 후드 뒤판 (끝이 위로 솟았다 옆으로 꺾임)
+        g.beginPath(); g.moveTo(-26, -38); g.quadraticCurveTo(-6, -84, 22, -74 + Math.sin(t / 300) * 2); g.quadraticCurveTo(6, -66, 24, -36); g.closePath();
+        g.fillStyle = frontShade(g, -26, 26, p.helmet); g.fill();
+        shadedBall(g, 0, -30, 31, 30, 0, p.helmet, "#12052e");
+      }
+      if (kind === "trickster" && !hatCos && !costume) { // v46 트릭스터 뒷머리 (금발 단발)
+        g.fillStyle = frontShade(g, -26, 26, p.hair);
+        roundRect(g, -26, -42, 52, 30, 12);
+        g.fill();
+      }
       shadedBall(g, 0, -28, 25, 23, 0, SKIN_TONE, "#7c4a32");
       const blink = (t % 3200) < 120; // 가끔 눈을 깜빡임
       for (const side of [-1, 1]) {
@@ -3291,6 +3573,42 @@
 
     // 정면 머리 모양 (머리 중심 (0, -28), 반지름 약 25). plain = 외형 모자를 쓴 경우 머리카락만
     function drawHeroHairFront(g, kind, p, t, plain) {
+      if (kind === "summoner") {
+        // v46 서머너: 후드 앞쪽 테두리(금실) + 은빛 앞머리 + 이마의 작은 영혼 보석
+        g.fillStyle = frontShade(g, -24, 24, p.hair);
+        g.beginPath(); g.moveTo(-23, -30); g.quadraticCurveTo(-10, -52, 0, -42); g.quadraticCurveTo(10, -52, 23, -30); g.quadraticCurveTo(10, -40, 0, -36); g.quadraticCurveTo(-10, -40, -23, -30); g.fill();
+        if (plain) return;
+        g.strokeStyle = p.trim; g.lineWidth = 3;
+        g.beginPath(); g.ellipse(0, -28, 27, 26, 0, Math.PI * 1.06, Math.PI * 1.94); g.stroke();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.55 + Math.sin(t / 300) * 0.25;
+        drawGlow(g, p.visor, 0, -47, 10);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        g.beginPath(); g.moveTo(0, -52); g.lineTo(3, -47); g.lineTo(0, -42); g.lineTo(-3, -47); g.closePath();
+        g.fillStyle = p.visor; g.fill();
+        return;
+      }
+      if (kind === "trickster") {
+        // v46 트릭스터: 금발 앞머리 + 기울여 쓴 실크 해트 (띠에 카드 한 장)
+        g.fillStyle = frontShade(g, -26, 26, p.hair);
+        g.beginPath(); g.ellipse(0, -40, 27, 14, 0, Math.PI, 0); g.lineTo(27, -30); g.quadraticCurveTo(14, -42, 2, -36); g.quadraticCurveTo(-12, -44, -27, -30); g.closePath(); g.fill();
+        if (plain) return;
+        g.save();
+        g.translate(4, -46); g.rotate(0.12);
+        g.fillStyle = frontShade(g, -34, 34, p.helmet);
+        g.beginPath(); g.ellipse(0, 0, 34, 7, 0, 0, Math.PI * 2); g.fill();            // 챙
+        g.fillStyle = frontShade(g, -18, 18, p.helmet);
+        roundRect(g, -18, -34, 36, 34, 4); g.fill();                                    // 몸통
+        g.strokeStyle = "#000000"; g.lineWidth = 1; g.stroke();
+        g.fillStyle = p.trim; g.fillRect(-18, -10, 36, 6);                              // 띠
+        g.save(); g.translate(10, -14); g.rotate(0.35);
+        drawCardShape(g, -5, -8, 10, 14, DEFAULT_DECK, "♥");
+        g.restore();
+        g.fillStyle = "rgba(255, 255, 255, 0.25)"; g.fillRect(-15, -32, 5, 20);         // 광택
+        g.restore();
+        return;
+      }
       if (kind === "swordsman") {
         // 블레이드: 단정한 앞머리 + 위로 묶은 꽁지머리 + 붉은 머리띠
         g.fillStyle = frontShade(g, -26, 26, p.hair);
@@ -3421,9 +3739,45 @@
     function drawFrontWeapon(g, cosWeapon, skin, p, t) {
       const wItem = cosWeapon ? COSMETICS.weapon.find(c => c.id === cosWeapon) : null;
       const kind = wItem && wItem.cls === "blade" ? "katana" : (wItem && wItem.cls === "hammer" ? "bighammer" :
-        (cosWeapon || ({ assassin: "icewand", warrior: "flame", mage: "staff", swordsman: "katana", hammer: "bighammer" })[skin] || "revolver"));
+        (wItem && wItem.cls === "tome" ? "lantern" : (wItem && wItem.cls === "card" ? "cards" :
+        (cosWeapon || ({ assassin: "icewand", warrior: "flame", mage: "staff", swordsman: "katana", hammer: "bighammer", summoner: "lantern", trickster: "cards" })[skin] || "revolver"))));
       g.save();
-      if (kind === "katana") {
+      if (kind === "lantern") {
+        // v46 서머너: 세워 든 긴 지팡이 + 머리 장식(등불·해골·수정구·마도서) + 주위를 맴도는 작은 영혼 둘
+        const W = wItem || DEFAULT_TOME;
+        g.fillStyle = frontShade(g, 25, 29, W.shaft);
+        roundRect(g, 25, -42, 4, 84, 2); g.fill();
+        g.save(); g.translate(27, -54); g.rotate(-Math.PI / 2); g.scale(1.6, 1.6);
+        drawTomeHeadTop(g, 0, W, 0, 0);
+        g.restore();
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.55 + Math.sin(t / 240) * 0.2;
+        drawGlow(g, W.glow, 27, -54, 24);
+        for (let k = 0; k < 2; k++) {
+          const an = t / 520 + k * Math.PI;
+          g.globalAlpha = 0.8;
+          drawGlow(g, W.glow, 27 + Math.cos(an) * 22, -54 + Math.sin(an) * 9, 6);
+        }
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+      } else if (kind === "cards") {
+        // v46 트릭스터: 얼굴 옆으로 부채처럼 펼쳐 든 카드 4장 (문양 4종) + 손끝에 떠오르는 카드 1장
+        const W = wItem || DEFAULT_DECK;
+        g.translate(24, 4);
+        g.globalCompositeOperation = "lighter";
+        g.globalAlpha = 0.4 + Math.sin(t / 220) * 0.15;
+        drawGlow(g, W.glow, 0, -14, 26);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = "source-over";
+        ["♠", "♥", "♣", "♦"].forEach((s, k) => {
+          g.save(); g.rotate(-0.6 + k * 0.38);
+          drawCardShape(g, -6, -30, 13, 19, W, s);
+          g.restore();
+        });
+        g.save(); g.translate(4, -44 + Math.sin(t / 260) * 3); g.rotate(Math.sin(t / 400) * 0.4);
+        drawCardShape(g, -6, -9, 12, 17, W, null);
+        g.restore();
+      } else if (kind === "katana") {
         // 블레이드: 비스듬히 세워 든 외날검 (날 위를 흐르는 빛). 상점 무기면 날 색·폭·빛이 바뀜
         const W = wItem || DEFAULT_BLADE, w = W.wide || 1;
         g.translate(26, 10);
@@ -3778,6 +4132,17 @@
           g.beginPath(); g.arc(0, 0, 6, 0, Math.PI * 2); g.stroke();
           g.fillStyle = "#713f12"; g.font = "bold 9px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
           g.fillText("G", 0, 0.5);
+        });
+      }
+      if (type === "slotcoin") {
+        // v47 행운의 슬롯 코인 (보라 테두리 + 7)
+        return getSprite("gem_slotcoin", 40, 2, g => {
+          g.fillStyle = "rgba(196, 181, 253, 0.35)"; g.beginPath(); g.arc(0, 0, 17, 0, Math.PI * 2); g.fill();
+          shadedBall(g, 0, 0, 12, 12, 0, ["#fefce8", "#facc15", "#713f12"], "#4c1d95");
+          g.strokeStyle = "#7c3aed"; g.lineWidth = 2.4;
+          g.beginPath(); g.arc(0, 0, 9, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = "#7c3aed"; g.font = "900 12px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+          g.fillText("7", 0, 0.5);
         });
       }
       return getSprite("gem_" + type, 40, 2, g => {
@@ -4663,6 +5028,15 @@
           if (t[0]) u.title = u.title.replace(/^.*?(?= \[|$)/, t[0]);
           u.desc = t[1];
         }
+      }
+      // v46: 서머너 멀티 샷 = 👻 영혼 군단 (영혼탄 +1 · 하수인 최대 +1) / 트릭스터 = 🃏 카드 부채
+      const ms = allUpgrades.find(u => u.id === "multishot");
+      if (ms && isSummoner()) {
+        ms.title = `👻 영혼 군단 (+1) [하수인 ${summonMax()} → ${summonMax() + 1}]`;
+        ms.desc = "영혼탄이 1발 늘고, 함께 싸우는 영혼 하수인 최대 수가 1 늘어납니다.";
+      } else if (ms && save.character === "trickster") {
+        ms.title = "🃏 카드 부채 (+1)";
+        ms.desc = "한 번에 던지는 카드가 1장 늘어납니다 (부채꼴로 펼쳐 던짐 · 조커까지 남은 장수도 더 빨리 줄어듦).";
       }
       // 레벨 15 이상: 보유 중인 스킬(isOwned === true) 우선 선별 (개발자 전체 목록 all=true 는 제외)
       if (player.level >= 15 && !all) {
@@ -5812,6 +6186,8 @@
 
     function resetPet(petId) {
       setPetField(false);
+      setPetChrono(false); // v46 부엉이 시간 정지 공격 속도 배율 되돌림
+      pet.chronoUntil = 0;
       pet.id = petId || "";
       pet.skin = pet.id ? cs().petSkin[pet.id] || "" : "";
       pet.x = player.x - 50; pet.y = player.y + 10;
@@ -5967,6 +6343,21 @@
         }
         addShake(2);
         petSfx("wave");
+      } else if (pet.id === "owl") {
+        // v46 시계 바늘: 목표 방향 직선 위에서 가까운 적부터 2명(+강화 갈래) 꿰뚫음 · 맞은 적 1초간 40% 둔화
+        const a = pet.facing, cx = Math.cos(a), cy = Math.sin(a), len = PETS.owl.range + 40;
+        const onLine = monsters.filter(m => {
+          const rx = m.x - pet.x, ry = m.y - pet.y, along = rx * cx + ry * cy;
+          return along > 0 && along < len && Math.abs(rx * cy - ry * cx) < 12 + m.radius;
+        }).sort((p, q) => ((p.x - pet.x) * cx + (p.y - pet.y) * cy) - ((q.x - pet.x) * cx + (q.y - pet.y) * cy)).slice(0, 2 + extra);
+        const last = onLine[onLine.length - 1] || target;
+        const reach = Math.max(80, (last.x - pet.x) * cx + (last.y - pet.y) * cy + 30);
+        petFx.push({ kind: "needle", x: pet.x, y: pet.y, x2: pet.x + cx * reach, y2: pet.y + cy * reach, life: 12, maxLife: 12, color: glow });
+        for (const m of onLine) {
+          if (!m.isBoss) { m.speed = Math.min(m.speed, m.baseSpeed * 0.6); m.slowTimer = Math.max(m.slowTimer || 0, 60); }
+          damageMonster(m, dmg, glow, "pet");
+        }
+        if (sfxReady("pet", 110)) sfxTone({ type: "triangle", freq: 1760, freqEnd: 1100, dur: 0.07, vol: 0.05, wet: 0.4 });
       } else {
         // 마력탄: 강화 Lv2·4에 1발씩 추가 (부채꼴), 맞으면 작은 범위 폭발
         const n = 1 + extra;
@@ -5993,6 +6384,15 @@
         petBlast(player.x, player.y, r, player.damage * 1.5 * petDmgMult(), glow, 60);
         addShake(6);
         Sound.explosion();
+      } else if (pet.id === "owl") {
+        // v46 ⏳ 시간 정지 (강화 Lv당 0.3초 더 길게). 실제 정지는 매 칸 applyTimeStop
+        pet.chronoLen = CHRONO_MS + pet.level * 300;
+        pet.chronoUntil = playTimeMs + pet.chronoLen;
+        petFx.push({ kind: "reboot", x: player.x, y: player.y, r: 260, life: 28, maxLife: 28, color: glow });
+        if (audioCtx) { // 째깍째깍 + 거꾸로 감기는 소리
+          for (let k = 0; k < 4; k++) sfxTone({ type: "square", freq: k % 2 ? 1500 : 1900, dur: 0.03, vol: 0.04, delay: k * 0.12 });
+          sfxNoise({ filter: "bandpass", freq: 600, freqEnd: 2400, q: 1.2, dur: 0.5, vol: 0.08, attack: 0.3, wet: 0.5 });
+        }
       } else {
         // 증폭 필드 (강화 Lv당 반경 +10). 필드 안 적은 0.5초마다 피해 (updatePetEffects)
         pet.field = { x: player.x, y: player.y, r: 150 + pet.level * 10, until: playTimeMs + 6000, tickAt: playTimeMs };
@@ -6007,7 +6407,9 @@
         if (pet.id === "drone") pet.boostUntil = playTimeMs + 1000;
         if (pet.id === "golem") { pet.shieldMax = Math.round(player.maxHp * (0.15 + pet.level * 0.03)); pet.shield = pet.shieldMax; }
         if (pet.id === "wisp") pet.field = { x: player.x, y: player.y, r: 150 + pet.level * 10, until: playTimeMs + 1000, tickAt: pet.field && pet.field.tickAt != null ? pet.field.tickAt : playTimeMs };
+        if (pet.id === "owl") { pet.chronoLen = pet.chronoLen || CHRONO_MS; pet.chronoUntil = playTimeMs + 1000; }
       }
+      applyTimeStop(); // v46 부엉이 시간 정지
       // 드론 가속 중: 이동하면 잔상을 남김
       if (playTimeMs < pet.boostUntil && player.isMoving && playTimeMs - pet.ghostAt > 45) {
         pet.ghostAt = playTimeMs;
@@ -6098,16 +6500,19 @@
           const spread = kind === "snipe" ? 0.12 : 0.22;
           angle = baseAngle + (i - (player.bulletCount - 1) / 2) * spread;
         }
-        const crit = critChance > 0 && Math.random() < critChance;
+        // v46 트릭스터: 카드마다 문양 (♦ = 확정 치명타, ♠ = 관통 2, 조커 = 피해 ×3 · 크게 · 관통 4)
+        const suit = kind === "card" ? drawCardSuit() : null;
+        const crit = (critChance > 0 && Math.random() < critChance) || suit === "♦";
         const spd = atk.speed * skillUp.proj;
         bullets.push({
           x: player.x, y: player.y,
           dx: Math.cos(angle) * spd, dy: Math.sin(angle) * spd,
-          speed: spd, range: atk.range, kind: kind, crit: crit,
-          radius: bRadius, damage: player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1), isCharged: false,
+          speed: spd, range: atk.range, kind: kind, crit: crit, suit: suit,
+          radius: bRadius * (suit === "J" ? 1.8 : 1),
+          damage: player.damage * player.caliberMult * atk.dmgMult * (crit ? 2 : 1) * (suit === "J" ? CARD_JOKER_MULT : 1), isCharged: false,
           bounces: player.ricochetLevel >= 5 ? 5 : (player.ricochetLevel > 0 ? 3 : 0),
-          pierceLeft: atk.pierce || 0,
-          lastHit: null
+          pierceLeft: suit === "J" ? 4 : (suit === "♠" ? 2 : (atk.pierce || 0)),
+          lastHit: null, spin: Math.random() * 6.28
         });
       }
     }
@@ -6248,14 +6653,14 @@
     // 피해를 줄 때 hurt(m, dmg, 출처)를 거치면 출처별 총 피해량을 쌓고, 막타 출처를 몬스터에 기록 → 처치 시 집계
     const STAT_NAMES = {
       basic: "🔫 기본 공격", charged: "💠 차지샷", clone: "👥 분신", nuke: "💣 폭탄 아이템", revive: "📺 부활 충격파", pet: "🤖 동료", trap: "💥 폭발 장애물", dash: "💨 대시 공격",
-      wave: "🌙 검기 · 균열", ult: "🌟 필살기"
+      wave: "🌙 검기 · 균열", ult: "🌟 필살기", summon: "👻 영혼 하수인", joker: "🃏 조커 폭발"
     };
     let combatStats = {};
     function statOf(src) {
       return combatStats[src] || (combatStats[src] = { dmg: 0, kills: 0 });
     }
     function hurt(m, dmg, src) {
-      if (m.goblin && bonus && dmg > 0) goblinHit(m); // 💰 황금 고블린: 맞을 때마다 골드·금화
+      if (m.goblin && bonus && dmg > 0 && src !== "summon") goblinHit(m); // 💰 황금 고블린: 맞을 때마다 골드·금화 (v47: 서머너 하수인 타격은 제외)
       if (dmg > 0 && m.hp > 0) statOf(src).dmg += Math.min(dmg, m.hp); // 오버킬은 제외
       m.lastSrc = src;
       return dmg;
@@ -6966,7 +7371,7 @@
       player.dashAngle = ang;
       player.angle = ang;
       player.dashUntil = playTimeMs + DASH_TIME;
-      player.invulnUntil = playTimeMs + DASH_TIME + DASH_INVULN; // v32: 대시가 끝난 뒤에도 0.5초 더 무적
+      player.invulnUntil = playTimeMs + DASH_TIME + (devilMode() ? 0 : DASH_INVULN); // v32: 대시가 끝난 뒤에도 0.5초 더 무적 (v47 타락의 탑은 대시 중에만)
       player.dashReadyAt = playTimeMs + dashCooldown();
       trap.rootUntil = 0; // 늪에 묶여 있어도 대시로 탈출
       // v38: 캐릭터별 대시 모션 + 대시 중 작은 공격 효과 (startDashFx)
@@ -7013,6 +7418,16 @@
       }
       if (finalBossDefeated || (bonus && bonus.done)) return;
       if (playTimeMs < player.levelInvulnUntil) return; // 레벨업 카드를 고른 직후 무적 (보너스 모드 부활 무적도 같이 사용)
+      // v47 😈 타락의 탑: 스치기만 해도 사망 — 방벽·보호막·회피·장갑을 모두 무시
+      if (devilMode() && rawDamage > 0 && !godMode) {
+        player.hp = 0;
+        deathCount++;
+        addShake(10);
+        Sound.hurt();
+        vibrate(200, true);
+        bonusPlayerDown();
+        return;
+      }
       // 에너지 방벽: 탄환·돌진 같은 큰 피해만 1번 막음 (몸통 접촉의 작은 지속 피해에는 소모되지 않음)
       if (rawDamage >= 5 && barrierReady()) {
         player.barrierReadyAt = playTimeMs + barrierCooldown(player.barrierLevel);
@@ -7421,7 +7836,9 @@
         `⚔️ 공격력 ${Math.round(player.damage)} · 평타 1발 ${Math.round(player.damage * player.caliberMult * currentAttack().dmgMult)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
         isMeleeChar()
           ? `⚔️ 근접 공격 ${currentAttack().name} · 리치 ${Math.round(meleeReach())} · 부채꼴 ${Math.round(meleeHalfArc() * 360 / Math.PI)}° · 휘두르기 간격 ${(player.fireRate / 1000).toFixed(2)}초`
-          : `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초`,
+          : `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초` +
+            (isSummoner() ? ` · 👻 하수인 ${minions.length}/${summonMax()}` : "") +
+            (save.character === "trickster" ? ` · 🃏 조커까지 ${CARD_JOKER_EVERY - (player.cardCount || 0) % CARD_JOKER_EVERY}장` : ""),
         `👟 이동속도 ${player.speed.toFixed(1)} · 🧲 자석 범위 ${player.magnetRange}`,
         petStatusText()
       ].filter(Boolean).join("<br>");
@@ -7746,7 +8163,7 @@
         drawFrontStage(document.getElementById("char-preview"), getSkin(), cs().equip, timestamp);
       }
       if (document.getElementById("panel-shop").style.display === "block") {
-        drawFrontStage(document.getElementById("shop-preview"), getSkin(), Object.assign({}, cs().equip, shopTryOn), timestamp);
+        drawFrontStage(document.getElementById("shop-preview"), getSkin(), tryOnLook(), timestamp);
       }
       if (document.getElementById("panel-floor").style.display === "block") {
         drawTerrainPreview(document.getElementById("floor-preview"), getStage(save.selectedFloor), timestamp);
@@ -7857,8 +8274,10 @@
           row.appendChild(name);
           const btn = document.createElement("button");
           btn.className = "buy-btn" + (equipped ? " equipped" : (owned ? " owned" : ""));
-          btn.innerText = equipped ? "✔ 장착 중" : (owned ? "장착하기" : `💰 ${sk.price.toLocaleString()}`);
-          btn.disabled = equipped || (!owned && save.gold < sk.price);
+          // v47: 지금 데려가지 않는 동료의 외형이면 장착하면서 동료도 바뀜을 버튼에 표시
+          const other = pid !== cs().pet;
+          btn.innerText = equipped ? (other ? "✔ 장착 · 동료로 데려가기" : "✔ 장착 중") : (owned ? (other ? "장착 + 동료 교체" : "장착하기") : `💰 ${sk.price.toLocaleString()}`);
+          btn.disabled = (equipped && !other) || (!owned && save.gold < sk.price);
           btn.onclick = () => { petTryOn = null; usePetSkin(pid, sk.id); };
           row.appendChild(btn);
           box.appendChild(row);
@@ -7868,6 +8287,15 @@
 
     // 외형 입어보기: 구매 전에도 미리보기에 착용한 모습을 보여 줌 (상점을 닫으면 원래대로)
     let shopTryOn = {};
+    // v47 입어보기 미리보기: 장착 규칙과 같게 (모자·갑옷을 입어 보면 코스튬은 벗은 모습, 코스튬을 입어 보면 모자·갑옷은 벗은 모습)
+    function tryOnLook() {
+      const look = Object.assign({}, cs().equip);
+      for (const slot in shopTryOn) {
+        look[slot] = shopTryOn[slot];
+        for (const other of LOOK_EXCLUSIVE[slot] || []) if (!shopTryOn[other]) look[other] = "";
+      }
+      return look;
+    }
     function tryOnCosmetic(slot, id) {
       if (shopTryOn[slot] === id) delete shopTryOn[slot];
       else shopTryOn[slot] = id;
@@ -7931,7 +8359,7 @@
         const head = document.createElement("div");
         head.className = "cos-slot";
         const wCls = weaponClassOfChar(save.character);
-        head.innerText = slot === "weapon" ? `무기 (${({ gun: "원거리 캐릭터용 총", blade: "블레이드 전용 검", hammer: "브레이커 전용 망치" })[wCls]})` : COSMETIC_SLOTS[slot];
+        head.innerText = slot === "weapon" ? `무기 (${({ gun: "원거리 캐릭터용 총", blade: "블레이드 전용 검", hammer: "브레이커 전용 망치", tome: "서머너 전용 지팡이 · 영혼 색도 바뀜", card: "트릭스터 전용 카드 · 던지는 카드 색도 바뀜" })[wCls]})` : COSMETIC_SLOTS[slot];
         cos.appendChild(head);
         for (const item of COSMETICS[slot]) {
           if (slot === "weapon" && (item.cls || "gun") !== wCls) continue; // 내 캐릭터가 쓸 수 있는 무기만
@@ -7946,10 +8374,20 @@
           name.innerText = (trying ? "👀 " : "") + item.name;
           name.onclick = () => tryOnCosmetic(slot, item.id);
           row.appendChild(name);
+          // v47: 장착 중 버튼은 눌러도 해제되지 않음 (해제는 옆의 작은 버튼) · 코스튬에 가려지는 모자·갑옷은 표시
+          const hidden = !equipped && owned && (slot === "hat" || slot === "armor") && cs().equip.costume;
+          if (equipped) {
+            const off = document.createElement("button");
+            off.className = "buy-btn owned";
+            off.style.cssText = "min-width:0;padding:6px 9px;margin-right:6px;font-size:12px";
+            off.innerText = "해제";
+            off.onclick = () => unequipCosmetic(slot);
+            row.appendChild(off);
+          }
           const btn = document.createElement("button");
           btn.className = "buy-btn" + (equipped ? " equipped" : (owned ? " owned" : ""));
-          btn.innerText = equipped ? "✔ 장착 중" : (owned ? "장착하기" : `💰 ${item.price.toLocaleString()}`);
-          btn.disabled = !owned && save.gold < item.price;
+          btn.innerText = equipped ? "✔ 장착 중" : (owned ? (hidden ? "장착 (코스튬 벗음)" : "장착하기") : `💰 ${item.price.toLocaleString()}`);
+          btn.disabled = equipped || (!owned && save.gold < item.price);
           btn.onclick = () => { delete shopTryOn[slot]; useCosmetic(slot, item.id); };
           row.appendChild(btn);
           cos.appendChild(row);
@@ -8206,6 +8644,18 @@
     // ║  🎁 보너스 스테이지 (골드 파밍 미니게임 3종)                       ║
     // ║  공통: 목숨 2개 · 목숨을 다 쓰면 광고 부활 1회 · 무사망 클리어 시 보너스 골드 ║
     // ╚══════════════════════════════════════════════════════════════╝
+    // v47 💰 황금 고블린 추격전 수치 (BONUS_MODES 설명에서도 씀)
+    const GOBLIN_KILL_HITS = 60;    // 이만큼 때리면 고블린 처치 → 황금 상자 + 슬롯 코인 (45초 안에). 레벨 1 기본 공격 속도로 붙어서 계속 맞혀야 겨우 되는 정도
+    const GOBLIN_FAR = 300, GOBLIN_FAR_MISS = 0.5; // 300보다 멀리서 맞히면 50%는 피함 (MISS) → 멀리서 자동 조준으로 날먹 방지
+    const GOBLIN_TIRE_MS = 1500, GOBLIN_STUMBLE_MS = 900; // 220 안으로 1.5초 붙어 있으면 0.9초 헛디딤 (근접 캐릭터의 기회)
+    const GOBLIN_HIT_GOLD = 15;     // 타격 1번 골드 (v46: 5)
+    const GOBLIN_COIN_GOLD = 12;    // 떨어지는 금화 1개 (v46: 4)
+    const GOBLIN_GEM_GOLD = 60;     // 황금 보석 (v46: 20)
+    const GOBLIN_POUCH_EVERY = 25;  // 25타마다 💰 보석 주머니가 터짐
+    const GOBLIN_SLOT_EVERY = 30;   // 30타마다 🪙 슬롯 코인이 떨어짐 (주우면 확정 획득)
+    const GOBLIN_CHEST_GOLD = 2000; // 처치 성공 황금 상자
+    const FEVER_MS = 10000, FEVER_PER_HIT = 7, FEVER_SPEED = 1.5;
+    const GOBLIN_BLINK_MS = 6000;   // 이 간격마다 멀리 순간이동 (0.5초 전 반짝이는 예고)
     const BONUS_MODES = {
       run: { name: "🏃 도주전 - 서바이벌 런", diff: "normal", diffName: "보통", timeMs: 60000, gold: 400, noDeathGold: 600, speedMult: 1.6, floor: 1,
         desc: "공격 완전 불가 · 이동속도 ×1.6. 사방에서 쏟아지는 잡몹 떼와 일직선으로 돌진하는 몰이 떼를 회피만으로 60초 버티기" },
@@ -8214,13 +8664,15 @@
       meteor: { name: "☄️ 재앙 회피 - 메테오 스톰", diff: "hell", diffName: "지옥", timeMs: 75000, gold: 1500, noDeathGold: 2000, speedMult: 1.25, floor: 3,
         desc: "공격 불가. 하늘에서 불규칙하게 떨어지는 거대 운석 + 끊임없이 발동하는 바닥 함정(낙석·속박 늪·돌풍·중력장)을 75초 동안 피하기" },
       // v38 신규 보너스 2종
-      goblin: { name: "💰 황금 고블린 추격전", diff: "normal", diffName: "보통", timeMs: 45000, gold: 300, noDeathGold: 300, speedMult: 1.15, floor: 1, attack: true,
-        desc: "공격하지 않고 도망만 치는 황금 고블린을 45초 동안 쫓아가며 때리기. 맞힐 때마다 골드가 쌓이고 금화·황금 보석이 쏟아져요 (주워야 내 것!)" },
-      devil: { name: "😈 악마의 계약 - 타락의 탑", diff: "hell", diffName: "지옥", timeMs: 90000, gold: 2500, noDeathGold: 1500, speedMult: 1, floor: 5, attack: true, lives: 1, noAd: true,
-        desc: "계약 조건: 최대 체력 1 고정 (한 대만 맞아도 즉사 · 부활 없음). 대가로 모든 쿨타임 -80% · 피해 ×5 · 무작위 스킬 4개(Lv3). 몰려오는 몹 대군 속에서 90초 생존" }
+      // v47: 보상 3배 · 처치 목표 · 골드 피버 / 고블린 순간이동·마름쇠 덫으로 난이도 상향
+      goblin: { name: "💰 황금 고블린 추격전", diff: "hard", diffName: "어려움", timeMs: 45000, gold: 600, noDeathGold: 500, speedMult: 1.15, floor: 1, attack: true,
+        desc: `순간이동하고 마름쇠 덫을 뿌리며 도망치는 황금 고블린을 45초 안에 ${GOBLIN_KILL_HITS}번 때려 잡기! (멀리서 쏘면 절반은 피함 · 바짝 쫓으면 지쳐서 헛디딤) 타격마다 금화·황금 보석, 25타마다 💰 보석 주머니, 30타마다 🪙 슬롯 코인. 연속 타격으로 게이지를 채우면 10초 🔥 골드 피버(이속 ×1.5 · 금화 자동 흡수 · 골드 2배). 처치하면 🏆 황금 상자 ${GOBLIN_CHEST_GOLD.toLocaleString()}G + 슬롯 코인 1개 추가` },
+      // v47: 스치면 사망(방벽·보호막·회피 무시 · 필살기 봉인) · 몹 이속·사격 35% 빠르게 · 악마 사도 난입 · 줄어드는 결계 · 낙석·낙뢰
+      devil: { name: "😈 악마의 계약 - 타락의 탑", diff: "hell", diffName: "지옥", timeMs: 90000, gold: 3500, noDeathGold: 1500, speedMult: 1, floor: 5, attack: true, lives: 1, noAd: true,
+        desc: "계약 조건: 체력 1 · 스치기만 해도 즉사 (방벽·보호막·회피 무시 · 부활 없음 · 필살기 봉인 · 대시 무적은 대시 중에만). 몹 이속·사격 35% 빠름 · 12초마다 유도탄/부채꼴 탄막을 쏘는 악마 사도 난입 · 15초마다 좁아지는 결계(밖에 0.6초 있으면 사망) · 낙석과 발밑 낙뢰. 대가로 쿨타임 -80% · 피해 ×5 · 무작위 스킬 4개(Lv3). 90초 생존" }
     };
     const BONUS_LIVES = 2;
-    function bonusSpeedMult() { return bonus ? BONUS_MODES[bonus.mode].speedMult : 1; }
+    function bonusSpeedMult() { return bonus ? BONUS_MODES[bonus.mode].speedMult * (goldFever() ? FEVER_SPEED : 1) : 1; }
     function bonusCanAttack() { return !bonus || bonus.mode === "bossrush" || !!BONUS_MODES[bonus.mode].attack; }
     function bonusStat(mode) { return save.bonusStats[mode] || (save.bonusStats[mode] = { plays: 0, clears: 0, perfect: 0, bestMs: 0 }); }
 
@@ -8311,7 +8763,8 @@
       Sound.clear();
       spawnBurst(player.x, player.y, "#fde047", 40, 9);
       addShake(6);
-      setTimeout(() => { if (gameState === "playing" && bonus) finishRun(true); }, 1200);
+      const run = bonus; // v47: 그 사이 새 보너스를 시작했으면 예전 타이머가 새 판을 끝내지 않게
+      setTimeout(() => { if (gameState === "playing" && bonus === run) finishRun(true); }, 1200);
     }
     // 목숨 1개 소모: 그 자리에서 즉시 부활 + 2초 무적 + 주변 탄환 제거. 목숨을 다 쓰면 광고 부활 창
     function bonusPlayerDown() {
@@ -8337,7 +8790,9 @@
       levelDisplay.innerText = `${def.name.split(" - ")[0]} · ⏱️ ${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
       killDisplay.innerText = "❤️".repeat(Math.max(0, bonus.lives)) + (bonus.adUsed && !BONUS_MODES[bonus.mode].noAd ? " (광고 부활 사용)" : "") +
         (bonus.mode === "bossrush" ? ` · 보스 ${bonus.bossKills}/3` : "") +
-        (bonus.mode === "goblin" ? ` · 💰 ${(bonus.goblinGold + bonus.coinGold).toLocaleString()}G (타격 ${bonus.goblinHits})` : "") +
+        (bonus.mode === "goblin" ? ` · 💰 ${(bonus.goblinGold + bonus.coinGold).toLocaleString()}G · 🎯 ${bonus.goblinHits}/${GOBLIN_KILL_HITS}` +
+          (goldFever() ? ` · 🔥 피버 ${Math.ceil((bonus.feverUntil - playTimeMs) / 1000)}초` : ` · 🔥 ${Math.floor(bonus.fever)}%`) : "") +
+        (bonus.mode === "devil" && bonus.zone ? ` · 🔮 결계 ${Math.round(bonus.zone.r)}` : "") +
         (bonus.mode === "devil" ? ` · 처치 ${kills} · ${bonus.skills.map(s => s.name.split(" ")[0]).join("")}` : "");
       expFill.style.width = `${Math.min(100, playTimeMs / def.timeMs * 100)}%`;
       hpFill.style.width = `${Math.max(0, player.hp / player.maxHp * 100)}%`;
@@ -8531,9 +8986,85 @@
         if (fastHypot(player.x - mk.x, player.y - mk.y) < mk.r + player.radius * 0.4) takeDamage(22);
       }
     }
+    // v47 보너스 위쪽 그림 (월드 좌표, 몹 위): 결계 · 악마 사도 예고 · 고블린 진행 막대 · 떠오르는 글씨
+    function drawBonusTop(timestamp) {
+      if (!bonus) return;
+      const g = ctx;
+      if (bonus.mode === "devil" && bonus.zone) {
+        const z = bonus.zone, out = !!bonus.outSince;
+        // 결계 밖: 붉은 어둠 (큰 사각형 - 원, evenodd)
+        g.beginPath();
+        g.rect(z.x - 6000, z.y - 6000, 12000, 12000);
+        g.arc(z.x, z.y, z.r, 0, Math.PI * 2, true);
+        g.fillStyle = out ? `rgba(127, 29, 29, ${0.42 + Math.sin(timestamp / 60) * 0.12})` : "rgba(76, 5, 25, 0.32)";
+        g.fill("evenodd");
+        g.beginPath(); g.arc(z.x, z.y, z.r, 0, Math.PI * 2);
+        g.strokeStyle = "#f43f5e"; g.lineWidth = 6; g.stroke();
+        g.globalCompositeOperation = "lighter";
+        g.strokeStyle = "rgba(251, 113, 133, 0.5)"; g.lineWidth = 16; g.stroke();
+        g.globalCompositeOperation = "source-over";
+        const next = devilZoneWarn();
+        if (next) { // 다음에 줄어들 자리 (깜빡이는 점선)
+          g.setLineDash([18, 12]);
+          g.beginPath(); g.arc(z.x, z.y, next, 0, Math.PI * 2);
+          g.strokeStyle = Math.floor(timestamp / 160) % 2 ? "rgba(254, 205, 211, 0.95)" : "rgba(244, 63, 94, 0.6)"; g.lineWidth = 3; g.stroke();
+          g.setLineDash([]);
+        }
+        for (const m of monsters) {
+          if (!m.devilCaster || m.dead) continue;
+          g.beginPath(); g.arc(m.x, m.y, m.radius + 9 + (m.castWarn ? Math.sin(timestamp / 40) * 4 : 0), 0, Math.PI * 2);
+          g.strokeStyle = m.castWarn ? "#fde047" : (m.devilCaster === "fan" ? "#fb7185" : "#f0abfc"); g.lineWidth = m.castWarn ? 4 : 2.5; g.stroke();
+          if (m.castWarn) { g.globalCompositeOperation = "lighter"; drawGlow(g, "#fde047", m.x, m.y, m.radius * 2.4); g.globalCompositeOperation = "source-over"; }
+          g.font = "bold 12px sans-serif"; g.textAlign = "center";
+          outlinedText(g, m.devilCaster === "fan" ? "😈 부채꼴" : "😈 유도탄", m.x, m.y - m.radius - 14, "#fecdd3");
+        }
+      }
+      if (bonus.mode === "goblin") {
+        const gob = bonus.goblin;
+        if (gob && !bonus.goblinKilled && monsters.includes(gob)) {
+          const w = 74, p = Math.min(1, bonus.goblinHits / GOBLIN_KILL_HITS), y = gob.y - gob.radius - 32;
+          g.fillStyle = "rgba(0, 0, 0, 0.75)"; g.fillRect(gob.x - w / 2, y, w, 7);
+          g.fillStyle = goldFever() ? "#fb923c" : "#facc15"; g.fillRect(gob.x - w / 2, y, w * p, 7);
+          if (gob.blinkWarn) { // 순간이동 예고: 몸이 하얗게 번쩍임
+            g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.5 + Math.sin(timestamp / 35) * 0.4;
+            drawGlow(g, "#ffffff", gob.x, gob.y, gob.radius * 2.6);
+            g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+          }
+        }
+      }
+      if (bonus.floats) for (const f of bonus.floats) {
+        const p = (playTimeMs - f.born) / 1400;
+        g.globalAlpha = Math.min(1, (1 - p) * 2.5);
+        g.font = `900 ${f.size}px sans-serif`; g.textAlign = "center";
+        outlinedText(g, f.text, f.x, f.y - p * 50, f.color, 5);
+        g.globalAlpha = 1;
+      }
+    }
+    // v47 🔥 골드 피버 화면 (화면 좌표): 금빛 테두리 맥동 + 남은 시간
+    function drawGoldFeverScreen(timestamp) {
+      if (!goldFever()) return;
+      const W = canvas.width, H = canvas.height, left = bonus.feverUntil - playTimeMs;
+      const gr = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.7);
+      gr.addColorStop(0, "rgba(250, 204, 21, 0)");
+      gr.addColorStop(1, `rgba(250, 204, 21, ${0.28 + Math.sin(timestamp / 120) * 0.08})`);
+      ctx.fillStyle = gr; ctx.fillRect(0, 0, W, H);
+      ctx.font = "900 20px sans-serif"; ctx.textAlign = "center";
+      outlinedText(ctx, `🔥 GOLD FEVER ${Math.ceil(left / 1000)}`, W / 2, H * 0.2, "#fde047", 5);
+    }
+
     // 보너스 바닥 그림: 운석 경고 원 + 낙하 운석, 화염 장판, 낙뢰 표식, 몰이 떼 경고 띠
     function drawBonusWorld(g, timestamp) {
       if (!bonus) return;
+      if (bonus.caltrops) for (const c of bonus.caltrops) { // v47 고블린의 마름쇠 덫 (회색 가시)
+        g.globalAlpha = Math.min(1, (c.until - playTimeMs) / 500);
+        g.strokeStyle = "#57534e"; g.lineWidth = 3;
+        g.beginPath();
+        for (let k = 0; k < 5; k++) { const a = c.seed + k * 1.2566; g.moveTo(c.x, c.y); g.lineTo(c.x + Math.cos(a) * c.r * 0.8, c.y + Math.sin(a) * c.r * 0.8); }
+        g.stroke();
+        g.fillStyle = "#d6d3d1";
+        for (let k = 0; k < 5; k++) { const a = c.seed + k * 1.2566; g.beginPath(); g.arc(c.x + Math.cos(a) * c.r * 0.8, c.y + Math.sin(a) * c.r * 0.8, 3, 0, Math.PI * 2); g.fill(); }
+        g.globalAlpha = 1;
+      }
       for (const f of bonus.fires) {
         const fade = Math.min(1, (f.until - playTimeMs) / 400);
         g.globalAlpha = 0.45 * fade;
@@ -8652,7 +9183,20 @@
       if (bonus.mode === "goblin") {
         const g1 = bonus.goblinGold + bonus.coinGold;
         gold += g1;
-        rewards.push(`💰 황금 고블린 ${bonus.goblinHits}회 타격 · 금화: 골드 +${g1.toLocaleString()}`);
+        rewards.push(`💰 황금 고블린 ${bonus.goblinHits}회 타격 · 금화: 골드 +${g1.toLocaleString()}` + (bonus.pouches ? ` (보석 주머니 ${bonus.pouches}개)` : ""));
+        // v47 처치 성공: 황금 상자 + 슬롯 코인 1개 추가 확정
+        if (bonus.goblinKilled) {
+          gold += GOBLIN_CHEST_GOLD;
+          save.slotCoins = (save.slotCoins || 0) + 1;
+          rewards.push(`🏆 고블린 처치 성공! 황금 상자: 골드 +${GOBLIN_CHEST_GOLD.toLocaleString()} · 🪙 슬롯 코인 +1`);
+        } else if (cleared) {
+          rewards.push(`⏱️ 고블린을 놓쳤어요 (${bonus.goblinHits}/${GOBLIN_KILL_HITS}타) — 처치하면 황금 상자 ${GOBLIN_CHEST_GOLD.toLocaleString()}G`);
+        }
+        // 주운 슬롯 코인은 성공·실패와 상관없이 확정
+        if (bonus.slotFound) {
+          save.slotCoins = (save.slotCoins || 0) + bonus.slotFound;
+          rewards.push(`🪙 주운 슬롯 코인 +${bonus.slotFound}`);
+        }
       }
       if (noDeath) {
         gold += def.noDeathGold;
@@ -8917,7 +9461,8 @@
     // ===== 캐릭터별 대시: 고유 모션 + 대시 중 작은 공격 효과 (맞은 적 1초 기절) =====
     //   건슬링어 구르기 + 회전 칼날 / 파이로 부스터 + 작은 플레임 노바 / 프로스트 블링크 + 얼음 장판
     //   스파크 순간이동 + 스파크 폭발 / 블레이드 쾌속 발도 돌진(경로 베기) / 브레이커 바디 슬램(넉백 + 착지 충격파)
-    const DASH_STYLES = { survivor: "tumble", warrior: "boost", assassin: "blink", mage: "teleport", swordsman: "slash", hammer: "slam" };
+    //   v46 서머너 영혼 도약(출발 자리 영혼 폭발 + 도착하면 하수인 1마리) / 트릭스터 카드 셔플(출발 자리에서 카드가 원형으로 퍼지며 기절)
+    const DASH_STYLES = { survivor: "tumble", warrior: "boost", assassin: "blink", mage: "teleport", swordsman: "slash", hammer: "slam", summoner: "soul", trickster: "shuffle" };
     const DASH_STUN_MS = 1000;
     function dashStyleOf(id) { return DASH_STYLES[id] || "tumble"; }
     // v42: 대시 거리는 모든 캐릭터 동일 — 가장 길던 프로스트 블링크(×1.9) 기준 (약 280px)
@@ -8934,6 +9479,11 @@
       else if (st === "blink") dashFx.push({ kind: "ice", x: x, y: y, r: 62, born: now, until: now + 1600, hit: new Set() });
       else if (st === "teleport") { dashFx.push({ kind: "spark", x: x, y: y, r: 80, born: now, until: now + 320, hit: new Set() }); spawnBurst(x, y, "#facc15", 10, 6); }
       else if (st === "slam") addShake(3);
+      else if (st === "soul") { dashFx.push({ kind: "soul", x: x, y: y, born: now, until: now + 520, maxR: 105, hit: new Set() }); spawnBurst(x, y, soulColor(), 10, 5); }
+      else if (st === "shuffle") {
+        dashFx.push({ kind: "cards", x: x, y: y, born: now, until: now + 460, maxR: 125, hit: new Set(), seed: Math.random() * 6.28 });
+        if (sfxReady("shuffle", 200)) for (let k = 0; k < 5; k++) sfxNoise({ filter: "highpass", freq: 3800, dur: 0.025, vol: 0.08, delay: k * 0.04 });
+      }
     }
     function endDashFx() {
       const st = player.dashStyle, x = player.x, y = player.y, now = playTimeMs;
@@ -8948,6 +9498,11 @@
         dashFx.push({ kind: "quake", x: x, y: y, born: now, until: now + 360, maxR: 125, hit: new Set() });
         addShake(6);
         Sound.smash(false);
+      } else if (st === "soul") {
+        summonMinion(x + Math.cos(player.dashAngle || 0) * 30, y + Math.sin(player.dashAngle || 0) * 30);
+      } else if (st === "shuffle") {
+        spawnBurst(x, y, "#f472b6", 8, 5);
+        spawnBurst(x, y, "#fde047", 6, 5);
       }
     }
     function knockback(m, fx, fy, dist) {
@@ -9020,6 +9575,8 @@
           if (f.kind === "nova") dashStrike(m, 1.2, { stun: true, color: "#f97316" });
           else if (f.kind === "ice") dashStrike(m, 0.8, { stun: true, ice: true, color: "#bae6fd" });
           else if (f.kind === "spark") dashStrike(m, 1.3, { stun: true, color: "#fde047" });
+          else if (f.kind === "soul") dashStrike(m, 1.3, { stun: true, color: soulColor() });
+          else if (f.kind === "cards") dashStrike(m, 1.1, { stun: true, color: "#f472b6" });
           else dashStrike(m, 1.0, { push: 60, fx: f.x, fy: f.y, color: "#fbbf24" });
         }
       }
@@ -9064,6 +9621,30 @@
             for (let k = 0; k < 7; k++) { const a = k * 0.9 + f.x * 0.01; ctx.moveTo(f.x, f.y); ctx.lineTo(f.x + Math.cos(a) * R * 0.5 + 6, f.y + Math.sin(a) * R * 0.5); ctx.lineTo(f.x + Math.cos(a) * R * 0.85, f.y + Math.sin(a) * R * 0.85); }
             ctx.stroke();
           }
+        } else if (f.kind === "soul") {
+          // v46 영혼 도약: 퍼지는 보라 고리 + 위로 솟는 영혼 불꽃
+          const R = f.maxR * Math.min(1, p * 1.4), sc = soulColor();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = fade;
+          ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, Math.PI * 2);
+          ctx.strokeStyle = rgba(sc, 0.85); ctx.lineWidth = 8; ctx.stroke();
+          drawGlow(ctx, sc, f.x, f.y, R * 0.8);
+          for (let k = 0; k < 6; k++) { const a = k * 1.047; drawGlow(ctx, "#f5f3ff", f.x + Math.cos(a) * R * 0.6, f.y + Math.sin(a) * R * 0.6 - p * 40, 9); }
+          ctx.globalAlpha = 1;
+          ctx.globalCompositeOperation = "source-over";
+        } else if (f.kind === "cards") {
+          // v46 카드 셔플: 카드 10장이 돌면서 원형으로 퍼져 나감
+          const R = f.maxR * Math.min(1, p * 1.3), W = newCharWeaponStyle("trickster");
+          ctx.globalAlpha = fade;
+          for (let k = 0; k < 10; k++) {
+            const a = f.seed + k * Math.PI / 5 + p * 2;
+            ctx.save();
+            ctx.translate(f.x + Math.cos(a) * R, f.y + Math.sin(a) * R);
+            ctx.rotate(a + p * 12);
+            drawCardShape(ctx, -7, -10, 14, 20, W, k % 2 ? null : CARD_SUITS[k % 4]);
+            ctx.restore();
+          }
+          ctx.globalAlpha = 1;
         } else if (f.kind === "spark") {
           ctx.globalCompositeOperation = "lighter";
           ctx.globalAlpha = fade;
@@ -9477,8 +10058,9 @@
 
     // ===== 도탄 폭렬탄 속성 폭발: 캐릭터 기본 속성에 맞춘 색·모양 =====
     //   건슬링어 스파크 파편 / 파이로 불기둥 / 프로스트 빙결 파편 / 스파크 전격 방전 / 블레이드 검기 십자 / 브레이커 바위 파편
-    const CHAR_ELEMENTS = { survivor: "spark", warrior: "fire", assassin: "ice", mage: "bolt", swordsman: "slash", hammer: "rock" };
-    const ELEM_COLORS = { spark: "#fde68a", fire: "#f97316", ice: "#7dd3fc", bolt: "#a78bfa", slash: "#e0f2fe", rock: "#d97706" };
+    //   v46 서머너 영혼 불꽃 / 트릭스터 카드 파편
+    const CHAR_ELEMENTS = { survivor: "spark", warrior: "fire", assassin: "ice", mage: "bolt", swordsman: "slash", hammer: "rock", summoner: "soul", trickster: "card" };
+    const ELEM_COLORS = { spark: "#fde68a", fire: "#f97316", ice: "#7dd3fc", bolt: "#a78bfa", slash: "#e0f2fe", rock: "#d97706", soul: "#c084fc", card: "#f472b6" };
     function charElement() { return CHAR_ELEMENTS[save.character] || "spark"; }
     // ("lighter" 합성 상태에서 호출)
     function drawElemBlast(ex, t, alpha, timestamp) {
@@ -9551,6 +10133,34 @@
         for (let k = 0; k < 7; k++) {
           const a = s + k * 0.9, d = R * (0.2 + t * 0.8), sz = 4 + (k % 3) * 2;
           ctx.fillRect(ex.x + Math.cos(a) * d - sz / 2, ex.y + Math.sin(a) * d - sz / 2 - t * 10, sz, sz);
+        }
+        ctx.globalCompositeOperation = "lighter";
+      } else if (ex.elem === "soul") {
+        // 위로 피어오르는 영혼 불꽃 5개 + 고리
+        for (let k = 0; k < 5; k++) {
+          const a = s + k * 1.2566, d = R * (0.2 + t * 0.6);
+          drawGlow(ctx, k % 2 ? "#f5f3ff" : c, ex.x + Math.cos(a) * d, ex.y + Math.sin(a) * d * 0.6 - t * R * 0.5, R * 0.22);
+        }
+        ctx.beginPath();
+        ctx.arc(ex.x, ex.y, R * (0.4 + t * 0.6), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(216, 180, 254, ${alpha})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      } else if (ex.elem === "card") {
+        // 사방으로 튀는 작은 카드 조각 (흰 사각형 + 분홍 테두리)
+        ctx.globalCompositeOperation = "source-over";
+        for (let k = 0; k < 8; k++) {
+          const a = s + k * Math.PI / 4, d = R * (0.2 + t * 0.85), sz = Math.max(4, R * 0.09);
+          ctx.save();
+          ctx.translate(ex.x + Math.cos(a) * d, ex.y + Math.sin(a) * d);
+          ctx.rotate(a + t * 8);
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(-sz / 2, -sz * 0.7, sz, sz * 1.4);
+          ctx.strokeStyle = k % 2 ? "#e11d48" : "#111827";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(-sz / 2, -sz * 0.7, sz, sz * 1.4);
+          ctx.restore();
         }
         ctx.globalCompositeOperation = "lighter";
       }
@@ -9828,6 +10438,18 @@
             g.stroke();
           }
         }
+      } else if (sk.form === "bee") {
+        // v46 꿀벌: 빠르게 파닥이는 투명한 날개 2쌍
+        const flap = Math.sin(t / 30) * 0.4;
+        for (const side of [-1, 1]) {
+          for (const [ox, len] of [[3, 11], [-3, 8]]) {
+            g.save(); g.translate(x + ox * s, yy - 6 * s); g.rotate(side * (0.9 + flap));
+            g.beginPath(); g.ellipse(0, -len * s, 4.5 * s, len * s, 0, 0, Math.PI * 2);
+            g.fillStyle = "rgba(224, 242, 254, 0.7)"; g.fill();
+            g.strokeStyle = "rgba(125, 211, 252, 0.9)"; g.lineWidth = 0.9 * s; g.stroke();
+            g.restore();
+          }
+        }
       } else if (sk.form === "angel" || sk.form === "dragon") {
         // 날개 (천사: 흰 깃털 날개 / 드래곤: 초록 박쥐 날개)
         const flap = Math.sin(t / 110) * 0.35;
@@ -9877,6 +10499,18 @@
         g.strokeStyle = rgba(sk.glow, 0.8);
         g.lineWidth = 1.5 * s;
         g.stroke();
+      } else if (sk.form === "owlHat") {
+        // v46 신사 부엉이: 작은 실크 해트 + 외알 안경 + 나비넥타이
+        g.fillStyle = "#111827";
+        g.beginPath(); g.ellipse(x, yy - 12 * s, 9 * s, 2.4 * s, 0, 0, Math.PI * 2); g.fill();
+        roundRect(g, x - 5.5 * s, yy - 23 * s, 11 * s, 11 * s, 2 * s); g.fill();
+        g.fillStyle = "#dc2626"; g.fillRect(x - 5.5 * s, yy - 15.5 * s, 11 * s, 2 * s);
+        g.strokeStyle = "#fde047"; g.lineWidth = 1.1 * s;
+        g.beginPath(); g.arc(x + 4.6 * s, yy - 4 * s, 4.6 * s, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.moveTo(x + 9 * s, yy - 3 * s); g.quadraticCurveTo(x + 11 * s, yy + 4 * s, x + 8 * s, yy + 8 * s); g.stroke();
+        g.fillStyle = "#dc2626";
+        g.beginPath(); g.moveTo(x, yy + 11 * s); g.lineTo(x - 4 * s, yy + 9 * s); g.lineTo(x - 4 * s, yy + 13 * s); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(x, yy + 11 * s); g.lineTo(x + 4 * s, yy + 9 * s); g.lineTo(x + 4 * s, yy + 13 * s); g.closePath(); g.fill();
       }
     }
     // 정령 대신 그리는 아기 천사 / 미니 드래곤 몸
@@ -9920,43 +10554,153 @@
 
     // ===== 신규 보너스 모드 공통 =====
     // 💰 황금 고블린 추격전: 도망치는 황금 고블린을 때릴 때마다 골드 + 금화·황금 보석이 쏟아짐 (45초)
+    // v47 개편: 보상 3배 · 보석 주머니 · 슬롯 코인 · 골드 피버 · 처치 목표(타격 GOBLIN_KILL_HITS번) + 난이도 상향(순간이동 · 마름쇠 덫 · 더 빠른 도주)
+    // (v47 고블린 수치는 BONUS_MODES 위에 있음)
+
     function setupGoblinMode() {
       const gob = { x: player.x + 280, y: player.y, radius: 26, type: "normal", lookType: "goblin", goblin: true, speed: 0, baseSpeed: 0, walkCycle: 0,
-        hp: 1e12, maxHp: 1e12, slowTimer: 0, shootTimer: 0, shootInterval: 1e9, isBoss: false, hitAt: 0, zig: 0 };
+        hp: 1e12, maxHp: 1e12, slowTimer: 0, shootTimer: 0, shootInterval: 1e9, isBoss: false, hitAt: 0, zig: 0,
+        blinkAt: GOBLIN_BLINK_MS, trapAt: 2500 };
       monsters.push(gob);
-      Object.assign(bonus, { goblin: gob, goblinHits: 0, goblinGold: 0, coinGold: 0 });
+      Object.assign(bonus, { goblin: gob, goblinHits: 0, goblinGold: 0, coinGold: 0, fever: 0, feverUntil: 0, lastHitAt: -9999,
+        slotFound: 0, pouches: 0, goblinKilled: false, killClearAt: 0, caltrops: [], goblinBlinks: 0 });
     }
+    function goldFever() { return !!bonus && bonus.mode === "goblin" && playTimeMs < (bonus.feverUntil || 0); }
     function updateGoblin(m) {
       const dx = m.x - player.x, dy = m.y - player.y, d = fastHypot(dx, dy) || 1;
-      m.zig += 0.045;
+      m.zig += 0.05;
       let ax = dx / d, ay = dy / d;
       ax += -ay * Math.sin(m.zig) * 0.7;
       ay += (dx / d) * Math.sin(m.zig) * 0.7;
       const al = fastHypot(ax, ay) || 1;
-      // 가까우면 거의 내 속도로 도망, 멀어지면 느긋하게 (따라잡을 수 있게), 맞은 직후엔 놀라서 잠깐 빨라짐
-      let sp = player.speed * bonusSpeedMult() * (d < 160 ? 0.82 : (d < 420 ? 0.66 : 0.35));
-      if (playTimeMs < (m.panicUntil || 0)) sp *= 1.12;
+      // 가까우면 내 속도의 90%로 도망, 멀어지면 느긋하게 (따라잡을 수 있게), 맞은 직후엔 놀라서 잠깐 빨라짐
+      // (골드 피버의 내 이속 증가는 고블린에게 적용하지 않음 → 피버 때 따라잡기 쉬움)
+      let sp = player.speed * BONUS_MODES.goblin.speedMult * (d < 160 ? 0.9 : (d < 420 ? 0.75 : 0.38));
+      if (playTimeMs < (m.panicUntil || 0)) sp *= 1.15;
+      // 바짝 붙어 쫓으면 지쳐서 잠깐 헛디딤 (그 자리에 멈춤)
+      m.closeMs = d < 220 ? (m.closeMs || 0) + SIM_STEP_MS : Math.max(0, (m.closeMs || 0) - SIM_STEP_MS * 0.5);
+      if (m.closeMs >= GOBLIN_TIRE_MS) {
+        m.closeMs = 0;
+        m.stunUntil = playTimeMs + GOBLIN_STUMBLE_MS;
+        bonusFloat(m.x, m.y - 40, "헉헉! 💦", "#bae6fd", 16);
+        return;
+      }
       m.x += ax / al * sp;
       m.y += ay / al * sp;
       // 화면 밖으로 너무 멀리 가면 반쯤 돌아와서 다시 보이게
       if (d > 900) { m.x = player.x + dx / d * 460; m.y = player.y + dy / d * 460; }
       m.walkCycle += 0.3;
+      // 순간이동: 예고(0.5초 반짝임) 후 내 반대쪽 멀리로. 연막이 남음
+      if (playTimeMs >= m.blinkAt - 500 && !m.blinkWarn) m.blinkWarn = true;
+      if (playTimeMs >= m.blinkAt) {
+        m.blinkWarn = false;
+        m.blinkAt = playTimeMs + GOBLIN_BLINK_MS * (0.8 + Math.random() * 0.4);
+        const a = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.6, far = 340 + Math.random() * 120;
+        explosions.push({ x: m.x, y: m.y, radius: 60, life: 18, maxLife: 18, lv: 0, color: "#a8a29e" });
+        spawnBurst(m.x, m.y, "#d6d3d1", 10, 5);
+        m.x = player.x + Math.cos(a) * far;
+        m.y = player.y + Math.sin(a) * far;
+        if (obstacles.length) pushOutOfObstacles(m, m.radius, 0);
+        spawnBurst(m.x, m.y, "#facc15", 10, 6);
+        bonus.goblinBlinks++;
+        if (sfxReady("gobBlink", 200)) sfxTone({ type: "triangle", freq: 1400, freqEnd: 400, dur: 0.18, vol: 0.06, wet: 0.4 });
+      }
+      // 마름쇠 덫: 도망치며 뒤에 뿌림 (밟으면 1.2초 둔화 · 대시로 넘을 수 있음)
+      if (playTimeMs >= m.trapAt) {
+        m.trapAt = playTimeMs + 2200 + Math.random() * 900;
+        if (bonus.caltrops.length < 10) bonus.caltrops.push({ x: m.x, y: m.y, r: 30, until: playTimeMs + 9000, seed: Math.random() * 6 });
+      }
     }
-    // hurt()에서 호출: 고블린이 맞을 때마다 (0.12초에 한 번) 골드 + 금화
+    // hurt()에서 호출: 고블린이 맞을 때마다 (0.12초에 한 번) 골드 + 금화 · 피버 게이지 · 보석 주머니 · 슬롯 코인 · 처치
     function goblinHit(m) {
-      if (playTimeMs - m.hitAt < 120) return;
+      if (playTimeMs - m.hitAt < 120 || bonus.goblinKilled) return;
       m.hitAt = playTimeMs;
+      // 멀리서 맞히면 절반은 슬쩍 피함
+      if (fastHypot(m.x - player.x, m.y - player.y) > GOBLIN_FAR && Math.random() < GOBLIN_FAR_MISS) {
+        bonus.misses = (bonus.misses || 0) + 1;
+        if (playTimeMs - (bonus.missFloatAt || 0) > 700) { bonus.missFloatAt = playTimeMs; bonusFloat(m.x, m.y - 40, "MISS · 더 가까이!", "#e5e7eb", 15); }
+        return;
+      }
       m.panicUntil = playTimeMs + 600;
+      const fever = goldFever(), mult = fever ? 2 : 1;
       bonus.goblinHits++;
-      bonus.goblinGold += 5;
+      bonus.lastHitAt = playTimeMs;
+      bonus.goblinGold += GOBLIN_HIT_GOLD * mult;
       const n = bonus.goblinHits % 8 === 0 ? 7 : 2;
       for (let k = 0; k < n && exps.length < 150; k++) {
         const a = Math.random() * Math.PI * 2, d = 30 + Math.random() * 60;
         const gem = k === 0 && bonus.goblinHits % 5 === 0;
-        exps.push({ x: m.x + Math.cos(a) * d, y: m.y + Math.sin(a) * d, radius: gem ? 10 : 9, value: 0, gold: gem ? 20 : 4, type: gem ? "super" : "coin" });
+        exps.push({ x: m.x + Math.cos(a) * d, y: m.y + Math.sin(a) * d, radius: gem ? 10 : 9, value: 0, gold: (gem ? GOBLIN_GEM_GOLD : GOBLIN_COIN_GOLD) * mult, type: gem ? "super" : "coin" });
+      }
+      if (bonus.goblinHits % GOBLIN_POUCH_EVERY === 0) goblinPouch(m, mult);
+      if (bonus.goblinHits % GOBLIN_SLOT_EVERY === 0) {
+        exps.push({ x: m.x, y: m.y, radius: 13, value: 0, gold: 0, slot: 1, type: "slotcoin" });
+        bonusFloat(m.x, m.y - 50, "🪙 슬롯 코인!", "#c4b5fd");
+      }
+      // 골드 피버 게이지 (피버 중에는 쌓이지 않음)
+      if (!fever) {
+        bonus.fever = Math.min(100, bonus.fever + FEVER_PER_HIT);
+        if (bonus.fever >= 100) startGoldFever();
       }
       spawnBurst(m.x, m.y, "#facc15", 4, 6);
       Sound.coin();
+      if (bonus.goblinHits >= GOBLIN_KILL_HITS) goblinKilled(m);
+    }
+    // 💰 보석 주머니: 금화 12개 + 황금 보석 3개가 사방으로 터짐
+    function goblinPouch(m, mult) {
+      bonus.pouches++;
+      for (let k = 0; k < 15 && exps.length < 170; k++) {
+        const a = k / 15 * Math.PI * 2, d = 50 + Math.random() * 70, gem = k % 5 === 0;
+        exps.push({ x: m.x + Math.cos(a) * d, y: m.y + Math.sin(a) * d, radius: gem ? 10 : 9, value: 0, gold: (gem ? GOBLIN_GEM_GOLD : GOBLIN_COIN_GOLD) * mult, type: gem ? "super" : "coin" });
+      }
+      explosions.push({ x: m.x, y: m.y, radius: 110, life: 22, maxLife: 22, lv: 5, color: "#facc15" });
+      bonusFloat(m.x, m.y - 40, "💰 보석 주머니!", "#fde047");
+      addShake(4);
+      if (sfxReady("pouch", 200)) for (let k = 0; k < 4; k++) sfxTone({ type: "triangle", freq: 1200 + k * 260, dur: 0.08, vol: 0.05, delay: k * 0.05 });
+    }
+    function startGoldFever() {
+      bonus.fever = 0;
+      bonus.feverUntil = playTimeMs + FEVER_MS;
+      for (const e of exps) e.magnetized = true;
+      bonusFloat(player.x, player.y - 90, "🔥 GOLD FEVER!", "#fde047", 26);
+      addShake(5);
+      Sound.levelUp();
+    }
+    // 🏆 고블린 처치: 금화 분수 + 황금 상자(2,000G) + 슬롯 코인 1개 → 2초 뒤 클리어
+    function goblinKilled(m) {
+      bonus.goblinKilled = true;
+      bonus.killClearAt = playTimeMs + 2200;
+      for (let k = 0; k < 30 && exps.length < 200; k++) {
+        const a = Math.random() * Math.PI * 2, d = 20 + Math.random() * 120;
+        exps.push({ x: m.x + Math.cos(a) * d, y: m.y + Math.sin(a) * d, radius: 9, value: 0, gold: GOBLIN_COIN_GOLD, type: "coin", magnetized: true });
+      }
+      explosions.push({ x: m.x, y: m.y, radius: 220, life: 34, maxLife: 34, lv: 5, color: "#facc15" });
+      spawnBurst(m.x, m.y, "#fde047", 40, 10);
+      bonusFloat(m.x, m.y - 60, "🏆 고블린 처치!", "#fde047", 28);
+      addShake(10);
+      Sound.clear();
+      m.dead = true; // 실제 제거는 다음 칸 updateGoblinExtras (몹 순회 도중에 배열을 바꾸지 않게)
+    }
+    // 머리 위로 떠오르는 큰 글씨 (보너스 연출)
+    function bonusFloat(x, y, text, color, size) {
+      (bonus.floats || (bonus.floats = [])).push({ x: x, y: y, text: text, color: color, size: size || 20, born: playTimeMs });
+    }
+    // 매 칸: 피버 게이지 감소 · 피버 중 금화 자석 · 마름쇠 밟음 · 처치 후 클리어
+    function updateGoblinExtras() {
+      if (!goldFever() && playTimeMs - bonus.lastHitAt > 1200) bonus.fever = Math.max(0, bonus.fever - 12 * SIM_STEP_MS / 1000);
+      if (goldFever()) for (const e of exps) e.magnetized = true;
+      for (let i = bonus.caltrops.length - 1; i >= 0; i--) {
+        const c = bonus.caltrops[i];
+        if (playTimeMs >= c.until) { bonus.caltrops.splice(i, 1); continue; }
+        if (playTimeMs >= player.dashUntil && fastHypot(player.x - c.x, player.y - c.y) < c.r + player.radius * 0.5) {
+          if (playTimeMs >= (player.slowUntil || 0)) { addHitEffect({ x: player.x, y: player.y, radius: 30, life: 10, maxLife: 10, color: "#a8a29e" }); vibrate(30); }
+          player.slowUntil = playTimeMs + 1200;
+          bonus.caltrops.splice(i, 1);
+        }
+      }
+      if (bonus.floats) bonus.floats = bonus.floats.filter(f => playTimeMs - f.born < 1400);
+      if (bonus.goblinKilled) monsters = monsters.filter(x => !x.goblin);
+      if (bonus.goblinKilled && playTimeMs >= bonus.killClearAt && !bonus.done) bonusClear();
     }
     // 고블린이 화면 밖이면 화면 가장자리에 금색 화살표로 방향 표시 (화면 좌표)
     function drawGoblinPointer(timestamp) {
@@ -9984,11 +10728,12 @@
       ctx.globalAlpha = 1;
     }
     function updateGoblinMode() {
-      // 길을 막는 느린 잡몹 (공격하면 쓰러짐, 보상 없음)
+      // 길을 막는 잡몹 (공격하면 쓰러짐, 보상 없음). v47: 조금 더 자주·많이
       if (playTimeMs >= bonus.nextSpawn) {
-        bonus.nextSpawn = playTimeMs + 1600;
-        if (monsters.length < 14) spawnMonster();
+        bonus.nextSpawn = playTimeMs + 1200;
+        if (monsters.length < 20) spawnMonster();
       }
+      updateGoblinExtras();
     }
     // 😈 악마의 계약: 최대 체력 1 고정 · 쿨타임 -80% · 피해 ×5 · 무작위 스킬 4개(Lv3) → 90초 생존
     function setupDevilMode() {
@@ -10004,10 +10749,101 @@
       for (const s of bonus.skills) { player[s.key] = 3; if (s.after) s.after(3); }
       updateSynergies();
       Sound.devilPact();
+      // v47 지옥 난이도: 결계(안전 구역) · 낙석 함정 · 낙뢰 표식 · 악마 사도 난입
+      activeTraps = ["hazard"];
+      trap.nextHazard = 6000;
+      updateTrapHud();
+      Object.assign(bonus, { zone: { x: player.x, y: player.y, r: DEVIL_ZONE_R0, from: DEVIL_ZONE_R0, to: DEVIL_ZONE_R0, shrinkAt: DEVIL_SHRINK_MS, moveFrom: 0 },
+        outSince: 0, nextCaster: 8000, casterKind: 0, nextMark: 5000 });
     }
+    // ===== v47 😈 타락의 탑 난이도 상향 =====
+    //   · 스치면 사망: 체력 1 고정 + 회피·보호막·방벽·장갑 무시 (takeDamage), 대시 후 추가 무적 없음, 필살기 봉인
+    //   · 몹 이동속도 ×1.35 · 원거리 몹 발사 주기 ×0.74 (약 35% 빠르게)
+    //   · 악마 사도(엘리트 사수) 12초마다 난입: 유도탄 / 넓은 부채꼴 탄막 번갈아 (45초부터 2마리씩)
+    //   · 결계: 15초마다 안전 구역이 150씩 줄어듦 (1000 → 최소 320, 3초 전 예고). 결계 밖에 0.6초 있으면 사망
+    //   · 바닥: 낙석 함정 + 내 발밑을 노리는 낙뢰 표식 (점점 자주)
+    const DEVIL_SPEED = 1.35, DEVIL_FIRE = 0.74;
+    const DEVIL_ZONE_R0 = 1000, DEVIL_ZONE_MIN = 320, DEVIL_ZONE_STEP = 150, DEVIL_SHRINK_MS = 15000, DEVIL_SHRINK_WARN = 3000, DEVIL_OUT_GRACE = 600;
+    function devilMode() { return !!bonus && bonus.mode === "devil"; }
     function updateDevilMode(timestamp) {
       handleMonsterSpawns(timestamp);
       handleEliteSpawns();
+      const t = Math.min(1, playTimeMs / BONUS_MODES.devil.timeMs);
+      for (const m of monsters) {
+        if (m.devilBuff) continue;
+        m.devilBuff = true;
+        m.speed *= DEVIL_SPEED; m.baseSpeed *= DEVIL_SPEED;
+        if (m.shootInterval < 1e8) m.shootInterval *= DEVIL_FIRE;
+      }
+      // 악마 사도 난입
+      if (playTimeMs >= bonus.nextCaster) {
+        bonus.nextCaster = playTimeMs + 12000;
+        const n = playTimeMs >= 45000 ? 2 : 1;
+        for (let k = 0; k < n; k++) spawnDevilCaster(bonus.casterKind++ % 2 ? "fan" : "homing");
+      }
+      for (const m of monsters) if (m.devilCaster && !m.dead) updateDevilCaster(m, timestamp);
+      // 낙뢰 표식: 내 발밑(+이동 방향 예측) + 주변 무작위
+      if (playTimeMs >= bonus.nextMark) {
+        bonus.nextMark = playTimeMs + 2600 - 1300 * t;
+        const lead = player.isMoving ? 70 : 0;
+        bonus.marks.push({ x: player.x + Math.cos(player.angle) * lead, y: player.y + Math.sin(player.angle) * lead, r: 62, born: playTimeMs, hitAt: playTimeMs + 1000 });
+        if (t > 0.35) { const a = Math.random() * Math.PI * 2, d = 90 + Math.random() * 160; bonus.marks.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 62, born: playTimeMs, hitAt: playTimeMs + 1000 }); }
+      }
+      updateDevilZone();
+    }
+    // 결계: 정해진 시각마다 목표 반지름을 줄이고 2초 동안 서서히 좁혀짐
+    function updateDevilZone() {
+      const z = bonus.zone;
+      if (playTimeMs >= z.shrinkAt && z.to > DEVIL_ZONE_MIN) {
+        z.from = z.r; z.to = Math.max(DEVIL_ZONE_MIN, z.r - DEVIL_ZONE_STEP); z.moveFrom = playTimeMs;
+        z.shrinkAt = playTimeMs + DEVIL_SHRINK_MS;
+        if (sfxReady("zone", 400)) sfxTone({ type: "sawtooth", freq: 220, freqEnd: 110, dur: 0.6, vol: 0.07, wet: 0.4 });
+      }
+      if (z.moveFrom) z.r = z.from + (z.to - z.from) * Math.min(1, (playTimeMs - z.moveFrom) / 2000);
+      const out = fastHypot(player.x - z.x, player.y - z.y) > z.r - player.radius * 0.5;
+      if (!out) { bonus.outSince = 0; return; }
+      if (!bonus.outSince) bonus.outSince = playTimeMs;
+      if (playTimeMs - bonus.outSince >= DEVIL_OUT_GRACE) { bonus.outSince = 0; takeDamage(999); }
+    }
+    function devilZoneWarn() { const z = bonus.zone; return z.to > DEVIL_ZONE_MIN && z.shrinkAt - playTimeMs < DEVIL_SHRINK_WARN ? Math.max(DEVIL_ZONE_MIN, z.r - DEVIL_ZONE_STEP) : 0; }
+    // 악마 사도: 화면 가장자리에서 등장 · 거리를 두고 0.6초 빛난 뒤 발사 (homing = 유도탄 3발 / fan = 110° 부채꼴 13발)
+    function spawnDevilCaster(kind) {
+      const viewHalf = fastHypot(canvas.width / currentViewScale, canvas.height / currentViewScale) / 2;
+      const a = Math.random() * Math.PI * 2, sp = 1.6 * DEVIL_SPEED;
+      const hp = Math.round(player.damage * 110); // 피해 ×5·쿨타임 -80% 빌드로도 몇 초는 버티며 탄막을 쏨
+      monsters.push({ x: player.x + Math.cos(a) * (viewHalf + 40), y: player.y + Math.sin(a) * (viewHalf + 40), type: "shooter", lookType: "elite", radius: 28,
+        speed: sp, baseSpeed: sp, walkCycle: 0, hp: hp, maxHp: hp, slowTimer: 0, shootTimer: 1e15, shootInterval: 1e9, isBoss: false,
+        devilCaster: kind, devilBuff: true, castAt: playTimeMs + 1800, castWarn: false });
+      if (sfxReady("caster", 300)) sfxTone({ type: "square", freq: 300, freqEnd: 600, dur: 0.3, vol: 0.06 });
+    }
+    function updateDevilCaster(m, timestamp) {
+      if (m.stunUntil > playTimeMs) return;
+      m.castWarn = playTimeMs >= m.castAt - 600;
+      if (playTimeMs < m.castAt) return;
+      m.castAt = playTimeMs + (m.devilCaster === "fan" ? 1900 : 2300);
+      const a0 = Math.atan2(player.y - m.y, player.x - m.x), dmg = monsterDmg(14);
+      if (m.devilCaster === "homing") {
+        for (let k = -1; k <= 1; k++) {
+          const a = a0 + k * 0.6;
+          enemyBullets.push({ x: m.x, y: m.y, dx: Math.cos(a) * 3.4, dy: Math.sin(a) * 3.4, radius: 9, damage: dmg, color: "#f0abfc", life: 320, isBossBullet: false, homing: true });
+        }
+      } else {
+        for (let k = 0; k < 13; k++) {
+          const a = a0 + (k - 6) * (110 / 12) * Math.PI / 180;
+          enemyBullets.push({ x: m.x, y: m.y, dx: Math.cos(a) * 4.8, dy: Math.sin(a) * 4.8, radius: 7, damage: dmg, color: "#fb7185", life: 260, isBossBullet: false });
+        }
+      }
+      if (sfxReady("casterShot", 150)) sfxNoise({ filter: "bandpass", freq: 1800, freqEnd: 600, q: 1.5, dur: 0.18, vol: 0.08 });
+    }
+    // 유도탄: 남은 수명이 길 때만 플레이어 쪽으로 천천히 꺾임 (끝무렵엔 직진 → 피할 수 있음)
+    function steerEnemyBullet(eb) {
+      if (!eb.homing || eb.life < 90) return;
+      const sp = fastHypot(eb.dx, eb.dy) || 1, cur = Math.atan2(eb.dy, eb.dx);
+      let diff = Math.atan2(player.y - eb.y, player.x - eb.x) - cur;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      const na = cur + Math.max(-0.035, Math.min(0.035, diff));
+      eb.dx = Math.cos(na) * sp; eb.dy = Math.sin(na) * sp;
     }
 
     // ===== 행운의 슬롯 코인: 보너스 스테이지 클리어 보상 → 슬롯머신 1회 (레벨 보상 기회가 있으면 그것부터 사용) =====
@@ -10559,7 +11395,10 @@
       assassin: { kind: "blizzard", name: "❄️ 절대영도 눈보라", color: "#7dd3fc", tint: "#0c4a6e" },
       mage: { kind: "tornado", name: "🌪️ 뇌신 토네이도", color: "#a78bfa", tint: "#1e1b4b" },
       swordsman: { kind: "blades", name: "⚔️ 천검난무", color: "#bae6fd", tint: "#0f172a" },
-      hammer: { kind: "quake", name: "🌋 대지 붕괴", color: "#f59e0b", tint: "#451a03" }
+      hammer: { kind: "quake", name: "🌋 대지 붕괴", color: "#f59e0b", tint: "#451a03" },
+      // v46: 서머너 = 발밑 거대 마법진에서 망령 떼가 소용돌이치며 화면 끝까지 퍼짐 / 트릭스터 = 거대한 카드가 화면을 가로지르고 금빛 칩이 터짐
+      summoner: { kind: "spirits", name: "👻 망령 군단 강림", color: "#c084fc", tint: "#2e1065" },
+      trickster: { kind: "cards", name: "🎰 잭팟 쇼타임", color: "#f472b6", tint: "#4a044e" }
     };
     // 2층 중간 보스(Lv12 · 10분 경과 기준) 체력 × 1.05. 캐릭터·강화·레벨과 상관없이 모두 같음
     function ultDamage() {
@@ -10584,7 +11423,7 @@
     }
     function tryUlt() {
       if ((gameState !== "playing" && gameState !== "preview") || isPaused || ult.active || playTimeMs < ult.readyAt) return;
-      if (!bonusCanAttack() || player.hp <= 0 || bossIntro) return;
+      if (!bonusCanAttack() || player.hp <= 0 || bossIntro || devilMode()) return; // v47: 타락의 탑에서는 필살기 봉인 (무적 꼼수 방지)
       const def = ULTS[save.character] || ULTS.survivor;
       ult.cdTotal = gameState === "preview" ? ULT_PREVIEW_COOLDOWN_MS : ULT_COOLDOWN_MS;
       Object.assign(ult, { active: true, t0: playTimeMs, def: def, fx: [], pulse: 0, wind: Math.random() * Math.PI * 2, readyAt: playTimeMs + Math.max(ult.cdTotal, ULT_TOTAL_MS) });
@@ -10601,6 +11440,7 @@
         const V = ultView(), L = fastHypot(V.hw, V.hh) + 60;
         for (let i = 0; i < 10; i++) ult.fx.push({ t: "bigcrack", ang: i * Math.PI / 5 + Math.random() * 0.3, crack: crackPath(L), d: 0, L: L, life: 9999 });
       }
+      if (def.kind === "spirits") ult.fx.push({ t: "rune", life: 9999 }); // v46 발밑 거대 소환 마법진 (바닥 층)
       if (sfxReady("ultStart", 500)) {
         sfxTone({ freq: 180, freqEnd: 900, dur: 0.55, vol: 0.12, type: "sawtooth", wet: 0.3 });
         sfxNoise({ filter: "highpass", freq: 600, freqEnd: 5000, dur: 0.55, vol: 0.09, attack: 0.2 });
@@ -10608,8 +11448,8 @@
       updateUltButton(true);
     }
     function updateUltButton(force) {
-      const left = Math.max(0, ult.readyAt - playTimeMs);
-      const text = ult.active ? "발동!" : left > 0 ? `${Math.ceil(left / 1000)}초` : "필살기";
+      const left = devilMode() ? 1 : Math.max(0, ult.readyAt - playTimeMs);
+      const text = devilMode() ? "🔒봉인" : ult.active ? "발동!" : left > 0 ? `${Math.ceil(left / 1000)}초` : "필살기";
       const pct = ult.active ? 0 : Math.round(100 * (1 - left / (ult.cdTotal || ULT_COOLDOWN_MS)));
       const key = text + pct;
       if (!force && key === ultShown) return;
@@ -10626,6 +11466,8 @@
       if (kind === "tornado") { sfxNoise({ filter: "lowpass", freq: 2400, freqEnd: 120, dur: 0.6, vol: 0.2 }); sfxNoise({ filter: "highpass", freq: 3000, dur: 0.08, vol: 0.12 }); }
       if (kind === "blades") { sfxNoise({ filter: "bandpass", freq: 4200, freqEnd: 900, dur: 0.25, vol: 0.12, q: 1.2 }); sfxNoise({ filter: "bandpass", freq: 3600, freqEnd: 800, dur: 0.25, vol: 0.1, q: 1.2, delay: 0.1 }); }
       if (kind === "quake") { sfxNoise({ filter: "lowpass", freq: 160, freqEnd: 50, dur: 0.75, vol: 0.26 }); sfxTone({ freq: 46, freqEnd: 30, dur: 0.7, vol: 0.16, type: "triangle" }); }
+      if (kind === "spirits") { sfxTone({ type: "sine", freq: 440, freqEnd: 220, dur: 0.6, vol: 0.08, wet: 0.8 }); sfxNoise({ filter: "bandpass", freq: 700, freqEnd: 300, q: 1.2, dur: 0.6, vol: 0.14, attack: 0.15, wet: 0.6 }); }
+      if (kind === "cards") { for (let k = 0; k < 3; k++) sfxTone({ type: "triangle", freq: [1046, 1318, 1568][k], dur: 0.14, vol: 0.06, delay: k * 0.07, wet: 0.4 }); sfxNoise({ filter: "lowpass", freq: 1500, freqEnd: 120, dur: 0.3, vol: 0.14 }); }
     }
     // 피해 1회: 화면 안(조금 여유)의 모든 적 + 일반 탄환 지우기
     function ultPulse() {
@@ -10669,6 +11511,8 @@
           }
         }
         if (f.t === "bigcrack") f.d = Math.min(f.L, f.d + 30);
+        if (f.t === "ghost") { f.r += f.sp; f.a += f.spin; f.x = player.x + Math.cos(f.a) * f.r; f.y = player.y + Math.sin(f.a) * f.r * 0.9; } // v46 나선으로 퍼지는 망령
+        if (f.t === "card") f.rot += f.vr;
         if (f.t === "ering") f.r += f.sp;
         if (f.t === "meteor" && f.life === 1) {
           ult.fx.push({ t: "boom", x: f.tx, y: f.ty, r: f.r * 5.5, life: 20, maxLife: 20 });
@@ -10762,6 +11606,24 @@
       } else if (def.kind === "quake") {
         if (Math.random() < 0.55) F.push({ t: "spike", x: rx(), y: ry(), h: 34 + Math.random() * 34, w: 16 + Math.random() * 14, life: 30, maxLife: 30 });
         if (Math.random() < 0.4) F.push({ t: "dust", x: rx(), y: ry(), r: 40 + Math.random() * 40, life: 34, maxLife: 34 });
+      } else if (def.kind === "spirits") {
+        // v46 망령 군단: 내 발밑에서 망령이 나선을 그리며 화면 끝까지 퍼져 나감 + 땅에서 솟는 해골 영혼
+        for (let k = 0; k < 2; k++) {
+          const sp = 7 + Math.random() * 5, life = Math.ceil(diag * 1.05 / sp);
+          F.push({ t: "ghost", x: cx, y: cy, a: Math.random() * Math.PI * 2, r: 10, sp: sp, spin: (Math.random() < 0.5 ? -1 : 1) * (0.025 + Math.random() * 0.02), life: life, maxLife: life, ph: Math.random() * 6 });
+        }
+        if (Math.random() < 0.3) F.push({ t: "rise", x: rx(), y: ry(), life: 34, maxLife: 34 });
+      } else if (def.kind === "cards") {
+        // v46 잭팟 쇼타임: 화면 밖에서 날아와 가로지르는 거대한 카드 + 금빛 칩 폭죽
+        if (Math.random() < 0.45) {
+          const side = Math.floor(Math.random() * 4);
+          const sx = side === 0 ? cx - V.hw - 60 : side === 1 ? cx + V.hw + 60 : rx();
+          const sy = side === 2 ? cy - V.hh - 60 : side === 3 ? cy + V.hh + 60 : ry();
+          const a = Math.atan2(cy + (Math.random() - 0.5) * V.hh - sy, cx + (Math.random() - 0.5) * V.hw - sx), sp = 16 + Math.random() * 8;
+          F.push({ t: "card", x: sx, y: sy, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+            w: 46 + Math.random() * 30, suit: Math.random() < 0.15 ? "J" : CARD_SUITS[Math.floor(Math.random() * 4)], life: Math.ceil(diag * 2.2 / sp), maxLife: 99 });
+        }
+        if (Math.random() < 0.25) F.push({ t: "chips", x: rx(), y: ry(), life: 22, maxLife: 22, seed: Math.random() * 6 });
       }
     }
     // 떠 있는 동안 발밑: 제자리 그림자 + 회전하는 마법진 + 몸을 감싸는 속성 빛
@@ -10821,7 +11683,39 @@
       const def = ult.def;
       ctx.lineCap = "round";
       for (const f of ult.fx) {
-        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering") !== !!floor) continue;
+        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering" || f.t === "rune" || f.t === "rise") !== !!floor) continue;
+        if (f.t === "rune") { // v46 서머너: 발밑에서 화면만큼 커지며 도는 소환 마법진 (원 2겹 + 오각별 + 룬 점)
+          const t = playTimeMs - ult.t0, grow = Math.min(1, t / 700), R = fastHypot(ultView().hw, ultView().hh) * 0.62 * grow;
+          const env = Math.min(1, (ULT_TOTAL_MS - t) / 400);
+          ctx.save();
+          ctx.translate(player.x, player.y);
+          ctx.scale(1, 0.62);
+          ctx.rotate(timestamp / 1400);
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.75 * env;
+          ctx.strokeStyle = "#c084fc";
+          ctx.lineWidth = 5;
+          ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+          ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.arc(0, 0, R * 0.86, 0, Math.PI * 2); ctx.stroke();
+          ctx.beginPath();
+          for (let k = 0; k <= 5; k++) { const a = -Math.PI / 2 + k * Math.PI * 4 / 5; if (k) ctx.lineTo(Math.cos(a) * R * 0.86, Math.sin(a) * R * 0.86); else ctx.moveTo(Math.cos(a) * R * 0.86, Math.sin(a) * R * 0.86); }
+          ctx.strokeStyle = "#e9d5ff"; ctx.lineWidth = 3; ctx.stroke();
+          for (let k = 0; k < 16; k++) { const a = k * Math.PI / 8; drawGlow(ctx, "#a78bfa", Math.cos(a) * R * 0.93, Math.sin(a) * R * 0.93, 9); }
+          ctx.restore();
+          ctx.globalCompositeOperation = "source-over";
+          continue;
+        }
+        if (f.t === "rise") { // v46: 땅에서 솟아오르는 영혼 기둥
+          const p = 1 - f.life / f.maxLife, a = Math.sin(p * Math.PI);
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.6 * a;
+          ctx.fillStyle = "rgba(192, 132, 252, 0.5)";
+          ctx.beginPath(); ctx.ellipse(f.x, f.y, 26, 10, 0, 0, Math.PI * 2); ctx.fill();
+          for (let k = 0; k < 4; k++) drawGlow(ctx, k % 2 ? "#f5f3ff" : "#a78bfa", f.x + Math.sin(f.y + k) * 6, f.y - p * 90 - k * 16, 14 - k * 2);
+          ctx.globalCompositeOperation = "source-over";
+          continue;
+        }
         if (f.t === "ering") { // v44 스파크: 바닥에 퍼지는 푸른 전류 고리 (울퉁불퉁한 원 + 안쪽 옅은 전기장)
           const a = f.life / f.maxLife, N = 48;
           ctx.globalCompositeOperation = "lighter";
@@ -10955,6 +11849,39 @@
           ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2.5; ctx.stroke();
           const e = f.pts[f.pts.length - 1];
           drawGlow(ctx, "#c4b5fd", e.x, e.y, 34);
+        } else if (f.t === "ghost") {
+          // v46 망령: 빛 꼬리를 끄는 흰 유령 얼굴
+          const a = Math.min(1, f.life / 10);
+          ctx.globalAlpha = 0.55 * a;
+          drawGlow(ctx, "#a78bfa", f.x, f.y, 34);
+          ctx.globalAlpha = 0.85 * a;
+          drawGlow(ctx, "#f5f3ff", f.x, f.y, 14);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.fillStyle = `rgba(30, 27, 75, ${0.9 * a})`;
+          for (const sd of [-1, 1]) { ctx.beginPath(); ctx.ellipse(f.x + sd * 4, f.y - 2, 2, 3, 0, 0, Math.PI * 2); ctx.fill(); }
+          ctx.beginPath(); ctx.ellipse(f.x, f.y + 5, 2.4, 3 + Math.sin(f.ph + f.life * 0.3) * 1.2, 0, 0, Math.PI * 2); ctx.fill();
+          ctx.globalCompositeOperation = "lighter";
+        } else if (f.t === "card") {
+          // v46 거대 카드 (앞면 문양) + 지나간 자리 분홍 빛
+          ctx.globalAlpha = 0.5;
+          drawGlow(ctx, f.suit === "J" ? "#fde047" : "#f472b6", f.x, f.y, f.w * 1.1);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 0.95;
+          ctx.save();
+          ctx.translate(f.x, f.y);
+          ctx.rotate(f.rot);
+          drawCardShape(ctx, -f.w / 2, -f.w * 0.7, f.w, f.w * 1.4, f.suit === "J" ? { back: ["#fef9c3", "#eab308", "#713f12"] } : DEFAULT_DECK, f.suit);
+          ctx.restore();
+          ctx.globalCompositeOperation = "lighter";
+        } else if (f.t === "chips") {
+          // v46 금빛 칩 폭죽
+          const p = 1 - f.life / f.maxLife, a = f.life / f.maxLife;
+          ctx.globalAlpha = a;
+          drawGlow(ctx, "#fde047", f.x, f.y, 40 * (0.5 + p));
+          for (let k = 0; k < 8; k++) {
+            const an = f.seed + k * Math.PI / 4, d = 20 + p * 70;
+            drawGlow(ctx, k % 2 ? "#f472b6" : "#fde047", f.x + Math.cos(an) * d, f.y + Math.sin(an) * d - p * 20, 8);
+          }
         } else if (f.t === "slash") {
           // v43 일직선 거대 검격: 한쪽 끝에서 반대편 끝까지 순식간에 그어짐(머리 섬광) → 가운데가 두툼한 칼날 모양으로 잠깐 남았다가 가늘어지며 사라짐
           const p = 1 - f.life / f.maxLife, head = Math.min(1, p * 3.2), a = p < 0.5 ? 1 : (1 - p) / 0.5;
@@ -10992,11 +11919,12 @@
       const env = Math.min(1, t / 300, (ULT_TOTAL_MS - t) / 400);
       ctx.fillStyle = rgba(def.tint, 0.3 * env);
       ctx.fillRect(0, 0, W, H);
-      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado" || def.kind === "blades") {
+      if (def.kind === "blizzard" || def.kind === "quake" || def.kind === "tornado" || def.kind === "blades" || def.kind === "spirits" || def.kind === "cards") {
         const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
         g.addColorStop(0, "rgba(0,0,0,0)");
         g.addColorStop(1, def.kind === "blizzard" ? `rgba(224, 242, 254, ${0.55 * env})` : def.kind === "quake" ? `rgba(68, 34, 8, ${0.5 * env})`
-          : def.kind === "blades" ? `rgba(56, 189, 248, ${0.2 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
+          : def.kind === "blades" ? `rgba(56, 189, 248, ${0.2 * env})` : def.kind === "spirits" ? `rgba(46, 16, 101, ${0.6 * env})`
+          : def.kind === "cards" ? `rgba(250, 204, 21, ${0.22 * env})` : `rgba(30, 27, 75, ${0.6 * env})`);
         ctx.fillStyle = g;
         ctx.fillRect(0, 0, W, H);
       }
@@ -11015,6 +11943,356 @@
         ctx.font = "900 30px sans-serif";
         outlinedText(ctx, def.name, 0, 4, def.color, 6);
         ctx.restore();
+      }
+    }
+
+    // ===== v46 신규 캐릭터: 🔮 서머너 (영혼 하수인) · 🃏 트릭스터 (마술 카드) =====
+    //   서머너: 적을 쓰러뜨리면 25% 확률(중간 보스·보스는 100%)로 그 자리에서 영혼 하수인이 일어나 12초 동안 싸움
+    //     하수인 수 = 3 + 👻 영혼 군단(멀티 샷) 횟수. 가득 차 있으면 가장 먼저 사라질 하수인의 시간이 새로 채워짐
+    //     하수인 1회 공격 = 공격력 × 대구경 배율 × SUMMON_DMG (0.6초마다) — 기본 공격과 같이 대구경 강화의 덕을 봄
+    //     영혼 부르기: 처치가 없어도 4초마다 1마리씩 (최대 수까지) → 초반·보스전에도 하수인이 있음
+    //   트릭스터: 카드마다 문양 (♠ 관통 2 · ♥ 체력 회복 · ♦ 확정 치명타 · ♣ 작은 폭발), 13장째마다 조커 (피해 ×3 · 관통 4 · 첫 명중에 거대 폭발)
+    const SUMMON_LIFE_MS = 12000;
+    const SUMMON_CHANCE = 0.25;
+    const SUMMON_HIT_MS = 600;
+    const SUMMON_DMG = 0.4;
+    const SUMMON_CALL_MS = 4000; // 영혼 부르기: 하수인이 최대 수보다 적으면 4초마다 1마리
+    const SUMMON_BASE_MAX = 3;
+    let minions = [];
+    function isSummoner() { return save.character === "summoner"; }
+    function summonMax() { return SUMMON_BASE_MAX + (player.multishotLevel || 0); }
+    function soulColor() { return newCharWeaponStyle("summoner").glow; }
+    function summonMinion(x, y) {
+      if (!isSummoner()) return false;
+      if (minions.length >= summonMax()) {
+        let old = minions[0];
+        for (const s of minions) if (s.until < old.until) old = s;
+        old.until = playTimeMs + SUMMON_LIFE_MS;
+        return false;
+      }
+      minions.push({ x: x, y: y, vx: 0, vy: 0, born: playTimeMs, until: playTimeMs + SUMMON_LIFE_MS, hitAt: playTimeMs + 250, tgt: null, ph: Math.random() * 6.28, bite: 0 });
+      spawnBurst(x, y, soulColor(), 6, 4);
+      if (sfxReady("summon", 150)) sfxTone({ type: "sine", freq: 300, freqEnd: 820, dur: 0.22, vol: 0.05, wet: 0.7 });
+      return true;
+    }
+    // handleMonsterDeath 에서 호출
+    function onKillSummon(m) {
+      if (!isSummoner() || m.goblin || (gameState !== "playing" && gameState !== "preview")) return;
+      if (Math.random() < (m.isBoss || m.isElite ? 1 : SUMMON_CHANCE)) summonMinion(m.x, m.y);
+    }
+    function updateMinions() {
+      if (isSummoner() && playTimeMs >= (player.summonCallAt || 0)) {
+        player.summonCallAt = playTimeMs + SUMMON_CALL_MS;
+        if (minions.length < summonMax()) summonMinion(player.x + (Math.random() - 0.5) * 60, player.y + (Math.random() - 0.5) * 60);
+      }
+      if (!minions.length) return;
+      const dmg = player.damage * player.caliberMult * SUMMON_DMG, col = soulColor();
+      for (let i = minions.length - 1; i >= 0; i--) {
+        const s = minions[i];
+        if (!s) continue;
+        if (playTimeMs >= s.until || !isSummoner()) { spawnBurst(s.x, s.y, col, 4, 3); minions.splice(i, 1); continue; }
+        // 목표: 하수인에게 가장 가까운 적 (주인에게서 너무 먼 적은 쫓지 않음) / 없으면 주인 주위를 맴돎
+        if (!s.tgt || s.tgt.dead || fastHypot(s.tgt.x - player.x, s.tgt.y - player.y) > 560) {
+          s.tgt = nearestMonsterTo(s.x, s.y, 480);
+          if (s.tgt && fastHypot(s.tgt.x - player.x, s.tgt.y - player.y) > 560) s.tgt = null;
+        }
+        let tx, ty, sp;
+        if (s.tgt) { tx = s.tgt.x; ty = s.tgt.y; sp = 6.4; }
+        else { const an = playTimeMs / 650 + s.ph; tx = player.x + Math.cos(an) * 62; ty = player.y + Math.sin(an) * 46; sp = 5.5; }
+        const dx = tx - s.x, dy = ty - s.y, d = fastHypot(dx, dy) || 1;
+        s.vx += (dx / d * sp - s.vx) * 0.16;
+        s.vy += (dy / d * sp - s.vy) * 0.16;
+        s.x += s.vx; s.y += s.vy;
+        if (s.bite > 0) s.bite--;
+        if (s.tgt && d < s.tgt.radius + 14 && playTimeMs >= s.hitAt) {
+          s.hitAt = playTimeMs + SUMMON_HIT_MS;
+          s.vx = -s.vx * 0.7; s.vy = -s.vy * 0.7; // 들이받고 살짝 튕겨 나왔다가 다시 덤빔
+          s.bite = 8;
+          damageMonster(s.tgt, dmg, col, "summon");
+        }
+        if (fastHypot(s.x - player.x, s.y - player.y) > 900) { s.x = player.x; s.y = player.y; }
+      }
+    }
+    // 영혼탄 유도: 아직 맞히지 않은 가장 가까운 적(420 안) 쪽으로 한 칸에 최대 0.14 라디안씩 꺾음
+    function steerSoulBullet(b) {
+      if (!b.tgt || b.tgt.dead || b.tgt === b.lastHit || (b.hitSet && b.hitSet.has(b.tgt))) {
+        b.tgt = null;
+        let bd = 420 * 420;
+        for (const m of monsters) {
+          if (m === b.lastHit || (b.hitSet && b.hitSet.has(m))) continue;
+          const dx = m.x - b.x, dy = m.y - b.y, dd = dx * dx + dy * dy;
+          if (dd < bd) { bd = dd; b.tgt = m; }
+        }
+        if (!b.tgt) return;
+      }
+      const sp = fastHypot(b.dx, b.dy) || 1, cur = Math.atan2(b.dy, b.dx);
+      let diff = Math.atan2(b.tgt.y - b.y, b.tgt.x - b.x) - cur;
+      while (diff < -Math.PI) diff += Math.PI * 2;
+      while (diff > Math.PI) diff -= Math.PI * 2;
+      const na = cur + Math.max(-0.14, Math.min(0.14, diff));
+      b.dx = Math.cos(na) * sp;
+      b.dy = Math.sin(na) * sp;
+    }
+    // 하수인 그림: 꼬리가 흔들리는 작은 유령 (몸 · 두 눈 · 공격할 때 입을 벌림). 사라지기 1.5초 전부터 깜빡임
+    function drawMinions(timestamp) {
+      if (!minions.length) return;
+      const col = soulColor();
+      for (const s of minions) {
+        const left = s.until - playTimeMs, appear = Math.min(1, (playTimeMs - s.born) / 250);
+        const a = (left < 1500 && Math.sin(timestamp / 60) < 0 ? 0.45 : 1) * appear;
+        const dir = Math.atan2(s.vy, s.vx), bob = Math.sin(timestamp / 160 + s.ph) * 2.5;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.55 * a;
+        drawGlow(ctx, col, s.x, s.y + bob - 7, 28);
+        ctx.globalCompositeOperation = "source-over";
+        ctx.save();
+        ctx.translate(s.x, s.y + bob - 7);
+        ctx.scale(1.25, 1.25); // 작은 화면에서도 하수인이 보이게
+        const x = 0, y = 0;
+        ctx.globalAlpha = 0.88 * a;
+        ctx.beginPath();                                    // 둥근 머리 + 뒤로 흔들리는 꼬리
+        ctx.arc(x, y, 9, Math.PI, 0);
+        const tx = -Math.cos(dir) * 10, ty = 9 - Math.sin(dir) * 4;
+        ctx.quadraticCurveTo(x + 9, y + 8, x + tx * 0.6 + 4, y + ty + Math.sin(timestamp / 90 + s.ph) * 3);
+        ctx.quadraticCurveTo(x, y + 6, x + tx * 0.6 - 4, y + ty + Math.cos(timestamp / 90 + s.ph) * 3);
+        ctx.quadraticCurveTo(x - 9, y + 8, x - 9, y);
+        ctx.fillStyle = "#f5f3ff";
+        ctx.fill();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        const ex = Math.cos(dir) * 2;
+        ctx.fillStyle = "#1e1b4b";
+        for (const side of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + side * 3.4 + ex, y - 1, 1.7, 2.4, 0, 0, Math.PI * 2); ctx.fill(); }
+        if (s.bite > 0) { ctx.beginPath(); ctx.ellipse(x + ex, y + 4, 2.6, 2, 0, 0, Math.PI * 2); ctx.fill(); }
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    const CARD_JOKER_EVERY = 13, CARD_JOKER_MULT = 3;
+    const CARD_SUITS = ["♠", "♥", "♦", "♣"];
+    function drawCardSuit() {
+      player.cardCount = (player.cardCount || 0) + 1;
+      if (player.cardCount % CARD_JOKER_EVERY === 0) return "J";
+      return CARD_SUITS[Math.floor(Math.random() * 4)];
+    }
+    // 카드 명중 (♦ 치명타·♠ 관통은 발사할 때 이미 반영)
+    function cardHit(b, m, src) {
+      if (b.suit === "♥") {
+        // 하트: 체력 0.5 + 최대 체력의 0.6% 회복 (0.15초에 한 번까지 — 멀티 샷으로 한꺼번에 많이 차지 않게)
+        if (playTimeMs >= (player.heartAt || 0) && player.hp > 0 && player.hp < player.maxHp) {
+          player.heartAt = playTimeMs + 150;
+          player.hp = Math.min(player.maxHp, player.hp + 0.5 + player.maxHp * 0.006);
+          spawnBurst(player.x, player.y - 18, "#fb7185", 2, 2);
+          uiDirty = true;
+        }
+      } else if (b.suit === "♣") {
+        pendingBlasts.push({ x: m.x, y: m.y, exclude: m, radius: 52 + player.bulletCaliberLevel * 5, damage: b.damage * 0.45, src: src, elem: "card" });
+      } else if (b.suit === "J" && !b.jokerDone) {
+        b.jokerDone = true;
+        jokerBlast(m.x, m.y, b.damage, m);
+      }
+    }
+    // 🃏 조커 대폭발: 반경 150(+대구경) 안의 적 모두 조커 카드 피해의 50% + 금빛 카드 폭죽
+    function jokerBlast(x, y, dmg, exclude) {
+      const R = 150 + player.bulletCaliberLevel * 8;
+      pendingBlasts.push({ x: x, y: y, exclude: exclude || null, radius: R, damage: dmg * 0.5, src: "joker", elem: "card" });
+      explosions.push({ x: x, y: y, radius: R, life: 26, maxLife: 26, lv: 5, elem: "card", seed: Math.random() * 6.28 });
+      spawnBurst(x, y, "#fde047", 10, 7);
+      spawnBurst(x, y, "#f472b6", 8, 6);
+      addShake(5);
+      if (sfxReady("joker", 200)) {
+        sfxTone({ type: "triangle", freq: 880, dur: 0.12, vol: 0.06, wet: 0.5 });
+        sfxTone({ type: "triangle", freq: 1320, dur: 0.16, vol: 0.06, wet: 0.5, delay: 0.08 });
+        sfxNoise({ filter: "lowpass", freq: 1800, freqEnd: 120, dur: 0.35, vol: 0.14 });
+      }
+    }
+    // 카드 탄 본체 (돌면서 날아가는 카드 · 조커는 금빛). source-over 상태에서 호출
+    function drawCardBullets(timestamp, inView) {
+      const W = newCharWeaponStyle("trickster");
+      for (const b of bullets) {
+        if (b.kind !== "card" || !inView(b.x, b.y)) continue;
+        const r = b.radius * 1.5; // 판정보다 조금 크게 그려서 무슨 문양인지 보이게
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.spin + timestamp / 55);
+        if (b.suit === "J") drawCardShape(ctx, -r * 0.8, -r * 1.15, r * 1.6, r * 2.3, { back: ["#fef9c3", "#eab308", "#713f12"] }, "J");
+        else drawCardShape(ctx, -r * 0.75, -r * 1.05, r * 1.5, r * 2.1, W, b.suit || "♠");
+        ctx.restore();
+      }
+    }
+
+    // ===== v46 신규 동료: 🦉 시간술사 부엉이 — ⏳ 시간 정지 =====
+    //   공격: 적 2명(+강화 갈래)을 꿰뚫는 시계 바늘 (맞은 적 1초간 40% 둔화)
+    //   특수: 20초마다 3초(+강화 Lv×0.3초) 동안 시간 정지 → 일반 몹은 멈춤(공격·접촉 피해 없음), 중간 보스·보스는 70% 둔화,
+    //         적 탄환은 그 자리에 얼어붙음(닿으면 그대로 맞음), 내 공격 속도 +30%
+    const CHRONO_MS = 3000, CHRONO_HASTE = 1.3;
+    function timeStopped() { return petActive() && pet.id === "owl" && playTimeMs < (pet.chronoUntil || 0); }
+    // 공격 속도 배율은 시간 정지가 켜지고 꺼질 때만 곱하고 나눔 (증폭 필드와 같은 방식)
+    function setPetChrono(on) {
+      if (!!pet.chronoOn === on) return;
+      pet.chronoOn = on;
+      if (on) player.fireRate /= CHRONO_HASTE;
+      else player.fireRate *= CHRONO_HASTE;
+    }
+    function applyTimeStop() {
+      setPetChrono(timeStopped());
+      if (!pet.chronoOn) return;
+      for (const m of monsters) {
+        if (m.goblin) continue;
+        if (m.isBoss || m.isElite) {
+          m.speed = Math.min(m.speed, m.baseSpeed * 0.3);
+          m.slowTimer = Math.max(m.slowTimer || 0, 3);
+        } else {
+          m.stunUntil = Math.max(m.stunUntil || 0, playTimeMs + 40);
+          m.chronoUntil = playTimeMs + 40;
+        }
+      }
+    }
+    // 시간 정지 화면: 푸른 회색 막 + 나를 중심으로 도는 커다란 시계 (화면 좌표)
+    function drawChronoScreen(timestamp) {
+      if (!timeStopped()) return;
+      const left = pet.chronoUntil - playTimeMs, len = pet.chronoLen || CHRONO_MS;
+      const env = Math.min(1, (len - left) / 200, left / 300);
+      const W = canvas.width, H = canvas.height, cx = (player.x - camera.x) * currentViewScale, cy = (player.y - camera.y) * currentViewScale;
+      ctx.fillStyle = `rgba(100, 116, 139, ${0.16 * env})`;
+      ctx.fillRect(0, 0, W, H);
+      const R = Math.min(W, H) * 0.42;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.globalAlpha = 0.5 * env;
+      ctx.strokeStyle = "#fde68a";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      for (let k = 0; k < 12; k++) { const a = k * Math.PI / 6; ctx.moveTo(Math.cos(a) * R * 0.9, Math.sin(a) * R * 0.9); ctx.lineTo(Math.cos(a) * R, Math.sin(a) * R); }
+      ctx.stroke();
+      // 시곗바늘이 거꾸로 천천히 돎
+      const p = 1 - left / len;
+      ctx.lineCap = "round";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(-Math.PI / 2 - p * Math.PI * 2) * R * 0.7, Math.sin(-Math.PI / 2 - p * Math.PI * 2) * R * 0.7); ctx.stroke();
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(-Math.PI / 2 - p * Math.PI * 0.5) * R * 0.45, Math.sin(-Math.PI / 2 - p * Math.PI * 0.5) * R * 0.45); ctx.stroke();
+      ctx.lineCap = "butt";
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+    // 시간 정지로 멈춘 일반 몹 위에 작은 시계 고리 (월드 좌표)
+    function drawChronoFrozen(timestamp, inView) {
+      if (!timeStopped()) return;
+      ctx.strokeStyle = "rgba(253, 230, 138, 0.75)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (const m of monsters) {
+        if (m.chronoUntil > playTimeMs && inView(m.x, m.y)) { ctx.moveTo(m.x + m.radius + 6, m.y); ctx.arc(m.x, m.y, m.radius + 6, 0, Math.PI * 2); }
+      }
+      ctx.stroke();
+    }
+
+    // ===== v46 동료 그림: 부엉이 + 귀여운 코스튬 (꿀벌 드론 · 곰돌이 골렘 · 토끼·펭귄 정령 · 신사 부엉이) =====
+    function drawOwlBody(g, x, yy, sk, t, s, facing) {
+      const flap = Math.sin(t / 140) * 0.3;
+      for (const side of [-1, 1]) {                                            // 날개
+        g.save(); g.translate(x + side * 10 * s, yy + 2 * s); g.rotate(side * (0.3 + flap));
+        g.beginPath(); g.ellipse(side * 4 * s, 2 * s, 5 * s, 9 * s, 0, 0, Math.PI * 2);
+        g.fillStyle = sk.c[2]; g.fill();
+        g.restore();
+      }
+      shadedBall(g, x, yy, 12 * s, 13 * s, 0, sk.c, "#1c1917");                 // 통통한 몸
+      for (const side of [-1, 1]) {                                            // 귀깃
+        g.beginPath(); g.moveTo(x + side * 6 * s, yy - 10 * s); g.lineTo(x + side * 11 * s, yy - 18 * s); g.lineTo(x + side * 11 * s, yy - 8 * s); g.closePath();
+        g.fillStyle = sk.c[1]; g.fill();
+      }
+      g.beginPath(); g.arc(x, yy + 5 * s, 6 * s, 0, Math.PI * 2);              // 배의 시계
+      g.fillStyle = "#fffbeb"; g.fill();
+      g.strokeStyle = sk.glow; g.lineWidth = 1.2 * s; g.stroke();
+      g.strokeStyle = "#78350f"; g.lineWidth = 1 * s; g.lineCap = "round";
+      const ha = t / 900, ma = t / 150;
+      g.beginPath(); g.moveTo(x, yy + 5 * s); g.lineTo(x + Math.cos(ha) * 3 * s, yy + 5 * s + Math.sin(ha) * 3 * s);
+      g.moveTo(x, yy + 5 * s); g.lineTo(x + Math.cos(ma) * 4.6 * s, yy + 5 * s + Math.sin(ma) * 4.6 * s); g.stroke();
+      g.lineCap = "butt";
+      const look = Math.cos(facing) * 1.2 * s;
+      for (const side of [-1, 1]) {                                            // 동그란 큰 눈
+        g.beginPath(); g.arc(x + side * 4.6 * s, yy - 4 * s, 4 * s, 0, Math.PI * 2);
+        g.fillStyle = "#ffffff"; g.fill();
+        g.strokeStyle = sk.glow; g.lineWidth = 1.2 * s; g.stroke();
+        g.beginPath(); g.arc(x + side * 4.6 * s + look, yy - 4 * s, 2 * s, 0, Math.PI * 2);
+        g.fillStyle = "#1c1917"; g.fill();
+      }
+      g.beginPath(); g.moveTo(x - 1.6 * s, yy - 1 * s); g.lineTo(x + 1.6 * s, yy - 1 * s); g.lineTo(x, yy + 2 * s); g.closePath(); // 부리
+      g.fillStyle = "#f59e0b"; g.fill();
+    }
+    const CUTE_PET_FORMS = new Set(["bee", "teddy", "bunny", "penguin"]);
+    function drawCutePet(g, x, yy, sk, t, s, facing) {
+      const look = Math.cos(facing) * 1.4 * s;
+      const eyes = (ey, r) => {
+        g.fillStyle = "#1e1b2e";
+        for (const side of [-1, 1]) { g.beginPath(); g.arc(x + side * 3.6 * s + look, yy + ey * s, r * s, 0, Math.PI * 2); g.fill(); }
+        g.fillStyle = "#ffffff";
+        for (const side of [-1, 1]) { g.beginPath(); g.arc(x + side * 3.6 * s + look - 0.5 * s, yy + (ey - 0.7) * s, r * 0.4 * s, 0, Math.PI * 2); g.fill(); }
+        g.fillStyle = "rgba(251, 113, 133, 0.6)";
+        for (const side of [-1, 1]) { g.beginPath(); g.arc(x + side * 6.5 * s + look, yy + (ey + 2.6) * s, 1.5 * s, 0, Math.PI * 2); g.fill(); }
+      };
+      if (sk.form === "bee") {
+        // 🐝 꿀벌: 노랑·검정 줄무늬 몸 + 침 + 더듬이 (날개는 drawPetFormBack)
+        g.beginPath(); g.moveTo(x - 13 * s, yy + 2 * s); g.lineTo(x - 18 * s, yy + 3 * s); g.lineTo(x - 13 * s, yy + 5 * s); g.closePath();
+        g.fillStyle = "#1c1917"; g.fill();
+        shadedBall(g, x, yy + 2 * s, 13 * s, 10 * s, 0, sk.c, "#1c1917");
+        g.fillStyle = "#1c1917";
+        for (const xx of [-7, -1]) { g.beginPath(); g.ellipse(x + xx * s, yy + 2 * s, 2.2 * s, 9 * s, 0, 0, Math.PI * 2); g.fill(); }
+        shadedBall(g, x + 7 * s, yy - 3 * s, 8 * s, 7.5 * s, 0, sk.c, "#1c1917");
+        g.strokeStyle = "#1c1917"; g.lineWidth = 1.2 * s;
+        for (const side of [-1, 1]) {
+          g.beginPath(); g.moveTo(x + (7 + side * 3) * s, yy - 9 * s); g.quadraticCurveTo(x + (8 + side * 5) * s, yy - 16 * s, x + (10 + side * 6) * s, yy - 15 * s); g.stroke();
+          g.beginPath(); g.arc(x + (10 + side * 6) * s, yy - 15 * s, 1.5 * s, 0, Math.PI * 2); g.fillStyle = "#1c1917"; g.fill();
+        }
+        g.save(); g.translate(7 * s, 0); eyes(-3.5, 1.5); g.restore();
+      } else if (sk.form === "teddy") {
+        // 🧸 곰돌이: 둥근 귀 + 볼록한 배 + 주둥이 + 기운 자국 (주먹은 그대로 둥실)
+        const fist = Math.sin(t / 340) * 2.5 * s;
+        for (const side of [-1, 1]) shadedBall(g, x + side * 16 * s, yy + 5 * s + fist * side, 5.5 * s, 5.5 * s, 0, sk.c, "#422006");
+        shadedBall(g, x, yy + 4 * s, 13 * s, 11 * s, 0, sk.c, "#422006");
+        g.fillStyle = "#fde7c8"; g.beginPath(); g.ellipse(x, yy + 7 * s, 7 * s, 6 * s, 0, 0, Math.PI * 2); g.fill();
+        for (const side of [-1, 1]) {
+          shadedBall(g, x + side * 8 * s, yy - 15 * s, 4.5 * s, 4.5 * s, 0, sk.c, "#422006");
+          g.fillStyle = "#fbcfe8"; g.beginPath(); g.arc(x + side * 8 * s, yy - 15 * s, 2 * s, 0, Math.PI * 2); g.fill();
+        }
+        shadedBall(g, x, yy - 8 * s, 10 * s, 9 * s, 0, sk.c, "#422006");
+        g.fillStyle = "#fde7c8"; g.beginPath(); g.ellipse(x + look, yy - 5 * s, 4.5 * s, 3.4 * s, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#422006"; g.beginPath(); g.ellipse(x + look, yy - 6 * s, 1.6 * s, 1.1 * s, 0, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = "#78350f"; g.lineWidth = 0.8 * s;                       // 배의 바느질 자국
+        g.beginPath(); for (let k = -2; k <= 2; k++) { g.moveTo(x + k * 2.4 * s - 1 * s, yy + 3 * s); g.lineTo(x + k * 2.4 * s + 1 * s, yy + 5 * s); } g.stroke();
+        eyes(-10, 1.4);
+      } else if (sk.form === "bunny") {
+        // 🐰 솜사탕 토끼: 쫑긋한 긴 귀(분홍 속) + 동그란 몸 + 솜꼬리 + 핑크 코
+        const ear = Math.sin(t / 300) * 0.12;
+        for (const side of [-1, 1]) {
+          g.save(); g.translate(x + side * 4 * s, yy - 9 * s); g.rotate(side * (0.18 + ear));
+          g.beginPath(); g.ellipse(0, -8 * s, 3.4 * s, 9 * s, 0, 0, Math.PI * 2); g.fillStyle = sk.c[0]; g.fill();
+          g.strokeStyle = sk.c[2]; g.lineWidth = 0.8 * s; g.stroke();
+          g.beginPath(); g.ellipse(0, -8 * s, 1.6 * s, 6.5 * s, 0, 0, Math.PI * 2); g.fillStyle = "#fbcfe8"; g.fill();
+          g.restore();
+        }
+        shadedBall(g, x - 9 * s, yy + 6 * s, 4 * s, 4 * s, 0, ["#ffffff", "#fdf2f8", "#f9a8d4"], null);
+        shadedBall(g, x, yy + 3 * s, 11 * s, 10 * s, 0, sk.c, sk.c[2]);
+        g.fillStyle = "#f472b6"; g.beginPath(); g.arc(x + look, yy + 1 * s, 1.4 * s, 0, Math.PI * 2); g.fill();
+        eyes(-2, 1.5);
+      } else {
+        // 🐧 아기 펭귄: 검은 몸 + 하얀 배 + 주황 부리·발 + 파닥이는 날개
+        const flap = Math.sin(t / 120) * 0.35;
+        for (const side of [-1, 1]) {
+          g.save(); g.translate(x + side * 10 * s, yy + 2 * s); g.rotate(side * (0.4 + flap));
+          g.beginPath(); g.ellipse(side * 2 * s, 4 * s, 3 * s, 7 * s, 0, 0, Math.PI * 2); g.fillStyle = sk.c[2]; g.fill();
+          g.restore();
+        }
+        for (const side of [-1, 1]) { g.fillStyle = "#fb923c"; g.beginPath(); g.ellipse(x + side * 4 * s, yy + 13 * s, 3 * s, 1.6 * s, 0, 0, Math.PI * 2); g.fill(); }
+        shadedBall(g, x, yy + 1 * s, 11 * s, 12.5 * s, 0, sk.c, "#020617");
+        g.fillStyle = "#f8fafc"; g.beginPath(); g.ellipse(x, yy + 4 * s, 7.5 * s, 8.5 * s, 0, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(x + look, yy - 4 * s, 7 * s, 5 * s, 0, 0, Math.PI * 2); g.fill();
+        g.fillStyle = "#fb923c"; g.beginPath(); g.moveTo(x + look - 2 * s, yy - 2 * s); g.lineTo(x + look + 2 * s, yy - 2 * s); g.lineTo(x + look, yy + 0.8 * s); g.closePath(); g.fill();
+        eyes(-5, 1.4);
       }
     }
 
@@ -11493,8 +12771,13 @@
       nextPackAt = 1500; // v44: 시작 1.5초 뒤 첫 잡몹 떼
       eliteSummons = [];
       resetTraps();
-      // 동료: 이번 캐릭터가 고른 동료로 시작 (증폭 필드 배율은 위에서 공격력·스킬 범위를 새로 정했으므로 그냥 끔)
+      // 동료: 이번 캐릭터가 고른 동료로 시작 (증폭 필드·시간 정지 배율은 위에서 공격력·공격 속도를 새로 정했으므로 그냥 끔)
       pet.fieldOn = false;
+      pet.chronoOn = false;
+      minions = [];          // v46 서머너 하수인
+      player.summonCallAt = 0;
+      player.cardCount = 0;  // v46 트릭스터 조커 카운트
+      player.heartAt = 0;
       resetPet(cs().pet);
       // 원소술사: 체인 라이트닝 Lv1로 시작 (미리보기 모드는 제외)
       if (ch.startSkill && gameState !== "preview") player[ch.startSkill + "Level"] = 1;
@@ -11667,7 +12950,7 @@
         }
       }
 
-      if (gameState === "playing" || gameState === "preview") { updateDash(); updateDashFx(); updateMeleeWaves(); updateUlt(); }
+      if (gameState === "playing" || gameState === "preview") { updateDash(); updateDashFx(); updateMeleeWaves(); updateUlt(); updateMinions(); }
       camera.x = player.x - (canvas.width / currentViewScale) / 2;
       camera.y = player.y - (canvas.height / currentViewScale) / 2;
 
@@ -12190,6 +13473,7 @@
       // 플레이어 총알
       for (let i = bullets.length - 1; i >= 0; i--) {
         const b = bullets[i];
+        if (b.kind === "soul") steerSoulBullet(b); // v46 서머너 영혼탄: 가까운 적 쪽으로 방향을 틂
         b.x += b.dx; b.y += b.dy;
         if (fastHypot(b.x - player.x, b.y - player.y) > (b.range || 950)) { bullets.splice(i, 1); continue; }
         // 장애물에 막히면 소멸 (화염탄은 그 자리에서 폭발)
@@ -12198,6 +13482,7 @@
           hitObstacle(ob);
           addHitEffect({ x: b.x, y: b.y, radius: 8 + b.radius, life: 6, maxLife: 6, color: (ATTACK_TYPES[b.kind] || ATTACK_TYPES.energy).glow });
           if (b.kind === "fireball") pendingBlasts.push({ x: b.x, y: b.y, exclude: null, radius: 60 + player.bulletCaliberLevel * 5, damage: b.damage * 0.7 });
+          if (b.suit === "J") jokerBlast(b.x, b.y, b.damage); // 조커는 장애물에 맞아도 터짐
           bullets.splice(i, 1);
         }
       }
@@ -12206,7 +13491,7 @@
       for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const eb = enemyBullets[i];
         if (!eb) continue; // 무적 부활 시 탄막이 지워진 경우
-        eb.x += eb.dx; eb.y += eb.dy; eb.life--;
+        if (!pet.chronoOn) { if (eb.homing) steerEnemyBullet(eb); eb.x += eb.dx; eb.y += eb.dy; eb.life--; } // v46 시간 정지: 적 탄환이 그 자리에 멈춤 · v47 유도탄
         // 장애물 엄폐: 바위·수정 뒤에 숨으면 적 탄환이 막힘 (보스 탄 포함). 막은 장애물은 금이 가기 시작
         const blocker = obstacles.length ? obstacleAt(eb.x, eb.y, eb.radius * 0.5) : null;
         if (blocker) {
@@ -12400,6 +13685,8 @@
               m.speed = Math.min(m.speed, m.baseSpeed * (m.isBoss ? 0.8 : 0.5));
               m.slowTimer = Math.max(m.slowTimer || 0, Math.round(ATTACK_TYPES.ice.slowMs / 16.67));
               m.chilledUntil = Math.max(m.chilledUntil || 0, playTimeMs + ATTACK_TYPES.ice.slowMs);
+            } else if (b.kind === "card") {
+              cardHit(b, m, bSrc); // v46 트릭스터 문양 효과 (♥ 회복 · ♣ 폭발 · 조커 대폭발)
             }
             // 도탄 스킬 보유 시 명중음은 타격감 있는 폭발음
             if (!b.isCharged && player.ricochetLevel > 0) Sound.ricochet();
@@ -12545,6 +13832,12 @@
         }
 
         if (dist < player.radius + e.radius) {
+          if (e.slot) { // v47 🪙 고블린이 떨어뜨린 슬롯 코인 (주우면 결과 화면에서 확정 지급)
+            if (bonus) bonus.slotFound = (bonus.slotFound || 0) + 1;
+            Sound.itemPickup();
+            exps.splice(i, 1);
+            continue;
+          }
           if (e.gold) { // 💰 황금 고블린 추격전의 금화·황금 보석
             if (bonus) bonus.coinGold += e.gold;
             Sound.coin();
@@ -12703,6 +13996,7 @@
 
     function handleMonsterDeath(m, index) {
       m.dead = true;
+      onKillSummon(m); // v46 서머너: 쓰러진 적의 영혼이 하수인으로
       // 브레이커 패시브: 처치할 때마다 최대 체력의 1% 회복
       const lifeOnKill = currentCharacter().lifeOnKill;
       if (lifeOnKill && gameState === "playing" && player.hp > 0) player.hp = Math.min(player.maxHp, player.hp + player.maxHp * lifeOnKill);
@@ -14032,6 +15326,15 @@
         } else if (b.kind === "bolt") {
           // 체인 전격: 지지직 떨리는 노란 전기 구체
           drawGlow(ctx, glow, b.x + (Math.random() - 0.5) * 4, b.y + (Math.random() - 0.5) * 4, b.radius * 2.5, "#fefce8");
+        } else if (b.kind === "soul") {
+          // v46 영혼탄: 무기 색 영혼 불꽃 + 하얀 심지 + 뒤로 흩어지는 작은 영혼 조각
+          const sc = b.crit ? "#fde047" : soulColor();
+          drawGlow(ctx, sc, b.x, b.y, b.radius * 2.6);
+          drawGlow(ctx, "#f5f3ff", b.x, b.y, b.radius * 1.05);
+          drawGlow(ctx, sc, b.x - b.dx * 1.6 + Math.sin(timestamp / 50 + b.spin) * 4, b.y - b.dy * 1.6 + Math.cos(timestamp / 50 + b.spin) * 4, b.radius * 1.2);
+        } else if (b.kind === "card") {
+          // v46 카드: 문양 색 빛 (♥♦ 붉게 · ♠♣ 무기 색 · 조커 금빛)
+          drawGlow(ctx, b.suit === "J" ? "#fde047" : (b.suit === "♥" || b.suit === "♦" ? "#fb7185" : newCharWeaponStyle("trickster").glow), b.x, b.y, b.radius * (b.suit === "J" ? 3 : 2.2));
         } else {
           drawGlow(ctx, glow, b.x, b.y, b.radius * 2.3);
         }
@@ -14064,6 +15367,7 @@
         }
         ctx.restore();
       }
+      drawCardBullets(timestamp, inView); // v46 트릭스터 카드 본체
 
       // 회전 부메랑 (만렙은 보랏빛·황금 섬광)
       if (player.boomerangLevel >= 5 && boomerangs.length) {
@@ -14480,6 +15784,9 @@
         ctx.globalCompositeOperation = "source-over";
       }
       drawDashFx(timestamp);
+      drawChronoFrozen(timestamp, inView); // v46 시간 정지로 멈춘 몹 표시
+      drawMinions(timestamp);      // v46 서머너 영혼 하수인
+      drawBonusTop(timestamp);     // v47 결계 · 악마 사도 · 고블린 진행 막대 · 떠오르는 글씨
 
       // 동료 (플레이어 뒤에서 따라다니므로 플레이어보다 먼저 그림)
       drawPetWorld(timestamp);
@@ -14503,6 +15810,8 @@
       if (bossArena.active && gameState === "playing") drawBossEdge(timestamp);
       drawAlertPulse(timestamp);
       drawUltScreen(timestamp);
+      drawChronoScreen(timestamp); // v46 부엉이 시간 정지 화면
+      drawGoldFeverScreen(timestamp); // v47 골드 피버
       drawGoblinPointer(timestamp);
       drawBossIntroScreen(timestamp);
       // (화면 터치 이동은 그대로 동작하고, 조이스틱 그림만 표시하지 않음)
@@ -14599,6 +15908,10 @@
       if (sk.form) drawPetFormBack(g, x, yy, sk, t, s); // v38 코스튬: 날개 등
       if (sk.form === "angel" || sk.form === "dragon") {
         drawWispCreature(g, x, yy, sk, t, s, facing);   // 정령 → 아기 천사 / 미니 드래곤
+      } else if (CUTE_PET_FORMS.has(sk.form)) {
+        drawCutePet(g, x, yy, sk, t, s, facing);         // v46 꿀벌 / 곰돌이 / 토끼 / 펭귄
+      } else if (petId === "owl") {
+        drawOwlBody(g, x, yy, sk, t, s, facing);         // v46 시간술사 부엉이
       } else if (petId === "drone") {
         // 대각선 팔 4개 끝에 회전 날개, 가운데 둥근 몸체와 렌즈
         for (let k = 0; k < 4; k++) {
@@ -14727,6 +16040,7 @@
       if (playTimeMs < pet.boostUntil) list.push({ icon: "💨", text: "이속 +30%", color: "#5eead4", left: Math.min(1, (pet.boostUntil - playTimeMs) / (pet.boostLen || 4000)) });
       if (pet.shield > 0 && pet.shieldMax > 0) list.push({ icon: "🛡️", text: `보호막 ${Math.ceil(pet.shield)}`, color: "#93c5fd", left: pet.shield / pet.shieldMax });
       if (pet.fieldOn && pet.field) list.push({ icon: "✨", text: "공격 +20%", color: "#f0abfc", left: Math.max(0, Math.min(1, (pet.field.until - playTimeMs) / 6000)) });
+      if (timeStopped()) list.push({ icon: "⏳", text: "시간 정지 · 공속 +30%", color: "#fde68a", left: Math.max(0, Math.min(1, (pet.chronoUntil - playTimeMs) / (pet.chronoLen || CHRONO_MS))) });
       if (!list.length) return;
       // 몸 주위로 버프 색 빛 입자가 위로 피어오름
       ctx.globalCompositeOperation = "lighter";
@@ -14820,6 +16134,20 @@
           ctx.stroke();
           ctx.lineCap = "butt";
           drawGlow(ctx, fx.color, fx.x, fx.y - 10, 22 * a + 6);
+        } else if (fx.kind === "needle") {
+          // v46 부엉이 시계 바늘: 금빛 가는 빛줄기 + 끝의 화살촉
+          const an = Math.atan2(fx.y2 - fx.y, fx.x2 - fx.x);
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(fx.x, fx.y - 8); ctx.lineTo(fx.x2, fx.y2);
+          ctx.strokeStyle = rgba(fx.color, 0.45); ctx.lineWidth = 9 * a + 2; ctx.stroke();
+          ctx.strokeStyle = "#fffbeb"; ctx.lineWidth = 2.5; ctx.stroke();
+          ctx.lineCap = "butt";
+          ctx.beginPath();
+          ctx.moveTo(fx.x2 + Math.cos(an) * 10, fx.y2 + Math.sin(an) * 10);
+          ctx.lineTo(fx.x2 + Math.cos(an + 2.5) * 9, fx.y2 + Math.sin(an + 2.5) * 9);
+          ctx.lineTo(fx.x2 + Math.cos(an - 2.5) * 9, fx.y2 + Math.sin(an - 2.5) * 9);
+          ctx.closePath();
+          ctx.fillStyle = fx.color; ctx.fill();
         } else if (fx.kind === "pulse" || fx.kind === "pop") {
           // 정령 필드 맥동 / 마력탄 폭발
           ctx.beginPath();
