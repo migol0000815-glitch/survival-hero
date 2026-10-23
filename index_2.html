@@ -1351,7 +1351,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v49 · 2026-10-23";
+    const GAME_VERSION = "v50 · 2026-10-23";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -2880,9 +2880,9 @@
         for (const side of [1, -1]) { // v48 양손에 하나씩 (왼손 도끼는 위아래 뒤집어 날이 바깥쪽)
           g.save();
           if (side < 0) { g.scale(1, -1); g.translate(-6, 2); }
-          glowLine(24, 40, 10, 16, W.glow);
-          metalBar(g, -2, 7.8, 32, 4.2, ["#a16207", "#57340f", "#1c0a02"]);
-          drawAxeHead(g, a, W, 29, 10, 0.88);
+          glowLine(26, 44, 10, 20, W.glow);
+          metalBar(g, -2, 7.6, 35, 4.8, ["#a16207", "#57340f", "#1c0a02"]); // v50 도끼 크게 (날 0.88 → 1.3)
+          drawAxeHead(g, a, W, 31, 10, 1.3);
           g.restore();
         }
         return;
@@ -3987,15 +3987,15 @@
         g.translate(24, 12);
         g.rotate(-Math.PI / 2 + 0.45);
         if (wItem) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.45 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 52, 10, 30); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
-        metalBar(g, -12, -3, 66, 6, ["#a16207", "#57340f", "#1c0a02"]);
-        drawAxeHead(g, 0, W, 50, 0, 1.6);
+        metalBar(g, -12, -3.5, 72, 7, ["#a16207", "#57340f", "#1c0a02"]); // v50 도끼 크게 (1.6 → 2.1)
+        drawAxeHead(g, 0, W, 56, 0, 2.1);
         g.restore(); g.save();                                   // v48 왼손에도 도끼 (좌우 대칭)
         g.translate(-34, 12);
         g.rotate(-Math.PI / 2 - 0.45);
         g.scale(1, -1);
         if (wItem) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.45 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 52, 10, 30); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
-        metalBar(g, -12, -3, 66, 6, ["#a16207", "#57340f", "#1c0a02"]);
-        drawAxeHead(g, 0, W, 50, 0, 1.6);
+        metalBar(g, -12, -3.5, 72, 7, ["#a16207", "#57340f", "#1c0a02"]);
+        drawAxeHead(g, 0, W, 56, 0, 2.1);
       } else if (kind === "lantern") {
         // v46 서머너: 세워 든 긴 지팡이 + 머리 장식(등불·해골·수정구·마도서) + 주위를 맴도는 작은 영혼 둘
         const W = wItem || DEFAULT_TOME;
@@ -10141,21 +10141,13 @@
       const full = !sword && big;                          // 브레이커·버서커 3타 = 360도 휩쓸기 / 회오리 베기
       let half = full ? Math.PI : meleeHalfArc(), r = reach, mult = 1;
       if (style === "sword" && big) { half *= 1.35; r *= 1.15; mult = 1.6; }
-      else if (style === "lance" && big) { half *= 1.2; r *= 1.35; mult = 1.7; } // 랜서 3타: 깊게 찌르기
+      else if (style === "lance" && big) { half *= 1.2; r *= 1.6; mult = 1.7; } // 랜서 3타: 깊게 찌르기 (v50: 돌진 대신 사거리 ×1.6)
       else if (style === "hammer" && full) { r *= 1.1; mult = 1.1; }
       else if (style === "axe" && full) { r *= 1.15; mult = 1.3; }
       const crit = Math.random() < ch.crit;
       mult *= (crit ? 2 : 1) * rageMult();
       const dmg = player.damage * player.caliberMult * atk.dmgMult * mult;
-      // 랜서 3타: 목표 쪽으로 짧게 뛰어들며 찌름 (몸이 닿을 만큼은 안 들어감)
-      if (style === "lance" && big && target && !ult.active) {
-        const gap = fastHypot(target.x - player.x, target.y - player.y) - target.radius - player.radius - 26;
-        const lunge = Math.max(0, Math.min(48, gap));
-        if (lunge > 0) {
-          player.x += Math.cos(ang) * lunge; player.y += Math.sin(ang) * lunge;
-          if (obstacles.length) pushOutOfObstacles(player, player.radius, 0);
-        }
-      }
+      // v50: 랜서 3타 돌진(몸 순간이동) 삭제 — 카메라가 같이 튀어 어지러웠음. 찌르는 느낌은 그림만 앞으로 내미는 poke 자세로
       const hits = meleeTargets(player.x, player.y, ang, half, r, full);
       meleeParry(player.x, player.y, ang, half, r, full);
       hits.sort((a, b) => fastHypot(a.x - player.x, a.y - player.y) - fastHypot(b.x - player.x, b.y - player.y));
@@ -10261,7 +10253,7 @@
       const WS = meleeWeaponStyle(); // v38.1: 상점 무기 색이 휘두르는 검기·해머에도 반영
       const style = meleeStyle();
       const swingHead = () => {
-        if (style === "axe") { ctx.rotate(Math.PI / 2); drawAxeHead(ctx, 0, WS, 0, -6, 1.5); return; } // v48 버서커 회오리: 도끼날
+        if (style === "axe") { ctx.rotate(Math.PI / 2); drawAxeHead(ctx, 0, WS, 0, -6, 1.9); return; } // v48 버서커 회오리: 도끼날
         if (WS.spikes) { shadedBall(ctx, 0, 0, 13, 13, 0, WS.head, "#0c0a09"); return; }
         metalBar(ctx, -12, -16, 24, 32, WS.head || DEFAULT_HAMMER.head);
       };
@@ -10350,7 +10342,7 @@
             ctx.save();
             ctx.translate(x + Math.cos(a1) * f.r * 0.82, y + Math.sin(a1) * f.r * 0.82);
             ctx.rotate(a1 + (ccw ? Math.PI : 0));
-            drawAxeHead(ctx, 0, WS, 0, -4, 1.3);
+            drawAxeHead(ctx, 0, WS, 0, -4, 1.7); // v50 휘두르는 도끼날 크게
             ctx.restore();
           }
         } else if (f.kind === "slash") {
@@ -11709,7 +11701,7 @@
       ctx.translate(w.x, w.y);
       ctx.rotate(w.spin);
       metalBar(ctx, -3 * k, -14 * k, 6 * k, 28 * k, ["#a16207", "#57340f", "#1c0a02"]);
-      drawAxeHead(ctx, 0, Object.assign({}, WS, { double: true }), 0, 0, k * 0.95);
+      drawAxeHead(ctx, 0, Object.assign({}, WS, { double: true }), 0, 0, k * 1.2); // v50 날아가는 도끼도 크게
       ctx.restore();
       if (w.syn.bolt && Math.random() < 0.4) {
         const an = Math.random() * 6.28, pts = jaggedPath([{ x: w.x, y: w.y }, { x: w.x + Math.cos(an) * w.r * 1.5, y: w.y + Math.sin(an) * w.r * 1.5 }], 6);
@@ -12139,6 +12131,17 @@
         if (f.t === "ghost") { f.r += f.sp; f.a += f.spin; f.x = player.x + Math.cos(f.a) * f.r; f.y = player.y + Math.sin(f.a) * f.r * 0.9; } // v46 나선으로 퍼지는 망령
         if (f.t === "card") f.rot += f.vr;
         if (f.t === "wring") f.r += f.sp;
+        if (f.t === "flyaxe") { f.r += f.sp; f.a += f.dir * 0.025; f.spin += f.dir * 0.45; } // v50 나선으로 날아가며 회전하는 도끼
+        if (f.t === "chop" && f.life === f.maxLife - 8) { // v50 내려찍은 도끼가 땅에 박힘: 갈라진 땅 (바닥에 잠깐 남음)
+          const rays = [];
+          for (let k = 0; k < 6; k++) {
+            const an = k * Math.PI / 3 + Math.random() * 0.6, L = 50 + Math.random() * 60;
+            rays.push(jaggedPath([{ x: f.x, y: f.y }, { x: f.x + Math.cos(an) * L, y: f.y + Math.sin(an) * L * 0.55 }], 5));
+          }
+          ult.fx.push({ t: "axecrack", x: f.x, y: f.y, rays: rays, life: 60, maxLife: 60 });
+          addShake(2.5);
+          if (sfxReady("ultChop", 90)) { sfxNoise({ filter: "lowpass", freq: 700, freqEnd: 80, dur: 0.25, vol: 0.12 }); sfxTone({ freq: 110, freqEnd: 45, dur: 0.2, vol: 0.12 }); }
+        }
         if (f.t === "spear" && f.life === 1) { // v48 빛의 창이 땅에 꽂힘: 충격 고리 + 꽂힌 창(바닥에 잠깐 남음)
           ult.fx.push({ t: "stab", x: f.tx, y: f.ty, ang: f.ang, life: 70, maxLife: 70 });
           ult.fx.push({ t: "pring", x: f.tx, y: f.ty, r: 90, life: 18, maxLife: 18 });
@@ -12248,8 +12251,14 @@
         // v48 천창 낙하: 하늘에서 비스듬히 떨어지는 거대한 빛의 창 (틱당 0.5개)
         if (Math.random() < 0.5) F.push({ t: "spear", tx: rx(), ty: ry(), ang: (Math.random() - 0.5) * 0.5, life: 16, maxLife: 16 });
       } else if (def.kind === "whirl") {
-        // v48 학살의 회오리: 화면 곳곳을 휩쓰는 붉은 호 베기 + 퍼지는 회오리 고리
-        if (Math.random() < 0.6) F.push({ t: "arcslash", r: 70 + Math.random() * diag * 0.9, a0: Math.random() * Math.PI * 2, span: 1 + Math.random() * 1.2, w: 10 + Math.random() * 14, life: 16, maxLife: 16 });
+        // v50 학살의 회오리 (도끼 연출로 교체): 거대한 쌍날 도끼가 빙글빙글 돌며 나선으로 화면 끝까지 휘몰아쳐 나감
+        //   + 하늘에서 거대한 도끼가 내려찍어 땅이 갈라짐 + 옅은 붉은 호 베기 + 퍼지는 회오리 고리
+        if (Math.random() < 0.3) {
+          const sp = 8 + Math.random() * 4, life = Math.ceil(diag * 1.05 / sp);
+          F.push({ t: "flyaxe", a: Math.random() * Math.PI * 2, r: 24, sp: sp, spin: Math.random() * 6, dir: Math.random() < 0.5 ? -1 : 1, k: 1.8 + Math.random() * 0.9, life: life, maxLife: life });
+        }
+        if (Math.random() < 0.11) F.push({ t: "chop", x: rx(), y: ry(), side: Math.random() < 0.5 ? -1 : 1, life: 24, maxLife: 24 });
+        if (Math.random() < 0.25) F.push({ t: "arcslash", r: 70 + Math.random() * diag * 0.9, a0: Math.random() * Math.PI * 2, span: 1 + Math.random() * 1.2, w: 10 + Math.random() * 14, life: 16, maxLife: 16 });
         if (Math.round(mainT * ULT_MAIN_MS / SIM_STEP_MS) % 14 === 0) F.push({ t: "wring", r: 40, sp: diag / 22, life: 24, maxLife: 24 });
       } else if (def.kind === "cards") {
         // v46 잭팟 쇼타임: 화면 밖에서 날아와 가로지르는 거대한 카드 + 금빛 칩 폭죽
@@ -12321,7 +12330,27 @@
       const def = ult.def;
       ctx.lineCap = "round";
       for (const f of ult.fx) {
-        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering" || f.t === "rune" || f.t === "rise" || f.t === "stab") !== !!floor) continue;
+        if ((f.t === "scorch" || f.t === "bigcrack" || f.t === "ering" || f.t === "rune" || f.t === "rise" || f.t === "stab" || f.t === "axecrack") !== !!floor) continue;
+        if (f.t === "axecrack") { // v50 도끼가 찍고 간 자리: 검게 갈라진 땅 + 틈새의 붉은 빛 + 처음엔 충격 고리
+          const fa = Math.min(1, f.life / 20), p = 1 - f.life / f.maxLife;
+          ctx.globalAlpha = 0.75 * fa;
+          ctx.strokeStyle = "#0c0a09"; ctx.lineWidth = 5;
+          ctx.beginPath();
+          for (const pts of f.rays) { ctx.moveTo(pts[0].x, pts[0].y); for (const q of pts) ctx.lineTo(q.x, q.y); }
+          ctx.stroke();
+          ctx.globalCompositeOperation = "lighter";
+          ctx.strokeStyle = "#ef4444"; ctx.lineWidth = 1.8; ctx.stroke();
+          drawGlow(ctx, "#f87171", f.x, f.y, 34 * fa);
+          if (p < 0.25) {
+            const q = p / 0.25;
+            ctx.globalAlpha = 1 - q;
+            ctx.beginPath(); ctx.ellipse(f.x, f.y, 30 + q * 90, 14 + q * 45, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = "#fecaca"; ctx.lineWidth = 6 * (1 - q) + 1; ctx.stroke();
+          }
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+          continue;
+        }
         if (f.t === "stab") { // v48 땅에 꽂혀 남은 빛의 창 + 갈라진 땅
           const fa = Math.min(1, f.life / 20);
           ctx.globalAlpha = 0.6 * fa;
@@ -12556,6 +12585,43 @@
           ctx.globalAlpha = 0.9 * a;
           ctx.strokeStyle = "#fee2e2"; ctx.lineWidth = f.w * 0.4; ctx.stroke();
           if (sweep < 1) { ctx.globalAlpha = 1; drawGlow(ctx, "#fecaca", player.x + Math.cos(a1) * f.r, player.y + Math.sin(a1) * f.r, f.w * 2); }
+        } else if (f.t === "flyaxe") {
+          // v50 회전하며 날아가는 거대 쌍날 도끼: 회전 잔상 + 붉은 빛 + 도끼 본체
+          const x = player.x + Math.cos(f.a) * f.r, y = player.y + Math.sin(f.a) * f.r * 0.9;
+          const fa = Math.min(1, f.life / 10, (f.maxLife - f.life + 1) / 4), R = f.k * 24;
+          ctx.globalAlpha = 0.45 * fa;
+          ctx.beginPath(); ctx.arc(x, y, R, f.spin - f.dir * 3.6, f.spin, f.dir < 0);
+          ctx.strokeStyle = "#ef4444"; ctx.lineWidth = R * 0.45; ctx.stroke();
+          ctx.globalAlpha = 0.5 * fa;
+          drawGlow(ctx, "#f87171", x, y, R * 1.3);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = fa;
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(f.spin);
+          metalBar(ctx, -3 * f.k, -15 * f.k, 6 * f.k, 30 * f.k, ["#a16207", "#57340f", "#1c0a02"]);
+          drawAxeHead(ctx, 0, Object.assign({}, (Array.isArray(meleeWeaponStyle().head) ? meleeWeaponStyle() : DEFAULT_AXE), { double: true }), 0, 0, f.k);
+          ctx.restore();
+          ctx.globalCompositeOperation = "lighter";
+        } else if (f.t === "chop") {
+          // v50 하늘에서 내려찍는 거대 도끼: 손잡이 끝을 축으로 크게 휘둘러 땅에 박힌 뒤 사라짐
+          const p = 1 - f.life / f.maxLife, e = Math.min(1, p / 0.33), fall = e * e, fa = Math.min(1, f.life / 8);
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = fa;
+          ctx.save();
+          ctx.translate(f.x - f.side * 96, f.y - 16);
+          ctx.scale(f.side, 1);
+          ctx.rotate(-1.8 * (1 - fall));
+          metalBar(ctx, 0, -5, 100, 10, ["#a16207", "#57340f", "#1c0a02"]);
+          drawAxeHead(ctx, 0, (Array.isArray(meleeWeaponStyle().head) ? meleeWeaponStyle() : DEFAULT_AXE), 94, -38, 3);
+          ctx.restore();
+          ctx.globalCompositeOperation = "lighter";
+          if (e < 1 && fall > 0.05) { // 지나온 휘두르기 궤적 (도끼날 높이 ≈ 반지름 100, 각도 -0.35)
+            const th0 = -1.8 - 0.35, th1 = -1.8 * (1 - fall) - 0.35;
+            ctx.globalAlpha = 0.35 * fa;
+            ctx.beginPath(); ctx.arc(f.x - f.side * 96, f.y - 16, 100, f.side > 0 ? th0 : Math.PI - th0, f.side > 0 ? th1 : Math.PI - th1, f.side < 0);
+            ctx.strokeStyle = "#fca5a5"; ctx.lineWidth = 22; ctx.stroke();
+          }
         } else if (f.t === "wring") {
           const a = f.life / f.maxLife;
           ctx.globalAlpha = 0.5 * a;
