@@ -1355,7 +1355,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v55 · 2026-10-24";
+    const GAME_VERSION = "v56 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -5920,7 +5920,10 @@
         near.sort((p, q) => p.queue.length - q.queue.length); // 줄이 가장 짧은 구조물 우선
         return Math.random() < 0.6 ? near[0] : near[(Math.random() * near.length) | 0];
       }
-      const pt = gateEdgePoint();
+      // v56: 바위·기둥 장애물과 붙지 않는 자리 (붙어 있으면 그 사이 틈에 몹이 끼어 못 나옴) — 최대 10번 다시 뽑음
+      const reach = 70 * gateScale();
+      let pt = gateEdgePoint();
+      for (let tries = 0; tries < 10 && obstacles.some(ob => fastHypot(ob.x - pt.x, ob.y - pt.y) < ob.r + reach + 50); tries++) pt = gateEdgePoint();
       const gt = { x: pt.x, y: pt.y, kind: GATE_KIND_BY_THEME[currentStage().theme] || "rift", born: playTimeMs, openAt: -1e9, lastOut: -1e9, queue: [] };
       spawnGates.push(gt);
       while (spawnGates.length > GATE_TUNE.max) {
@@ -5997,10 +6000,18 @@
         const c = gateCollider(gt);
         const bx = o.x, by = o.y;
         if (c.rect) {
-          const x0 = c.x0 - r, x1 = c.x1 + r, y0 = c.y0 - r, y1 = c.y1 + r;
-          if (o.x <= x0 || o.x >= x1 || o.y <= y0 || o.y >= y1) continue;
-          const pl = o.x - x0, pr = x1 - o.x, pt = o.y - y0, pb = y1 - o.y, m = Math.min(pl, pr, pt, pb); // 가장 얕게 파고든 쪽으로
-          if (m === pl) o.x = x0; else if (m === pr) o.x = x1; else if (m === pt) o.y = y0; else o.y = y1;
+          // v56: 모서리가 둥근 사각형 — 상자에서 가장 가까운 점 반대쪽으로 밀어냄 (네모난 모서리에서 미는 방향이 뒤집혀 몹이 끼던 문제)
+          const qx = Math.max(c.x0, Math.min(c.x1, o.x)), qy = Math.max(c.y0, Math.min(c.y1, o.y));
+          const dx = o.x - qx, dy = o.y - qy, d2 = dx * dx + dy * dy;
+          if (d2 > 1e-9) {
+            if (d2 >= r * r) continue;
+            const d = Math.sqrt(d2);
+            o.x = qx + dx / d * r; o.y = qy + dy / d * r;
+          } else {
+            // 중심이 상자 안: 가장 얕게 파고든 쪽으로
+            const pl = o.x - c.x0, pr = c.x1 - o.x, pt = o.y - c.y0, pb = c.y1 - o.y, m = Math.min(pl, pr, pt, pb);
+            if (m === pl) o.x = c.x0 - r; else if (m === pr) o.x = c.x1 + r; else if (m === pt) o.y = c.y0 - r; else o.y = c.y1 + r;
+          }
         } else {
           const ex = c.rx + r, ey = c.ry + r, dx = o.x - c.x, dy = o.y - c.y;
           const q = (dx * dx) / (ex * ex) + (dy * dy) / (ey * ey);
@@ -6843,8 +6854,10 @@
     function updateTrapHud() {
       const el = document.getElementById("trap-display");
       let text = "";
-      // 함정 이름 표시는 개발자 모드에서만 (배포판은 화면 연출만 보고 직접 체감)
-      if (IS_DEV_MODE && activeTraps.length && gameState === "playing") {
+      // v56: 배포판도 층·맵 이름 바로 아래에 함정 이름만 표시 (설명·상태 없음). 개발자 모드는 아래처럼 상태(부는 중·묶임 등)까지
+      if (!IS_DEV_MODE && activeTraps.length && gameState === "playing" && !bonus) {
+        text = "⚠️ " + activeTraps.map(id => trapName(id, currentFloor)).join(" · ");
+      } else if (IS_DEV_MODE && activeTraps.length && gameState === "playing") {
         const arrows = ["➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️", "⬆️", "↗️"];
         text = "⚠️ " + activeTraps.map(id => {
           let s = trapName(id, currentFloor);
@@ -6944,7 +6957,7 @@
         if (t >= trap.nextHazard) {
           for (let k = 0; k < 3; k++) {
             const a = Math.random() * Math.PI * 2, d = k === 0 ? 0 : 90 + Math.random() * 180;
-            trap.hazards.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 58, born: t, hitAt: t + 1200, done: false });
+            trap.hazards.push({ x: player.x + Math.cos(a) * d, y: player.y + Math.sin(a) * d, r: 58, born: t, hitAt: t + 1200, done: false, seed: Math.random() * 10 });
           }
           trap.nextHazard = t + 3800 + Math.random() * 1500;
         }
@@ -6958,7 +6971,7 @@
             addShake(3);
             if (fastHypot(player.x - hz.x, player.y - hz.y) < hz.r + player.radius * 0.6) takeDamage(monsterDmg(16));
           }
-          if (t >= hz.hitAt + 350) trap.hazards.splice(i, 1);
+          if (t >= hz.hitAt + HAZARD_AFTER_MS) trap.hazards.splice(i, 1); // v56: 충돌 뒤 그을음·불기둥 연출 시간 (피해는 위에서 한 번만)
         }
       }
 
@@ -6970,133 +6983,334 @@
       updateTrapHud();
     }
 
-    // 함정 바닥 그림 (몬스터·플레이어 아래): 늪, 중력장, 낙석 경고 원
+    // ===== 함정 그림 (v56 개편: 끓는 늪 · 출렁이는 슬라임 · 빨려 드는 중력장 · 낙엽 돌풍 · 하늘에서 떨어지는 유성 · 불기둥) =====
+    const HAZARD_AFTER_MS = 900; // 낙석·화염 분출 충돌 뒤 그을음·파편·불기둥이 남는 시간
+    // 출렁이는 테두리 (타원 반지름 rx·ry, 점 n개)
+    function wobblePath(g, x, y, rx, ry, t, seed, amp, n) {
+      g.beginPath();
+      for (let k = 0; k <= n; k++) {
+        const a = k / n * Math.PI * 2, w = 1 + amp * Math.sin(t / 320 + k * 1.37 + seed) + amp * 0.6 * Math.sin(t / 510 - k * 2.1 + seed * 2);
+        const px = x + Math.cos(a) * rx * w, py = y + Math.sin(a) * ry * w;
+        if (k) g.lineTo(px, py); else g.moveTo(px, py);
+      }
+      g.closePath();
+    }
+    // 부글부글: 바닥에서 부풀었다가 톡 터지는 거품 (n개, 주기 ms). 터질 때 고리 + 튀는 방울
+    function drawBoilBubbles(g, x, y, rx, ry, t, seed, n, period, col, pop) {
+      for (let k = 0; k < n; k++) {
+        const ph = ((t / period) + k * 0.618 + seed) % 1;
+        const a = seed * 3 + k * 2.39996, rr = 0.18 + ((k * 0.37 + seed * 0.13) % 0.62);
+        const bx = x + Math.cos(a) * rx * rr, by = y + Math.sin(a) * ry * rr;
+        if (ph < 0.8) {
+          const s = 1.5 + (ph / 0.8) * (4 + (k % 3) * 2);
+          g.globalAlpha = 0.85;
+          g.fillStyle = col;
+          g.beginPath(); g.arc(bx, by, s, 0, Math.PI * 2); g.fill();
+          g.globalAlpha = 0.7;
+          g.fillStyle = "rgba(255, 255, 255, 0.75)";
+          g.beginPath(); g.arc(bx - s * 0.35, by - s * 0.35, s * 0.3, 0, Math.PI * 2); g.fill();
+        } else {
+          const q = (ph - 0.8) / 0.2, s = 4 + (k % 3) * 2;
+          g.globalAlpha = 0.8 * (1 - q);
+          g.strokeStyle = pop; g.lineWidth = 1.5;
+          g.beginPath(); g.arc(bx, by, s + q * 9, 0, Math.PI * 2); g.stroke();
+          g.fillStyle = pop;
+          for (let j = 0; j < 3; j++) {
+            const ja = a + j * 2.1;
+            g.beginPath(); g.arc(bx + Math.cos(ja) * (s + q * 12), by + Math.sin(ja) * (s + q * 12) - q * 4, 1.3, 0, Math.PI * 2); g.fill();
+          }
+        }
+      }
+      g.globalAlpha = 1;
+    }
+
+    // 함정 바닥 그림 (몬스터·플레이어 아래): 슬라임, 늪, 중력장, 낙석 경고 원·그을음
     function drawTrapsGround(g, timestamp, inView) {
       if (!activeTraps.length) return;
       const t = playTimeMs;
-      // 끈적이 슬라임 웅덩이: 반투명 초록 + 윤기 하이라이트 + 천천히 부푸는 방울
+      // 🟢 끈적이 슬라임: 출렁이는 테두리 + 윤기 + 부풀었다 터지는 방울
       for (const s of trap.slimes) {
         if (!inView(s.x, s.y)) continue;
         const grow = Math.max(0.15, Math.min(1, 1 - (s.readyAt - t) / 600));
         const fade = Math.max(0, Math.min(1, (s.until - t) / 500));
         const r = s.r * grow;
-        g.globalAlpha = 0.55 * fade;
-        g.fillStyle = "#4d7c0f";
-        g.beginPath(); g.ellipse(s.x, s.y, r, r * 0.75, 0, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 0.6 * fade;
+        g.fillStyle = "#3f6212";
+        wobblePath(g, s.x, s.y, r, r * 0.75, timestamp, s.seed, 0.05, 20); g.fill();
         g.fillStyle = "#84cc16";
-        g.beginPath(); g.ellipse(s.x, s.y, r * 0.8, r * 0.58, 0, 0, Math.PI * 2); g.fill();
-        g.globalAlpha = 0.5 * fade;
+        wobblePath(g, s.x, s.y, r * 0.8, r * 0.58, timestamp + 400, s.seed, 0.06, 18); g.fill();
+        g.globalAlpha = 0.45 * fade;
         g.fillStyle = "#ecfccb";
         g.beginPath(); g.ellipse(s.x - r * 0.3, s.y - r * 0.28, r * 0.28, r * 0.09, -0.3, 0, Math.PI * 2); g.fill();
-        g.globalAlpha = 0.7 * fade;
-        g.fillStyle = "#bef264";
-        for (let k = 0; k < 4; k++) {
-          const a = s.seed + k * 1.7, rr = r * (0.15 + ((k * 0.29 + s.seed) % 0.5));
-          const bs = 2.5 + (Math.sin(timestamp / 420 + k * 1.9 + s.seed) + 1) * 2.2;
-          g.beginPath(); g.arc(s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr * 0.75, bs, 0, Math.PI * 2); g.fill();
-        }
+        g.globalAlpha = fade;
+        g.save(); g.globalAlpha = fade;
+        drawBoilBubbles(g, s.x, s.y, r * 0.75, r * 0.55, timestamp, s.seed, 5, 1300, "#bef264", "#ecfccb");
+        g.restore();
         g.globalAlpha = 1;
       }
+      // 🕸️ 속박 늪 (독 늪): 탁한 독물이 소용돌이치며 부글부글 끓음 (김은 drawTrapsOverlay 에서 위로)
       for (const b of trap.bogs) {
         if (!inView(b.x, b.y)) continue;
         const grow = Math.max(0, Math.min(1, 1 - (b.readyAt - t) / 900));
         const fade = Math.max(0, Math.min(1, (b.until - t) / 500));
+        const ready = t >= b.readyAt;
         const r = b.r * Math.max(0.2, grow);
-        g.globalAlpha = 0.8 * fade;
-        g.fillStyle = "#1a2e05";
-        g.beginPath();
-        g.ellipse(b.x, b.y, r, r * 0.8, 0, 0, Math.PI * 2);
-        g.fill();
+        g.globalAlpha = 0.85 * fade;
+        const bg = g.createRadialGradient(b.x, b.y, r * 0.1, b.x, b.y, r);
+        bg.addColorStop(0, "#4d7c0f"); bg.addColorStop(0.65, "#1a2e05"); bg.addColorStop(1, "#0a1402");
+        g.fillStyle = bg;
+        wobblePath(g, b.x, b.y, r, r * 0.8, timestamp, b.seed, 0.045, 22); g.fill();
         g.lineWidth = 3;
-        g.strokeStyle = t >= b.readyAt ? "rgba(132, 204, 22, 0.75)" : "rgba(132, 204, 22, 0.35)";
+        g.strokeStyle = ready ? "rgba(132, 204, 22, 0.8)" : "rgba(132, 204, 22, 0.35)";
         g.stroke();
-        // 거품
-        g.fillStyle = "rgba(163, 230, 53, 0.55)";
-        for (let k = 0; k < 5; k++) {
-          const a = b.seed + k * 1.3, rr = r * (0.2 + ((k * 0.37 + b.seed) % 0.6));
-          const s = 3 + Math.sin(timestamp / 300 + k * 2 + b.seed) * 2;
-          g.beginPath();
-          g.arc(b.x + Math.cos(a) * rr, b.y + Math.sin(a) * rr * 0.8, Math.max(1, s), 0, Math.PI * 2);
-          g.fill();
+        // 천천히 도는 독물 소용돌이
+        g.globalAlpha = 0.35 * fade;
+        g.strokeStyle = "#a3e635"; g.lineWidth = 2;
+        for (let k = 0; k < 2; k++) {
+          const a0 = timestamp / 1100 + k * Math.PI + b.seed;
+          g.beginPath(); g.ellipse(b.x, b.y, r * (0.45 + k * 0.2), r * (0.36 + k * 0.16), 0, a0, a0 + 2.2); g.stroke();
         }
+        // 부글부글 (준비되면 더 빠르고 많이)
+        g.save(); g.globalAlpha = fade;
+        drawBoilBubbles(g, b.x, b.y, r * 0.8, r * 0.64, timestamp, b.seed, ready ? 9 : 4, ready ? 650 : 1100, "rgba(163, 230, 53, 0.9)", "#d9f99d");
+        g.restore();
         g.globalAlpha = 1;
       }
+      // 🌀 중력 왜곡: 바깥 고리 + 안쪽으로 빨려 드는 고리 + 나선 팔(입자) + 강착원 + 검은 핵
       for (const w of trap.wells) {
         if (!inView(w.x, w.y)) continue;
         const power = Math.max(0, Math.min(1, (t - w.born) / 1000, (w.until - t) / 1000));
         g.globalAlpha = 0.35 * power;
         g.strokeStyle = "#a78bfa";
         g.lineWidth = 2;
-        g.beginPath();
-        g.arc(w.x, w.y, w.r, 0, Math.PI * 2);
-        g.stroke();
-        // 안쪽으로 빨려 드는 나선 고리
+        g.setLineDash([14, 10]); g.lineDashOffset = -timestamp / 30;
+        g.beginPath(); g.arc(w.x, w.y, w.r, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
         for (let k = 0; k < 3; k++) {
           const ph = ((timestamp / 1400 + k / 3) % 1);
           g.globalAlpha = 0.5 * power * ph;
-          g.beginPath();
-          g.arc(w.x, w.y, w.r * (1 - ph) + 10, 0, Math.PI * 2);
-          g.stroke();
+          g.beginPath(); g.arc(w.x, w.y, w.r * (1 - ph) + 10, 0, Math.PI * 2); g.stroke();
         }
         g.globalCompositeOperation = "lighter";
+        for (let arm = 0; arm < 3; arm++) {                 // 나선 팔: 바깥에서 안쪽으로 감기며 빨려 듦
+          for (let i = 0; i < 14; i++) {
+            const f = ((i / 14) + timestamp / 1800) % 1;    // 0 = 바깥, 1 = 중심
+            const rad = w.r * 0.95 * (1 - f) + 14;
+            const an = arm * Math.PI * 2 / 3 + f * 4.2 + timestamp / 900;
+            g.globalAlpha = power * (0.25 + f * 0.6);
+            g.fillStyle = f > 0.7 ? "#f5d0fe" : "#c4b5fd";
+            g.beginPath(); g.arc(w.x + Math.cos(an) * rad, w.y + Math.sin(an) * rad, 1.2 + f * 2.4, 0, Math.PI * 2); g.fill();
+          }
+        }
         g.globalAlpha = 0.8 * power;
         drawGlow(g, "#7c3aed", w.x, w.y, 70);
+        g.globalAlpha = 0.7 * power;                        // 강착원 (기울어진 빛 고리)
+        g.strokeStyle = "#e9d5ff"; g.lineWidth = 3;
+        g.beginPath(); g.ellipse(w.x, w.y, 30 * power, 11 * power, timestamp / 700, 0, Math.PI * 2); g.stroke();
         g.globalCompositeOperation = "source-over";
         g.globalAlpha = 1;
         g.fillStyle = "#0b0218";
-        g.beginPath();
-        g.arc(w.x, w.y, 16 * power, 0, Math.PI * 2);
-        g.fill();
+        g.beginPath(); g.arc(w.x, w.y, 16 * power, 0, Math.PI * 2); g.fill();
       }
+      // 🪨 낙석 / 🌋 화염 분출: 경고 원(돌아가는 점선 + 조준선) → 충돌 뒤 그을음·균열
       const lava = currentStage().theme === "lava";
       for (const hz of trap.hazards) {
-        if (hz.done || !inView(hz.x, hz.y)) continue;
+        if (!inView(hz.x, hz.y)) continue;
+        const seed = hz.seed || 0;
+        if (hz.done) {
+          const q = Math.min(1, (t - hz.hitAt) / HAZARD_AFTER_MS), fa = 1 - q;
+          g.globalAlpha = 0.55 * fa;                         // 그을린 자국
+          g.fillStyle = lava ? "#1c0a04" : "#292524";
+          wobblePath(g, hz.x, hz.y, hz.r * 0.85, hz.r * 0.6, seed * 100, seed, 0.12, 14); g.fill();
+          g.globalAlpha = fa;                                 // 방사형 균열 (용암이면 빛남)
+          g.strokeStyle = lava ? "#fb923c" : "#57534e"; g.lineWidth = lava ? 2.2 : 1.6;
+          g.beginPath();
+          for (let k = 0; k < 7; k++) {
+            const a = seed + k * 0.9, l = hz.r * (0.55 + ((k * 0.31 + seed) % 0.45));
+            g.moveTo(hz.x + Math.cos(a) * 8, hz.y + Math.sin(a) * 6);
+            g.lineTo(hz.x + Math.cos(a + 0.15) * l * 0.5, hz.y + Math.sin(a + 0.15) * l * 0.35);
+            g.lineTo(hz.x + Math.cos(a) * l, hz.y + Math.sin(a) * l * 0.7);
+          }
+          g.stroke();
+          g.globalAlpha = 1;
+          continue;
+        }
         const p = Math.max(0, Math.min(1, (t - hz.born) / (hz.hitAt - hz.born)));
-        g.fillStyle = `rgba(239, 68, 68, ${0.12 + p * 0.22})`;
-        g.beginPath();
-        g.arc(hz.x, hz.y, hz.r, 0, Math.PI * 2);
-        g.fill();
+        g.fillStyle = `rgba(239, 68, 68, ${0.1 + p * 0.22})`;
+        g.beginPath(); g.arc(hz.x, hz.y, hz.r, 0, Math.PI * 2); g.fill();
         g.lineWidth = 2.5;
         g.strokeStyle = `rgba(254, 202, 202, ${0.5 + p * 0.4})`;
         g.stroke();
+        g.setLineDash([8, 7]); g.lineDashOffset = timestamp / 25;   // 바깥 회전 점선 (임박할수록 빨리)
+        g.strokeStyle = `rgba(248, 113, 113, ${0.4 + p * 0.5})`; g.lineWidth = 2;
+        g.beginPath(); g.arc(hz.x, hz.y, hz.r + 8 - p * 6, 0, Math.PI * 2); g.stroke();
+        g.setLineDash([]);
+        g.strokeStyle = `rgba(254, 226, 226, ${0.35 + p * 0.4})`; g.lineWidth = 1.5;   // 조준선
         g.beginPath();
-        g.arc(hz.x, hz.y, hz.r * p, 0, Math.PI * 2);
-        g.fillStyle = lava ? "rgba(249, 115, 22, 0.35)" : "rgba(120, 113, 108, 0.4)";
+        for (const [ux, uy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { g.moveTo(hz.x + ux * hz.r * 0.35, hz.y + uy * hz.r * 0.35); g.lineTo(hz.x + ux * hz.r * 0.8, hz.y + uy * hz.r * 0.8); }
+        g.stroke();
+        g.beginPath(); g.arc(hz.x, hz.y, hz.r * p, 0, Math.PI * 2);
+        g.fillStyle = lava ? "rgba(249, 115, 22, 0.32)" : "rgba(120, 113, 108, 0.35)";
         g.fill();
-        // 떨어지는 바위 그림자 (낙석만)
-        if (!lava) {
-          g.fillStyle = "rgba(0, 0, 0, 0.35)";
+        if (lava) {
+          // 화염 분출 예고: 땅이 갈라지며 점점 밝게 빛나고, 틈에서 용암이 끓음
+          g.globalCompositeOperation = "lighter";
+          g.globalAlpha = 0.3 + p * 0.7;
+          g.strokeStyle = "#fb923c"; g.lineWidth = 1.5 + p * 2;
           g.beginPath();
-          g.ellipse(hz.x, hz.y, 18 * p, 10 * p, 0, 0, Math.PI * 2);
-          g.fill();
+          for (let k = 0; k < 6; k++) {
+            const a = seed + k * 1.05, l = hz.r * (0.3 + p * 0.5);
+            g.moveTo(hz.x, hz.y); g.lineTo(hz.x + Math.cos(a + 0.2) * l * 0.5, hz.y + Math.sin(a + 0.2) * l * 0.4); g.lineTo(hz.x + Math.cos(a) * l, hz.y + Math.sin(a) * l * 0.75);
+          }
+          g.stroke();
+          g.globalAlpha = p;
+          drawGlow(g, "#f97316", hz.x, hz.y, 20 + p * 30);
+          g.globalCompositeOperation = "source-over";
+          g.save(); g.globalAlpha = 1;
+          drawBoilBubbles(g, hz.x, hz.y, hz.r * 0.4, hz.r * 0.3, timestamp, seed, 3 + Math.floor(p * 4), 500, "#fdba74", "#fef3c7");
+          g.restore();
+        } else {
+          // 떨어지는 유성의 그림자 (가까워질수록 크고 진하게)
+          const f = Math.max(0, (p - 0.25) / 0.75);
+          g.fillStyle = `rgba(0, 0, 0, ${0.15 + f * 0.35})`;
+          g.beginPath(); g.ellipse(hz.x, hz.y, 6 + 18 * f, 4 + 10 * f, 0, 0, Math.PI * 2); g.fill();
         }
+        g.globalAlpha = 1;
       }
     }
 
-    // 함정 위쪽 그림 (플레이어 위): 바람 줄기, 속박 덩굴
+    // 함정 위쪽 그림 (플레이어 위): 돌풍, 늪 독기, 유성·불기둥·파편, 속박 덩굴
     function drawTrapsOverlay(g, timestamp, x0, y0, x1, y1) {
       if (!activeTraps.length) return;
+      const t = playTimeMs;
+      const seen = (x, y, m) => x > x0 - m && x < x1 + m && y > y0 - m && y < y1 + m;
       if (windActive()) {
-        const t = playTimeMs;
         const fade = Math.min(1, (t - trap.windStart) / 600, (trap.windUntil - t) / 600);
         const ca = Math.cos(trap.windAngle), sa = Math.sin(trap.windAngle);
         const W = x1 - x0, H = y1 - y0, travel = timestamp * 0.7;
-        g.strokeStyle = "rgba(226, 232, 240, 0.9)";
+        const brightW = currentStage().bright; // 밝은 맵에서는 흰 줄기가 묻혀서 짙은 갈색 줄기로
+        const wc = brightW ? "60, 40, 18" : "241, 245, 249", wa = brightW ? 0.6 : 0.5; // v56 더 또렷하게
         g.lineCap = "round";
-        for (let k = 0; k < 34; k++) {
+        for (let k = 0; k < 34; k++) {                         // 바람 줄기 (꼬리로 갈수록 옅게)
           const ox = (k * 397.3) % W, oy = (k * 211.7) % H;
           const x = x0 + (((ox + ca * travel * (0.8 + (k % 3) * 0.2)) % W) + W) % W;
           const y = y0 + (((oy + sa * travel * (0.8 + (k % 3) * 0.2)) % H) + H) % H;
-          const len = 40 + (k % 4) * 15;
-          g.globalAlpha = 0.25 * fade;
-          g.lineWidth = 1.5 + (k % 2);
-          g.beginPath();
-          g.moveTo(x, y);
-          g.lineTo(x - ca * len, y - sa * len);
-          g.stroke();
+          const len = 60 + (k % 4) * 22;
+          const lg = g.createLinearGradient(x, y, x - ca * len, y - sa * len);
+          lg.addColorStop(0, `rgba(${wc}, 0.95)`); lg.addColorStop(1, `rgba(${wc}, 0)`);
+          g.strokeStyle = lg;
+          g.globalAlpha = wa * fade;
+          g.lineWidth = 2.4 + (k % 3) * 0.9;
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x - ca * len, y - sa * len); g.stroke();
+        }
+        g.strokeStyle = `rgba(${wc}, 0.8)`; g.lineWidth = 1.6; // 말려 도는 바람 소용돌이
+        for (let k = 0; k < 6; k++) {
+          const ox = (k * 613.1) % W, oy = (k * 347.9) % H;
+          const x = x0 + (((ox + ca * travel * 1.1) % W) + W) % W, y = y0 + (((oy + sa * travel * 1.1) % H) + H) % H;
+          g.globalAlpha = wa * 0.95 * fade;
+          g.beginPath(); g.arc(x, y, 9 + (k % 3) * 3, trap.windAngle + timestamp / 200, trap.windAngle + timestamp / 200 + 4.2); g.stroke();
+        }
+        const leafCol = brightW ? ["#78350f", "#3f6212"] : ["#a3a3a3", "#d6d3d1"];
+        for (let k = 0; k < 16; k++) {                         // 휘날리는 낙엽·먼지 (빙글빙글)
+          const ox = (k * 251.7) % W, oy = (k * 433.3) % H, sp = 1.3 + (k % 4) * 0.25;
+          const x = x0 + (((ox + ca * travel * sp + Math.sin(timestamp / 300 + k) * 12) % W) + W) % W;
+          const y = y0 + (((oy + sa * travel * sp + Math.cos(timestamp / 260 + k) * 12) % H) + H) % H;
+          g.globalAlpha = 0.8 * fade;
+          g.save(); g.translate(x, y); g.rotate(timestamp / 160 + k);
+          g.fillStyle = leafCol[k % 2];
+          g.beginPath(); g.ellipse(0, 0, 4.5, 2, 0, 0, Math.PI * 2); g.fill();
+          g.restore();
         }
         g.globalAlpha = 1;
         g.lineCap = "butt";
+      }
+      // 🕸️ 독 늪에서 피어오르는 독기 (위로 올라가며 퍼짐)
+      for (const b of trap.bogs) {
+        if (t < b.readyAt - 300 || !seen(b.x, b.y, 120)) continue;
+        const fade = Math.max(0, Math.min(1, (b.until - t) / 500));
+        for (let k = 0; k < 5; k++) {
+          const q = ((timestamp / 1700) + k / 5 + b.seed) % 1;
+          const px = b.x + Math.cos(b.seed + k * 1.7) * b.r * 0.45 + Math.sin(timestamp / 600 + k) * 6, py = b.y + Math.sin(b.seed + k * 1.7) * b.r * 0.3 - q * 60;
+          g.globalAlpha = (1 - q) * 0.28 * fade;
+          g.fillStyle = k % 2 ? "#a3e635" : "#65a30d";
+          g.beginPath(); g.arc(px, py, 7 + q * 15, 0, Math.PI * 2); g.fill();
+        }
+      }
+      g.globalAlpha = 1;
+      // 🪨 유성 (하늘에서 비스듬히 떨어짐) · 🌋 불기둥 · 충돌 파편
+      const lava = currentStage().theme === "lava";
+      for (const hz of trap.hazards) {
+        if (!seen(hz.x, hz.y, 700)) continue;
+        const seed = hz.seed || 0;
+        if (!hz.done) {
+          if (lava) continue;
+          const p = Math.max(0, Math.min(1, (t - hz.born) / (hz.hitAt - hz.born)));
+          const f = (p - 0.25) / 0.75;                           // 경고 뒤 0.9초 동안 떨어짐
+          if (f <= 0) continue;
+          const fx = 230 * (1 - f), fy = -560 * (1 - f);         // 오른쪽 위 하늘에서
+          const mx = hz.x + fx, my = hz.y + fy, size = 9 + 9 * f;
+          const dl = fastHypot(230, 560), ux = 230 / dl, uy = -560 / dl;
+          const tail = 70 + 90 * f;
+          g.globalCompositeOperation = "lighter";
+          const tg = g.createLinearGradient(mx, my, mx + ux * tail, my + uy * tail);
+          tg.addColorStop(0, "rgba(253, 224, 71, 0.95)"); tg.addColorStop(0.35, "rgba(249, 115, 22, 0.7)"); tg.addColorStop(1, "rgba(239, 68, 68, 0)");
+          g.strokeStyle = tg; g.lineCap = "round";
+          g.lineWidth = size * 1.7; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + ux * tail, my + uy * tail); g.stroke();
+          g.lineWidth = size * 0.6; g.strokeStyle = "rgba(255, 251, 235, 0.8)"; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + ux * tail * 0.45, my + uy * tail * 0.45); g.stroke();
+          g.lineCap = "butt";
+          for (let k = 0; k < 4; k++) {                          // 꼬리에서 떨어지는 불티
+            const q = ((timestamp / 300) + k / 4) % 1;
+            g.globalAlpha = 1 - q;
+            drawGlow(g, "#fb923c", mx + ux * tail * (0.3 + q * 0.6) + Math.sin(k * 3 + seed) * 8, my + uy * tail * (0.3 + q * 0.6), 4);
+          }
+          g.globalAlpha = 1;
+          drawGlow(g, "#f97316", mx, my, size * 3);
+          g.globalCompositeOperation = "source-over";
+          shadedBall(g, mx, my, size, size * 0.9, 0, ["#a8a29e", "#57534e", "#1c1917"], "#0c0a09"); // 불타는 바위
+          g.strokeStyle = "#fdba74"; g.lineWidth = 1.4;
+          g.beginPath(); g.moveTo(mx - size * 0.5, my - size * 0.1); g.lineTo(mx, my + size * 0.2); g.lineTo(mx + size * 0.4, my - size * 0.3); g.stroke();
+          continue;
+        }
+        const e = t - hz.hitAt;
+        if (lava && e < 650) {
+          // 🌋 불기둥: 땅에서 솟구쳤다 가라앉음 + 위로 튀는 불덩이
+          const rise = Math.min(1, e / 120), sink = Math.max(0, (e - 300) / 350), hgt = 170 * rise * (1 - sink * 0.7);
+          const wdt = hz.r * (0.9 - sink * 0.4) * (0.9 + Math.sin(timestamp / 40) * 0.1);
+          g.globalCompositeOperation = "lighter";
+          g.globalAlpha = 1 - sink;
+          const pg = g.createLinearGradient(0, hz.y, 0, hz.y - hgt);
+          pg.addColorStop(0, "rgba(254, 240, 138, 0.95)"); pg.addColorStop(0.4, "rgba(249, 115, 22, 0.8)"); pg.addColorStop(1, "rgba(220, 38, 38, 0)");
+          g.fillStyle = pg;
+          g.beginPath();
+          g.moveTo(hz.x - wdt * 0.5, hz.y);
+          g.quadraticCurveTo(hz.x - wdt * 0.6, hz.y - hgt * 0.5, hz.x - wdt * 0.15 + Math.sin(timestamp / 60) * 6, hz.y - hgt);
+          g.lineTo(hz.x + wdt * 0.15 + Math.sin(timestamp / 55) * 6, hz.y - hgt);
+          g.quadraticCurveTo(hz.x + wdt * 0.6, hz.y - hgt * 0.5, hz.x + wdt * 0.5, hz.y);
+          g.closePath(); g.fill();
+          drawGlow(g, "#fde047", hz.x, hz.y - 10, hz.r * 0.8);
+          for (let k = 0; k < 6; k++) {
+            const q = Math.min(1, e / 650), a = -Math.PI / 2 + (k - 2.5) * 0.35 + seed * 0.1;
+            g.globalAlpha = (1 - q) * 0.9;
+            drawGlow(g, k % 2 ? "#fb923c" : "#fde047", hz.x + Math.cos(a) * q * 90, hz.y + Math.sin(a) * q * 150 + q * q * 90, 6);
+          }
+          g.globalAlpha = 1;
+          g.globalCompositeOperation = "source-over";
+        } else if (!lava && e < 450) {
+          // 🪨 충돌: 먼지 고리 + 사방으로 튀는 돌 파편
+          const q = e / 450;
+          g.globalAlpha = (1 - q) * 0.6;
+          g.strokeStyle = "#d6d3d1"; g.lineWidth = 6 * (1 - q) + 1;
+          g.beginPath(); g.ellipse(hz.x, hz.y, hz.r * (0.6 + q * 0.9), hz.r * (0.45 + q * 0.6), 0, 0, Math.PI * 2); g.stroke();
+          g.globalAlpha = 1 - q;
+          g.fillStyle = "#57534e";
+          for (let k = 0; k < 8; k++) {
+            const a = seed + k * 0.785, d = q * (50 + (k % 3) * 18);
+            g.save(); g.translate(hz.x + Math.cos(a) * d, hz.y + Math.sin(a) * d * 0.7 - Math.sin(q * Math.PI) * 26); g.rotate(q * 6 + k);
+            g.fillRect(-3, -2.5, 6, 5);
+            g.restore();
+          }
+          g.globalAlpha = 1;
+        }
       }
       if (playTimeMs < trap.rootUntil) {
         g.strokeStyle = "#65a30d";
