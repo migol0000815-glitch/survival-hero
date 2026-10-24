@@ -377,9 +377,10 @@
     .fx-row b { color: #fde68a; }
     .menu-btn.settings { border-color: rgba(148, 163, 184, 0.6); background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); color: #e2e8f0; margin-top: 6px; }
     .dev-btn.danger { background: linear-gradient(180deg, #f87171, #b91c1c); color: #fff; }
-    #codex-modal, #devnotes-modal { z-index: 45; justify-content: flex-start; overflow-y: auto; }
+    #codex-modal, #devnotes-modal, #floordata-modal { z-index: 45; justify-content: flex-start; overflow-y: auto; }
     #codex-modal, #codex-modal *, #devnotes-modal, #devnotes-modal * { touch-action: pan-y; }
-    .dev-notes-btn { margin-bottom: 10px; }
+    #floordata-modal { touch-action: pan-y; }
+    .dev-open-grid { margin-bottom: 10px; }
     .codex-item { padding: 5px 0; border-bottom: 1px solid rgba(71, 85, 105, 0.35); font-size: 13px; }
     .codex-item:last-child { border-bottom: none; }
     .codex-item small { display: block; color: #94a3b8; font-size: 11px; line-height: 1.45; }
@@ -1271,7 +1272,10 @@
       <div id="panel-dev" class="lobby-panel">
         <div class="panel-inner">
           <div class="panel-head"><h3>🛠️ 개발자 옵션</h3><button class="pv-close" onclick="closeLobbyPanel()">✕ 닫기</button></div>
-          <button id="dev-notes-btn" class="dev-btn dev-notes-btn" onclick="openDevNotes()">📝 작업 기록 보기</button>
+          <div class="dev-grid dev-open-grid">
+            <button id="dev-notes-btn" class="dev-btn" onclick="openDevNotes()">📝 작업 기록 보기</button>
+            <button id="dev-floordata-btn" class="dev-btn" onclick="openFloorData()">🏯 층별 데이터 뷰어</button>
+          </div>
           <div id="dev-panel" class="info-box dev-panel">
             <h4>🧪 스킬 미리보기</h4>
             <div class="dev-row" style="margin-bottom: 10px;">
@@ -1294,15 +1298,6 @@
               <select id="dev-sound"></select>
               <button class="dev-btn" style="width: auto; padding: 8px 14px; margin: 0;" onclick="playSoundTest()">▶ 재생</button>
             </div>
-          </div>
-          <div class="info-box dev-panel">
-            <h4>🏯 층별 데이터 뷰어</h4>
-            <div class="dev-row">
-              <span style="font-size: 12px; white-space: nowrap;">층 선택</span>
-              <input type="range" id="dev-data-floor" min="1" max="60" value="1" style="flex: 1; margin: 0;" oninput="renderFloorData(+this.value)">
-              <b id="dev-data-label">1F</b>
-            </div>
-            <div id="dev-floor-data" class="floor-data"></div>
           </div>
           <div class="info-box dev-panel">
             <h4>🎰 슬롯머신 테스트 (배포판과 같은 확률)</h4>
@@ -1343,6 +1338,20 @@
       <h2 class="modal-title" style="color: #fde68a; margin-bottom: 12px;">📝 작업 기록</h2>
       <div class="result-box"><div class="info-box dev-panel"><div id="dev-notes" class="dev-notes"></div></div></div>
       <button class="start-btn" style="max-width: 340px; margin-top: 12px;" onclick="closeDevNotes()">닫기</button>
+    </div>
+
+    <!-- v61 층별 데이터 뷰어 (개발자 옵션의 '🏯 층별 데이터 뷰어' 버튼으로 따로 엶) -->
+    <div id="floordata-modal" class="game-modal">
+      <h2 class="modal-title" style="color: #fde68a; margin-bottom: 12px;">🏯 층별 데이터 뷰어</h2>
+      <div class="result-box"><div class="info-box dev-panel">
+        <div class="dev-row">
+          <span style="font-size: 12px; white-space: nowrap;">층 선택</span>
+          <input type="range" id="dev-data-floor" min="1" max="60" value="1" style="flex: 1; margin: 0;" oninput="renderFloorData(+this.value)">
+          <b id="dev-data-label">1F</b>
+        </div>
+        <div id="dev-floor-data" class="floor-data"></div>
+      </div></div>
+      <button class="start-btn" style="max-width: 340px; margin-top: 12px;" onclick="closeFloorData()">닫기</button>
     </div>
 
     <div id="codex-modal" class="game-modal">
@@ -1392,7 +1401,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v60 · 2026-10-24";
+    const GAME_VERSION = "v61 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -7684,8 +7693,13 @@
       const k = 1 - Math.pow(pet.offline ? 0.9 : 0.86, step);
       const lunging = !pet.offline && playTimeMs < (pet.lungeUntil || 0); // v58 강아지: 무는 동안 목표 쪽으로 튀어 나감
       const gx = lunging ? pet.lungeX : tx, gy = lunging ? pet.lungeY : ty, gk = lunging ? 1 - Math.pow(0.6, step) : k;
-      pet.x += (gx - pet.x) * gk;
-      pet.y += (gy - pet.y) * gk;
+      const mvx = (gx - pet.x) * gk, mvy = (gy - pet.y) * gk;
+      pet.x += mvx;
+      pet.y += mvy;
+      // v61 걷는 동료(골렘·강아지·고양이): 움직인 거리만큼 걸음 단계가 넘어감
+      const mv = fastHypot(mvx, mvy);
+      pet.walkPh = ((pet.walkPh || 0) + Math.min(mv, 14) * 0.2) % (Math.PI * 2);
+      pet.moving = mv > 0.35 * step;
       if (pet.flash > 0) pet.flash -= step;
 
       if (pet.offline) {
@@ -7870,7 +7884,7 @@
         // v58 🍀 행운: 6초(+강화 Lv×0.4초) 동안 경험치 ×1.5 (addExp) · 털실 공 +2명
         pet.luckLen = CAT_LUCK_MS + pet.level * 400;
         pet.luckUntil = playTimeMs + pet.luckLen;
-        petFx.push({ kind: "reboot", x: player.x, y: player.y, r: 170, life: 26, maxLife: 26, color: "#4ade80" });
+        petFx.push({ kind: "luck", x: player.x, y: player.y, r: 170, life: 34, maxLife: 34, color: "#4ade80" });
         if (audioCtx) for (let k = 0; k < 3; k++) sfxTone({ type: "triangle", freq: [1319, 1568, 2093][k], dur: 0.12, vol: 0.06, delay: k * 0.09, wet: 0.5 });
       } else {
         // 증폭 필드 (강화 Lv당 반경 +10). 필드 안 적은 0.5초마다 피해 (updatePetEffects)
@@ -14407,26 +14421,63 @@
       g.beginPath(); g.moveTo(x - 1.6 * s, yy - 1 * s); g.lineTo(x + 1.6 * s, yy - 1 * s); g.lineTo(x, yy + 2 * s); g.closePath(); // 부리
       g.fillStyle = "#f59e0b"; g.fill();
     }
-    // ===== v58 동료 그림: 🐶 강아지 · 🐱 고양이 (다른 동료처럼 둥실 떠 있는 2등신 정면 모습) =====
+    // ===== v61 걷는 동료: 골렘(곰돌이·황금 갑주 포함) · 강아지 · 고양이 =====
+    //   wk = { ph: 걸음 단계(움직인 거리), mv: 움직이는 중 } · 왼발·오른발이 반 박자씩 번갈아 들림
+    const WALKING_PETS = new Set(["golem", "dog", "cat"]);
+    const pawLift = (wk, side, h, s) => wk && wk.mv ? Math.max(0, Math.sin(wk.ph + (side > 0 ? 0 : Math.PI))) * h * s : 0;
+    // 골렘 다리: 몸통 아래로 이어진 굵은 돌기둥 + 넓적한 발 (몸통보다 먼저 그려 윗부분은 몸에 가려짐)
+    function drawGolemLegs(g, x, yy, y, sk, s, wk) {
+      const teddy = sk.form === "teddy";
+      for (const side of [-1, 1]) {
+        const lift = pawLift(wk, side, 3.5, s);
+        const lx = x + side * 7 * s, top = yy + 4 * s, foot = y + 10 * s - lift;
+        g.beginPath();
+        if (g.roundRect) g.roundRect(lx - 4 * s, top, 8 * s, foot - top, 3 * s); else g.rect(lx - 4 * s, top, 8 * s, foot - top);
+        g.fillStyle = sk.c[1];
+        g.fill();
+        g.strokeStyle = sk.c[2]; g.lineWidth = 1.2 * s; g.stroke();
+        if (!teddy) { // 무릎 금
+          g.beginPath(); g.moveTo(lx - 3 * s, (top + foot) / 2 + 1 * s); g.lineTo(lx + 2 * s, (top + foot) / 2 - 0.5 * s);
+          g.strokeStyle = rgba(sk.c[2], 0.7); g.lineWidth = 1 * s; g.stroke();
+        }
+        shadedBall(g, lx + side * 0.8 * s, foot, 5.6 * s, 3 * s, 0, sk.c, sk.c[2]);
+        if (teddy) { g.fillStyle = "#fbcfe8"; g.beginPath(); g.ellipse(lx + side * 0.8 * s, foot + 0.4 * s, 2.8 * s, 1.4 * s, 0, 0, Math.PI * 2); g.fill(); }
+      }
+    }
+    // 강아지·고양이 다리: 몸 아래로 보이는 짧은 다리 + 발 (뒷다리는 몸 뒤 바깥쪽, 앞다리와 반대 박자)
+    function drawPetLeg(g, lx, top, foot, w, sk, s, back) {
+      g.fillStyle = back ? sk.c[2] : sk.c[1];
+      g.beginPath();
+      if (g.roundRect) g.roundRect(lx - w / 2, top, w, foot - top, w / 2); else g.rect(lx - w / 2, top, w, foot - top);
+      g.fill();
+      g.beginPath(); g.ellipse(lx, foot, w * 0.75, w * 0.5, 0, 0, Math.PI * 2);
+      g.fillStyle = back ? sk.c[1] : sk.c[0]; g.fill();
+      g.strokeStyle = rgba(sk.c[2], 0.8); g.lineWidth = 0.8 * s; g.stroke();
+    }
+    function drawBackPaws(g, x, yy, sk, s, wk, dy) {
+      for (const side of [-1, 1]) drawPetLeg(g, x + side * 7.5 * s, yy + 8 * s, yy + dy * s - pawLift(wk, -side, 2.6, s), 3.6 * s, sk, s, true);
+    }
+    // ===== v58 동료 그림: 🐶 강아지 · 🐱 고양이 (2등신 정면 모습 · v61부터 땅을 걸음) =====
     function petFaceEyes(g, x, ey, sep, r, look, s) {
       g.fillStyle = "#1e1b2e";
       for (const side of [-1, 1]) { g.beginPath(); g.arc(x + side * sep * s + look, ey, r * s, 0, Math.PI * 2); g.fill(); }
       g.fillStyle = "#ffffff";
       for (const side of [-1, 1]) { g.beginPath(); g.arc(x + side * sep * s + look - 0.5 * s, ey - 0.7 * s, r * 0.4 * s, 0, Math.PI * 2); g.fill(); }
     }
-    function drawDogBody(g, x, yy, sk, t, s, facing) {
+    function drawDogBody(g, x, yy, sk, t, s, facing, wk) {
       const look = Math.cos(facing) * 1.4 * s;
-      const wag = Math.sin(t / 70) * 0.6;
+      const wag = Math.sin(t / (wk && wk.mv ? 45 : 70)) * 0.6;
       // 흔드는 꼬리 (몸 뒤)
       g.save(); g.translate(x + 9 * s, yy + 6 * s); g.rotate(-0.9 + wag);
       g.beginPath(); g.ellipse(0, -6 * s, 2.6 * s, 7 * s, 0, 0, Math.PI * 2); g.fillStyle = sk.c[1]; g.fill();
       g.beginPath(); g.ellipse(0, -11 * s, 2 * s, 2.6 * s, 0, 0, Math.PI * 2); g.fillStyle = sk.c[0]; g.fill();
       g.restore();
-      // 몸 + 앞발
+      drawBackPaws(g, x, yy, sk, s, wk, 16);
+      // 앞다리 (v61: 걸을 때 번갈아 들림) + 몸
+      for (const side of [-1, 1]) drawPetLeg(g, x + side * 4.6 * s, yy + 9 * s, yy + 16.5 * s - pawLift(wk, side, 3, s), 4 * s, sk, s, false);
       shadedBall(g, x, yy + 6 * s, 10 * s, 8.5 * s, 0, sk.c, sk.c[2]);
       g.fillStyle = sk.c[0];
       g.beginPath(); g.ellipse(x, yy + 8 * s, 5.5 * s, 5 * s, 0, 0, Math.PI * 2); g.fill();
-      for (const side of [-1, 1]) { g.beginPath(); g.ellipse(x + side * 5 * s, yy + 13.5 * s, 3.2 * s, 2.2 * s, 0, 0, Math.PI * 2); g.fillStyle = sk.c[0]; g.fill(); }
       // 목걸이 + 방울
       g.strokeStyle = sk.glow; g.lineWidth = 2 * s;
       g.beginPath(); g.arc(x, yy - 1 * s, 7.5 * s, 0.35 * Math.PI, 0.65 * Math.PI); g.stroke();
@@ -14454,7 +14505,7 @@
       g.beginPath(); g.ellipse(x + look, yy + 0.4 * s, 1.5 * s, 1.9 * s, 0, 0, Math.PI); g.fill();
       petFaceEyes(g, x, yy - 8 * s, 3.8, 1.5, look, s);
     }
-    function drawCatBody(g, x, yy, sk, t, s, facing) {
+    function drawCatBody(g, x, yy, sk, t, s, facing, wk) {
       const look = Math.cos(facing) * 1.4 * s;
       const sway = Math.sin(t / 420) * 0.35;
       // 물음표처럼 굽은 꼬리
@@ -14462,11 +14513,12 @@
       g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(-9 * s, -4 * s, -6 * s, -14 * s); g.quadraticCurveTo(-4 * s, -19 * s, 0, -17 * s);
       g.strokeStyle = sk.c[1]; g.lineWidth = 3.2 * s; g.lineCap = "round"; g.stroke(); g.lineCap = "butt";
       g.restore();
-      // 몸 + 앞발
+      drawBackPaws(g, x, yy, sk, s, wk, 15.5);
+      // 앞다리 (v61: 걸을 때 번갈아 들림) + 몸
+      for (const side of [-1, 1]) drawPetLeg(g, x + side * 4.2 * s, yy + 9 * s, yy + 16 * s - pawLift(wk, side, 3, s), 3.6 * s, sk, s, false);
       shadedBall(g, x, yy + 6 * s, 9 * s, 8 * s, 0, sk.c, sk.c[2]);
       g.fillStyle = sk.c[0];
       g.beginPath(); g.ellipse(x, yy + 8 * s, 4.5 * s, 4.8 * s, 0, 0, Math.PI * 2); g.fill();
-      for (const side of [-1, 1]) { g.beginPath(); g.ellipse(x + side * 4.4 * s, yy + 13 * s, 2.8 * s, 2 * s, 0, 0, Math.PI * 2); g.fill(); }
       // 뾰족한 귀
       for (const side of [-1, 1]) {
         g.beginPath(); g.moveTo(x + side * 3 * s, yy - 13 * s); g.lineTo(x + side * 9.5 * s, yy - 19 * s); g.lineTo(x + side * 9.5 * s, yy - 8 * s); g.closePath();
@@ -14504,7 +14556,7 @@
       }
     }
     const CUTE_PET_FORMS = new Set(["bee", "teddy", "bunny", "penguin"]);
-    function drawCutePet(g, x, yy, sk, t, s, facing) {
+    function drawCutePet(g, x, yy, sk, t, s, facing, wk) {
       const look = Math.cos(facing) * 1.4 * s;
       const eyes = (ey, r) => {
         g.fillStyle = "#1e1b2e";
@@ -14529,8 +14581,8 @@
         }
         g.save(); g.translate(7 * s, 0); eyes(-3.5, 1.5); g.restore();
       } else if (sk.form === "teddy") {
-        // 🧸 곰돌이: 둥근 귀 + 볼록한 배 + 주둥이 + 기운 자국 (주먹은 그대로 둥실)
-        const fist = Math.sin(t / 340) * 2.5 * s;
+        // 🧸 곰돌이: 둥근 귀 + 볼록한 배 + 주둥이 + 기운 자국 (v61: 다리는 drawGolemLegs, 걸을 때 팔이 흔들림)
+        const fist = wk && wk.mv ? Math.sin(wk.ph) * 3 * s : Math.sin(t / 340) * 2.5 * s;
         for (const side of [-1, 1]) shadedBall(g, x + side * 16 * s, yy + 5 * s + fist * side, 5.5 * s, 5.5 * s, 0, sk.c, "#422006");
         shadedBall(g, x, yy + 4 * s, 13 * s, 11 * s, 0, sk.c, "#422006");
         g.fillStyle = "#fde7c8"; g.beginPath(); g.ellipse(x, yy + 7 * s, 7 * s, 6 * s, 0, 0, Math.PI * 2); g.fill();
@@ -14669,6 +14721,7 @@
     // (함수로 둔 이유: renderLobby 가 이 줄보다 먼저 실행돼도 쓸 수 있게)
     function devNotes() { return {
       history: [
+        ["v60", "스킬 미리보기 🐾 동료 선택 · 미리보기 상단 칸 구분 · 블레이드→브레이커 변경 렉 수정 · 작업 기록 따로 보기"],
         ["v59", "개발자 옵션에 '📝 작업 기록' 추가 (지금까지 한 것 · 할 것 · 이번 버전)"],
         ["v58", "로비 '선택한 층' 배지 · 새 동료 🐶 강아지(물기·짖기 기절)·🐱 고양이(털실 공·행운 경험치 ×1.5) · 레일 저격탄이 레이저에 묻히던 문제"],
         ["v57", "네온 연구소 몹 밝은 테두리 · 스킬 난사 렉 줄이기(장식 빛 입자 자동 조절, 피해 그대로)"],
@@ -14689,12 +14742,11 @@
         "<b>판매 전</b>: 앱 포장(Capacitor) + 실제 광고 · 유사성 점검 · 상표 검색",
         "<b>제안</b>: 저장 코드 내보내기 · 일일 미션 · 저사양 이펙트 옵션"
       ],
-      now: ["v60", [
-        "스킬 미리보기에 🐾 동료 선택 추가 ('동료 선택 안 함' 포함) · 캐릭터 글자 빼고 캐릭터·동료 선택을 한 줄에",
-        "미리보기 동료는 피해 없음 · '🤝 동료 강화' 패시브로 동료 레벨 테스트",
-        "스킬 콤보박스와 캐릭터·동료 선택 칸을 색·간격·구분선으로 구분",
-        "블레이드 전용 스킬을 켠 채 브레이커로 바꾸면 미리보기가 여러 번 재시작되며 렉 걸리고 블레이드로 되돌아가던 문제 수정",
-        "작업 기록을 개발자 옵션 맨 위 '📝 작업 기록 보기' 버튼으로 따로 열기 · 이번 버전 내용을 맨 위에"
+      now: ["v61", [
+        "층별 데이터 뷰어를 개발자 옵션 맨 위 '🏯 층별 데이터 뷰어' 버튼으로 따로 열기",
+        "골렘·강아지·고양이는 공중에 뜨지 않고 땅을 걸어 다님 (골렘·곰돌이 골렘에 돌 다리 추가, 걸을 때 발이 번갈아 들림)",
+        "잘 안 보이던 동료 공격 강화: 정령 마력탄(꼬리 빛·테두리 구슬) · 강아지 물기(큰 이빨·충격 선) · 고양이 털실 공(큰 공·진한 실·맞은 자리 고리) · 부엉이 바늘 밑줄",
+        "고양이 행운 발동 때 🍀 클로버와 '행운!' 글자 · 밝은 맵에서도 골렘 충격파·마력탄 폭발이 보이게 진한 테두리"
       ]]
     }; }
     // v60: 이번 버전 → 지금까지 한 것 → 해야 할 것 순서 (따로 여는 창)
@@ -14717,6 +14769,17 @@
     }
     function closeDevNotes() {
       document.getElementById("devnotes-modal").style.display = "none";
+    }
+    // v61 층별 데이터 뷰어도 따로 여는 창으로 (개발자 옵션 스크롤 줄이기)
+    function openFloorData() {
+      if (!IS_DEV_MODE) return;
+      renderFloorData(+document.getElementById("dev-data-floor").value || 1);
+      const m = document.getElementById("floordata-modal");
+      m.style.display = "flex";
+      m.scrollTop = 0;
+    }
+    function closeFloorData() {
+      document.getElementById("floordata-modal").style.display = "none";
     }
 
     function setupDevPanel() {
@@ -18394,20 +18457,31 @@
         g.globalAlpha = 1;
         return;
       }
-      const yy = y - 10 * s + bob; // 공중에 떠 있음
-      drawShadow(g, x, y + 12 * s, 12 * s);
+      // v61: 골렘·강아지·고양이는 땅을 걸어 다님 (떠 있지 않음). 움직이는 동안 걸음마다 몸이 살짝 통통 튐
       const facing = opt.facing || 0;
+      const walker = WALKING_PETS.has(petId);
+      const wk = { ph: opt.walk || 0, mv: !!opt.moving };
+      let yy;
+      if (walker) {
+        const hop = wk.mv ? -Math.abs(Math.sin(wk.ph)) * 2 * s : Math.sin(t / 520) * 0.5 * s;
+        yy = (petId === "golem" ? y - 10 * s : y - 5.5 * s) + hop;
+        drawShadow(g, x, y + 11.5 * s, 11 * s);
+        if (petId === "golem") drawGolemLegs(g, x, yy, y, sk, s, wk);
+      } else {
+        yy = y - 10 * s + bob; // 공중에 떠 있음
+        drawShadow(g, x, y + 12 * s, 12 * s);
+      }
       if (sk.form) drawPetFormBack(g, x, yy, sk, t, s); // v38 코스튬: 날개 등
       if (sk.form === "angel" || sk.form === "dragon") {
         drawWispCreature(g, x, yy, sk, t, s, facing);   // 정령 → 아기 천사 / 미니 드래곤
       } else if (CUTE_PET_FORMS.has(sk.form)) {
-        drawCutePet(g, x, yy, sk, t, s, facing);         // v46 꿀벌 / 곰돌이 / 토끼 / 펭귄
+        drawCutePet(g, x, yy, sk, t, s, facing, wk);     // v46 꿀벌 / 곰돌이 / 토끼 / 펭귄
       } else if (petId === "owl") {
         drawOwlBody(g, x, yy, sk, t, s, facing);         // v46 시간술사 부엉이
       } else if (petId === "dog") {
-        drawDogBody(g, x, yy, sk, t, s, facing);         // v58 용감한 강아지
+        drawDogBody(g, x, yy, sk, t, s, facing, wk);     // v58 용감한 강아지
       } else if (petId === "cat") {
-        drawCatBody(g, x, yy, sk, t, s, facing);         // v58 행운의 고양이
+        drawCatBody(g, x, yy, sk, t, s, facing, wk);     // v58 행운의 고양이
       } else if (petId === "drone") {
         // 대각선 팔 4개 끝에 회전 날개, 가운데 둥근 몸체와 렌즈
         for (let k = 0; k < 4; k++) {
@@ -18440,8 +18514,8 @@
         g.fillStyle = "#ffffff";
         g.fill();
       } else if (petId === "golem") {
-        // 떠 있는 돌 몸통 + 빛나는 핵 + 양옆에서 둥실거리는 주먹
-        const fist = Math.sin(t / 340) * 2.5 * s;
+        // 돌 몸통 + 빛나는 핵 + 양옆 주먹 (v61: 돌 다리로 걸음, 걸을 때 주먹이 다리와 반대로 흔들림)
+        const fist = wk.mv ? Math.sin(wk.ph) * 3 * s : Math.sin(t / 340) * 2.5 * s;
         for (const side of [-1, 1]) shadedBall(g, x + side * 18 * s, yy + 3 * s + fist * side, 6.5 * s, 6 * s, 0, sk.c, "#020617");
         shadedBall(g, x, yy, 14 * s, 12 * s, 0, sk.c, "#020617");
         shadedBall(g, x, yy - 12 * s, 6.5 * s, 5.5 * s, 0, sk.c, "#020617");
@@ -18608,8 +18682,19 @@
       drawPetBuffs(timestamp);
       ctx.globalCompositeOperation = "lighter";
       for (const s of petShots) {
-        drawGlow(ctx, s.color, s.x, s.y, 18);
-        drawGlow(ctx, "#ffffff", s.x, s.y, 7);
+        // v61 정령 마력탄: 꼬리 빛 + 큰 빛 (밝은 맵에서도 보이게 아래에서 진한 테두리 구슬을 한 번 더 그림)
+        for (let k = 1; k <= 4; k++) {
+          ctx.globalAlpha = 0.55 - k * 0.11;
+          drawGlow(ctx, s.color, s.x - Math.cos(s.angle) * k * 9, s.y - Math.sin(s.angle) * k * 9, 15 - k * 2);
+        }
+        ctx.globalAlpha = 1;
+        drawGlow(ctx, s.color, s.x, s.y, 26);
+        drawGlow(ctx, "#ffffff", s.x, s.y, 9);
+      }
+      if (petShots.length) {
+        ctx.globalCompositeOperation = "source-over";
+        for (const s of petShots) shadedBall(ctx, s.x, s.y, 6.5, 6.5, 0, ["#ffffff", s.color, "#1e1b4b"], "#0f0a1f");
+        ctx.globalCompositeOperation = "lighter";
       }
       for (const fx of petFx) {
         const a = fx.life / fx.maxLife;
@@ -18636,6 +18721,10 @@
           const an = Math.atan2(fx.y2 - fx.y, fx.x2 - fx.x);
           ctx.lineCap = "round";
           ctx.beginPath(); ctx.moveTo(fx.x, fx.y - 8); ctx.lineTo(fx.x2, fx.y2);
+          ctx.globalCompositeOperation = "source-over"; // v61 진한 밑줄 (밝은 맵에서도 바늘이 보이게)
+          ctx.strokeStyle = "rgba(28, 25, 23, 0.6)"; ctx.lineWidth = 7.5; ctx.stroke();
+          ctx.strokeStyle = fx.color; ctx.lineWidth = 3.5; ctx.stroke();
+          ctx.globalCompositeOperation = "lighter";
           ctx.strokeStyle = rgba(fx.color, 0.45); ctx.lineWidth = 9 * a + 2; ctx.stroke();
           ctx.strokeStyle = "#fffbeb"; ctx.lineWidth = 2.5; ctx.stroke();
           ctx.lineCap = "butt";
@@ -18644,23 +18733,40 @@
           ctx.lineTo(fx.x2 + Math.cos(an + 2.5) * 9, fx.y2 + Math.sin(an + 2.5) * 9);
           ctx.lineTo(fx.x2 + Math.cos(an - 2.5) * 9, fx.y2 + Math.sin(an - 2.5) * 9);
           ctx.closePath();
+          ctx.globalCompositeOperation = "source-over"; // 화살촉은 진한 테두리로
           ctx.fillStyle = fx.color; ctx.fill();
+          ctx.strokeStyle = "rgba(28, 25, 23, 0.8)"; ctx.lineWidth = 1.5; ctx.stroke();
+          ctx.globalCompositeOperation = "lighter";
         } else if (fx.kind === "bite") {
           // v58 강아지 물기: 위아래 이빨 자국이 콱 다물리며 + 빛
-          const close = Math.min(1, (1 - a) * 3), R = fx.r;
+          //   v61: 크기 키움 + 보통 합성으로 진한 테두리 이빨(밝은 맵에서도 보임) + 다문 뒤 이빨 자국 · 충격 별
+          const close = Math.min(1, (1 - a) * 3), R = fx.r * 1.35;
+          drawGlow(ctx, fx.color, fx.x, fx.y, R * (1.3 + (1 - a)));
+          ctx.globalCompositeOperation = "source-over";
           ctx.save(); ctx.translate(fx.x, fx.y); ctx.rotate(fx.a || 0);
-          ctx.fillStyle = "#ffffff"; ctx.strokeStyle = fx.color; ctx.lineWidth = 1.5;
+          ctx.lineJoin = "round";
           for (const side of [-1, 1]) {
             const oy = side * R * (0.9 - close * 0.65);
             ctx.beginPath();
+            ctx.moveTo(-R * 1.0, oy); // 잇몸 선 + 이빨 4개
             for (let k = 0; k < 4; k++) {
               const tx = -R * 0.75 + k * R * 0.5;
-              ctx.moveTo(tx - R * 0.2, oy); ctx.lineTo(tx, oy - side * R * 0.45); ctx.lineTo(tx + R * 0.2, oy);
+              ctx.lineTo(tx - R * 0.2, oy); ctx.lineTo(tx, oy - side * R * 0.5); ctx.lineTo(tx + R * 0.2, oy);
             }
-            ctx.fill(); ctx.stroke();
+            ctx.lineTo(R * 1.0, oy);
+            ctx.lineTo(R * 0.8, oy + side * R * 0.25); ctx.lineTo(-R * 0.8, oy + side * R * 0.25); ctx.closePath();
+            ctx.fillStyle = "#ffffff"; ctx.fill();
+            ctx.strokeStyle = "#1c1917"; ctx.lineWidth = 2.2; ctx.stroke();
           }
+          if (close >= 1) { // 콱! 다문 순간 양옆으로 튀는 충격 선
+            ctx.strokeStyle = fx.color; ctx.lineWidth = 3; ctx.lineCap = "round";
+            ctx.beginPath();
+            for (const [dx, dy] of [[-1.5, -0.6], [-1.6, 0.5], [1.5, -0.6], [1.6, 0.5]]) { ctx.moveTo(dx * R * 0.8, dy * R * 0.8); ctx.lineTo(dx * R * (1.1 + (1 - a) * 0.5), dy * R * (1.1 + (1 - a) * 0.5)); }
+            ctx.stroke(); ctx.lineCap = "butt";
+          }
+          ctx.lineJoin = "miter";
           ctx.restore();
-          drawGlow(ctx, fx.color, fx.x, fx.y, R * (1.2 + (1 - a)));
+          ctx.globalCompositeOperation = "lighter";
         } else if (fx.kind === "yarn") {
           // v58 털실 공: 지나간 길에 실이 남고, 공이 적 사이를 통통 튕겨 감
           const pts = fx.pts, segs = pts.length - 1;
@@ -18672,12 +18778,21 @@
             let bx = pts[Math.min(n, segs)].x, by = pts[Math.min(n, segs)].y;
             if (n < segs) { bx = pts[n].x + (pts[n + 1].x - pts[n].x) * f; by = pts[n].y + (pts[n + 1].y - pts[n].y) * f - Math.sin(f * Math.PI) * 26; ctx.lineTo(bx, by); }
             ctx.strokeStyle = rgba(fx.color, 0.55); ctx.lineWidth = 2; ctx.stroke();
-            ctx.lineCap = "butt";
-            drawGlow(ctx, fx.color, bx, by, 16);
+            drawGlow(ctx, fx.color, bx, by, 22);
+            // v61: 보통 합성으로 진한 밑줄 + 분홍 실 + 맞은 자리 고리 + 더 큰 털실 공 (밝은 맵에서도 보이게)
             ctx.globalCompositeOperation = "source-over";
-            shadedBall(ctx, bx, by, 6, 6, 0, ["#fff1f2", "#f472b6", "#831843"], "#500724");
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.7)"; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.arc(bx, by, 3.5, 0.3 + a * 9, 2.4 + a * 9); ctx.stroke();
+            ctx.strokeStyle = "rgba(80, 7, 36, 0.55)"; ctx.lineWidth = 4.5; ctx.stroke();
+            ctx.strokeStyle = "#f9a8d4"; ctx.lineWidth = 2.2; ctx.stroke();
+            ctx.lineCap = "butt";
+            for (let k = 1; k <= Math.min(n, segs); k++) {
+              ctx.beginPath(); ctx.arc(pts[k].x, pts[k].y, 13 + (1 - a) * 6, 0, Math.PI * 2);
+              ctx.strokeStyle = "rgba(80, 7, 36, 0.6)"; ctx.lineWidth = 4; ctx.stroke();
+              ctx.strokeStyle = fx.color; ctx.lineWidth = 2; ctx.stroke();
+            }
+            shadedBall(ctx, bx, by, 9, 9, 0, ["#fff1f2", "#f472b6", "#831843"], "#500724");
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.75)"; ctx.lineWidth = 1.3;
+            ctx.beginPath(); ctx.arc(bx, by, 5.5, 0.3 + a * 9, 2.4 + a * 9); ctx.stroke();
+            ctx.beginPath(); ctx.arc(bx, by, 3, 3.3 + a * 9, 5.2 + a * 9); ctx.stroke();
             ctx.globalCompositeOperation = "lighter";
           }
         } else if (fx.kind === "bark") {
@@ -18700,6 +18815,11 @@
           // 정령 필드 맥동 / 마력탄 폭발
           ctx.beginPath();
           ctx.arc(fx.x, fx.y, fx.r * (fx.kind === "pop" ? 0.4 + (1 - a) * 0.7 : 0.75 + (1 - a) * 0.25), 0, Math.PI * 2);
+          if (fx.kind === "pop") { // v61 마력탄 폭발: 진한 바깥 고리 (밝은 맵)
+            ctx.globalCompositeOperation = "source-over";
+            ctx.strokeStyle = "rgba(15, 10, 31, 0.5)"; ctx.lineWidth = 7 * a + 2; ctx.stroke();
+            ctx.globalCompositeOperation = "lighter";
+          }
           ctx.strokeStyle = fx.color;
           ctx.lineWidth = (fx.kind === "pop" ? 5 : 3) * a + 1;
           ctx.stroke();
@@ -18719,6 +18839,9 @@
           const R = fx.r || 38;
           ctx.beginPath();
           ctx.arc(fx.x2, fx.y2, R * (0.3 + (1 - a) * 0.8), 0, Math.PI * 2);
+          ctx.globalCompositeOperation = "source-over"; // v61 진한 바깥 고리 (밝은 맵)
+          ctx.strokeStyle = "rgba(2, 6, 23, 0.45)"; ctx.lineWidth = 9 * a + 2; ctx.stroke();
+          ctx.globalCompositeOperation = "lighter";
           ctx.strokeStyle = fx.color;
           ctx.lineWidth = 7 * a + 1;
           ctx.stroke();
@@ -18730,12 +18853,22 @@
           ctx.lineWidth = 6 * a + 1;
           ctx.stroke();
           drawGlow(ctx, fx.color, fx.x, fx.y, fx.r * (1 - a) * 0.8 + 10);
+          if (fx.kind === "luck") { // v61 고양이 행운: 퍼지는 네잎클로버 + '행운!' 글자
+            ctx.globalCompositeOperation = "source-over";
+            ctx.font = "bold 20px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            const rr = fx.r * (1 - a * 0.85);
+            for (let k = 0; k < 6; k++) { const an = k * Math.PI / 3 + (1 - a) * 1.2; ctx.fillText("🍀", fx.x + Math.cos(an) * rr, fx.y + Math.sin(an) * rr); }
+            ctx.textBaseline = "alphabetic";
+            ctx.font = "bold 22px sans-serif";
+            outlinedText(ctx, "🍀 행운!", fx.x, fx.y - 70 - (1 - a) * 24, "#bbf7d0", 4);
+            ctx.globalCompositeOperation = "lighter";
+          }
         }
       }
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
       const charge = pet.offline ? pet.gems / PET_RECHARGE_GEMS : 0;
-      drawPet(ctx, pet.x, pet.y, pet.id, pet.skin, timestamp, 1.25, { offline: pet.offline, charge: charge, flash: pet.flash, facing: pet.facing });
+      drawPet(ctx, pet.x, pet.y, pet.id, pet.skin, timestamp, 1.25, { offline: pet.offline, charge: charge, flash: pet.flash, facing: pet.facing, walk: pet.walkPh || 0, moving: !!pet.moving });
       if (pet.offline) drawPetRepairBadge(pet.x, pet.y - 30, charge, timestamp);
       // 체력바 (다쳤을 때만)
       if (!pet.offline && pet.hp < pet.maxHp) {
@@ -18911,6 +19044,7 @@
       if (dashEditing) { endDashEdit(); return; }
       if (isShown("codex-modal")) { closeCodex(); return; }
       if (isShown("devnotes-modal")) { closeDevNotes(); return; }
+      if (isShown("floordata-modal")) { closeFloorData(); return; }
       if (isShown("slot-modal")) { closeSlot(); return; }
       if (isShown("rush-modal")) { closeRushPick(); return; }
       if (gameState === "preview") { goToLobby(); return; }
