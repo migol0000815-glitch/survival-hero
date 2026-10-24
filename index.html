@@ -212,6 +212,18 @@
     #pause-modal, #pause-modal *, #result-modal, #result-modal * { touch-action: pan-y; }
     .skill-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; border-bottom: 1px solid rgba(71, 85, 105, 0.35); }
     .skill-row:last-child { border-bottom: none; }
+    /* v64 일시정지 '내 캐릭터 상태' */
+    .pstat-hp { margin-bottom: 8px; }
+    .pstat-hp-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+    .pstat-hp-top b { color: #fca5a5; font-size: 17px; }
+    .pstat-bar { height: 8px; margin-top: 4px; border-radius: 4px; background: #1e293b; overflow: hidden; }
+    .pstat-bar i { display: block; height: 100%; background: linear-gradient(90deg, #dc2626, #f87171); }
+    .pstat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .pstat { display: flex; flex-direction: column; padding: 6px 8px; border: 1px solid #334155; border-radius: 10px; background: rgba(15, 23, 42, 0.6); }
+    .pstat span { font-size: 11px; color: #94a3b8; }
+    .pstat b { font-size: 17px; color: #f8fafc; }
+    .pstat small { font-size: 10.5px; color: #64748b; }
+    .pstat-note { margin-top: 8px; font-size: 12px; line-height: 1.55; color: #cbd5e1; }
     .skill-row .stars { color: #fbbf24; letter-spacing: 1px; font-size: 12px; }
     .skill-row .stars i { color: #334155; font-style: normal; }
     /* 일시정지 상단: 제목 / 맨 아래: 큰 계속하기 버튼 (위 버튼들과 같은 가로 길이 · 스크롤해도 화면 아래에 붙어 있음) */
@@ -999,8 +1011,8 @@
         </div>
         <button id="pause-slot" class="restart-btn" style="display: none; border-color: #facc15; color: #fde68a;" onclick="openSlotInGame()">🪙 슬롯머신 돌리기</button>
         <div id="pause-dmg-box" class="info-box"><h4>📊 [DEV] 스킬별 전투 통계 (이번 판)</h4><div id="pause-dmg"></div></div>
+        <div class="info-box"><h4>📊 내 캐릭터 상태</h4><div id="pause-stats"></div></div>
         <div class="info-box"><h4>보유 스킬</h4><div id="pause-skills"></div></div>
-        <div class="info-box"><h4>능력치</h4><div id="pause-stats"></div></div>
         <div id="pause-dev" class="info-box dev-panel" style="display: none;">
           <h4>🛠️ 개발자 도구</h4>
           <div id="pause-floor-info" class="lobby-hint" style="text-align: left; margin-bottom: 6px;"></div>
@@ -1027,6 +1039,8 @@
             <button class="dev-btn" onclick="devStepCharLevel(10)">+10</button>
           </div>
           <div id="pause-clv-info" class="lobby-hint" style="text-align: left; margin-top: 6px;"></div>
+          <div id="pause-floor-calc" class="lobby-hint" style="text-align: left; margin-top: 6px;"></div>
+          <button class="dev-btn" onclick="devMatchLevelToFloor()">🧮 지금 층에 맞는 레벨로 맞추기</button>
           <div class="lobby-hint" style="text-align: left; margin-top: 8px;">⬇️ 아래 +1 / +10 Lv 은 이번 판 레벨(최대 25)</div>
           <div class="dev-grid" style="margin-top: 6px;">
             <button class="dev-btn" onclick="devLevelUp(1)">⬆️ +1 Lv</button>
@@ -1320,6 +1334,8 @@
               <button class="dev-btn" onclick="devSetFloor(save.selectedFloor + 1)">+1층</button>
               <button class="dev-btn" onclick="devSetFloor(save.selectedFloor + 10)">+10층</button>
             </div>
+            <div id="dev-floor-calc" class="lobby-hint" style="text-align: left; margin-top: 8px;"></div>
+            <button class="dev-btn" onclick="devMatchLevelToFloor()">🧮 이 층에 맞는 레벨로 맞추기</button>
             <button class="dev-btn" onclick="devStartTestBattle()">▶ 이 레벨 · 이 층으로 전투 시작</button>
           </div>
           <div id="dev-panel" class="info-box dev-panel">
@@ -1442,7 +1458,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v63 · 2026-10-24";
+    const GAME_VERSION = "v64 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -9447,22 +9463,42 @@
       // 일시정지 중 딜미터기는 개발자 모드에서만. 배포판은 게임이 끝난 뒤 결과 화면에서만 공개
       document.getElementById("pause-dmg-box").style.display = IS_DEV_MODE ? "block" : "none";
       if (IS_DEV_MODE) document.getElementById("pause-dmg").innerHTML = renderStatsHtml();
-      document.getElementById("pause-stats").innerHTML = [
-        `⚔️ 공격력 ${Math.round(player.damage)} · 평타 1발 ${Math.round(player.damage * player.caliberMult * currentAttack().dmgMult)}` + (player.buffs.power ? " (🔥신단 버프 중)" : ""),
-        isMeleeChar()
-          ? `⚔️ 근접 공격 ${currentAttack().name} · 리치 ${Math.round(meleeReach())} · 부채꼴 ${Math.round(meleeHalfArc() * 360 / Math.PI)}° · 휘두르기 간격 ${(player.fireRate / 1000).toFixed(2)}초`
-          : `🔫 기본 공격 ${currentAttack().name} ${player.bulletCount}발 · 발사 간격 ${(player.fireRate / 1000).toFixed(2)}초` +
-            (isSummoner() ? ` · 👻 하수인 ${minions.length}/${summonMax()}` : "") +
-            (save.character === "trickster" ? ` · 🃏 조커까지 ${CARD_JOKER_EVERY - (player.cardCount || 0) % CARD_JOKER_EVERY}장` : ""),
-        `👟 이동속도 ${player.speed.toFixed(1)} · 🧲 자석 범위 ${player.magnetRange}`,
-        petStatusText()
-      ].filter(Boolean).join("<br>");
+      document.getElementById("pause-stats").innerHTML = pauseStatsHtml();
       fillPetSelect("pause-pet", pet.id);
       updatePetInfButtons();
       const quit = document.getElementById("btn-quit");
       quit.dataset.armed = "";
       quit.innerText = "포기하고 결과 보기";
       pauseModal.style.display = "flex";
+    }
+
+    // v64: 일시정지 '내 캐릭터 상태' — 체력 막대 + 숫자 칸(공격력·평타·공격 간격·스킬 위력·받는 피해·이속·자석·대시) + 레벨 보너스
+    function pauseStatsHtml() {
+      const ch = currentCharacter(), atk = currentAttack(), start = getStartStats();
+      const tile = (icon, name, val, sub) => `<div class="pstat"><span>${icon} ${name}</span><b>${val}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+      const hp = Math.max(0, Math.ceil(player.hp)), hpPct = Math.max(0, Math.min(100, player.hp / player.maxHp * 100));
+      const taken = (1 - player.armorLevel * 0.15) * (1 - (ch.armor || 0));
+      const melee = isMeleeChar();
+      const detail = [
+        melee ? `${atk.name} · 리치 ${Math.round(meleeReach())} · 부채꼴 ${Math.round(meleeHalfArc() * 360 / Math.PI)}°`
+          : `${atk.name} ${player.bulletCount}발` +
+            (isSummoner() ? ` · 👻 하수인 ${minions.length}/${summonMax()}` : "") +
+            (save.character === "trickster" ? ` · 🃏 조커까지 ${CARD_JOKER_EVERY - (player.cardCount || 0) % CARD_JOKER_EVERY}장` : ""),
+        `⭐ 캐릭터 Lv.${cs().lvl} 보너스 ${charLvBonusText()}`,
+        petStatusText()
+      ].filter(Boolean).join("<br>");
+      return `<div class="pstat-hp"><div class="pstat-hp-top"><span>❤️ 체력</span><b>${hp} / ${player.maxHp}</b></div>` +
+          `<div class="pstat-bar"><i style="width: ${hpPct.toFixed(1)}%"></i></div></div>` +
+        `<div class="pstat-grid">` +
+          tile("⚔️", "공격력", Math.round(player.damage), player.buffs.power ? "🔥 신단 버프 중" : `시작 ${start.damage} → ×${(player.damage / start.damage).toFixed(2)}`) +
+          tile("🎯", "평타 1발 피해", Math.round(player.damage * player.caliberMult * atk.dmgMult), melee ? "근접 공격" : `한 번에 ${player.bulletCount}발`) +
+          tile("⏱️", melee ? "휘두르기 간격" : "발사 간격", `${(player.fireRate / 1000).toFixed(2)}초`, `초당 ${(1000 / player.fireRate).toFixed(1)}회`) +
+          tile("✨", "스킬 위력", `×${skillScale().toFixed(2)}`, "스킬 피해 배율") +
+          tile("🛡️", "받는 피해", `${Math.round(taken * 100)}%`, (taken < 1 ? `${Math.round((1 - taken) * 100)}% 줄여 받음` : "감소 없음") + (ch.dodge ? ` · 회피 ${Math.round(ch.dodge * 100)}%` : "")) +
+          tile("👟", "이동속도", player.speed.toFixed(2), `시작 ${start.speed.toFixed(2)}`) +
+          tile("🧲", "자석 범위", player.magnetRange, "경험치 끌어오기") +
+          tile("💨", "대시", `${(dashCooldown() / 1000).toFixed(1)}초`, "쿨타임") +
+        `</div><div class="pstat-note">${detail}</div>`;
     }
 
     function resumeGame() {
@@ -10981,7 +11017,25 @@
       while (xp < need) xp += floorClearXp(++k);
       return k;
     }
-    function devSetCharLevel(v) {
+    // v64 레벨 계산기: 1층부터 한 판도 빠짐없이 깨며 올라와 f층에 '도착'했을 때(1~f-1층 한 번씩 클리어)의 캐릭터 레벨
+    // 경험치는 층 클리어로만 들어오므로, 실패하거나 낮은 층을 다시 깨면 실제 레벨은 이보다 높을 수 있음 (최소 레벨)
+    function devLevelAtFloor(f) {
+      let lv = 1, xp = 0;
+      for (let k = 1; k < f; k++) {
+        xp += floorClearXp(k);
+        while (lv < CHAR_MAX_LV && xp >= charXpNeed(lv)) { xp -= charXpNeed(lv); lv++; }
+      }
+      return lv;
+    }
+    function devFloorCalcText(f) {
+      const quick = [10, 20, 30, 40, 50, 60].map(x => `${x}층 Lv.${devLevelAtFloor(x)}`).join(" · ");
+      return `🧮 1층부터 정상 진행하면 <b>${f}층 도착 때 Lv.${devLevelAtFloor(f)}</b> ${f > 1 ? `(1~${f - 1}층 한 번씩 클리어)` : "(아직 클리어 없음)"}<br>${quick}<br>실패하거나 낮은 층을 다시 깨면 실제로는 이보다 높아요 (최소 레벨)`;
+    }
+    function devMatchLevelToFloor() {
+      const f = gameState === "playing" ? currentFloor : save.selectedFloor;
+      devSetCharLevel(devLevelAtFloor(f), f - 1);
+    }
+    function devSetCharLevel(v, clears) {
       if (!IS_DEV_MODE) return;
       const lv = Math.min(CHAR_MAX_LV, Math.max(1, Math.round(+v || 1)));
       const c = cs();
@@ -10990,7 +11044,7 @@
       for (let l = Math.floor(c.lvl / 10) * 10 + 10; l <= lv; l += 10) c.slotTickets++;
       c.lvl = lv;
       c.xp = 0;
-      c.clears = devClearsForLevel(lv);
+      c.clears = clears != null ? clears : devClearsForLevel(lv);
       c.noDeathClears = Math.min(c.noDeathClears, c.clears);
       writeSave();
       if (live) {
@@ -11018,6 +11072,7 @@
         s.value = c.lvl;
         document.getElementById(`${p}-clv-label`).innerText = `Lv.${c.lvl}`;
         document.getElementById(`${p}-clv-info`).innerHTML = info;
+        document.getElementById(`${p}-floor-calc`).innerHTML = devFloorCalcText(p === "pause" ? currentFloor : save.selectedFloor);
       }
     }
     function devStartTestBattle() {
@@ -14837,6 +14892,7 @@
     // (함수로 둔 이유: renderLobby 가 이 줄보다 먼저 실행돼도 쓸 수 있게)
     function devNotes() { return {
       history: [
+        ["v63", "개발자 '⚔️ 전투 테스트 세팅' — 캐릭터 레벨 1~100(그 레벨까지 키운 능력치) · 층 1~100 · 바로 전투, 일시정지에도 레벨·층 슬라이더"],
         ["v62", "백그라운드 자동 일시정지(소리 멈춤·저장, '계속하기'로 재개) · 가짜 광고 3곳을 showRewardAd 하나로"],
         ["v61", "층별 데이터 뷰어 버튼 · 골렘·강아지·고양이 걷기(골렘 돌 다리) · 잘 안 보이던 동료 공격 효과 강화"],
         ["v60", "스킬 미리보기 🐾 동료 선택 · 미리보기 상단 칸 구분 · 블레이드→브레이커 변경 렉 수정 · 작업 기록 따로 보기"],
@@ -14861,10 +14917,9 @@
         "<b>앱 포장 후</b>: 구글 로그인 + Firebase 클라우드 저장 (계정 삭제 기능 필요)",
         "<b>제안</b>: 일일 미션 · 저사양 이펙트 옵션"
       ],
-      now: ["v63", [
-        "개발자 옵션 '⚔️ 전투 테스트 세팅': 캐릭터 레벨 1~100 슬라이더·±1/±10, 층 1~100 슬라이더·±1/±10, '이 레벨 · 이 층으로 전투 시작'",
-        "레벨을 고르면 그 레벨까지 1층부터 한 번씩 클리어해서 키운 것처럼 맞춤: 레벨 보너스 + 클리어 횟수(클리어 보너스) + 지나친 10레벨마다 슬롯 기회 (상점 강화·슬롯 아이템은 그대로)",
-        "게임 중 일시정지 개발자 도구에도 캐릭터 레벨 슬라이더(체력·공격력·이속 바로 반영)와 '층 바로 가기' 슬라이더"
+      now: ["v64", [
+        "일시정지 '📊 내 캐릭터 상태'를 맨 위로: 체력 막대 + 숫자 칸 8개(공격력·평타 1발·공격 간격·스킬 위력·받는 피해·이동속도·자석·대시) + 캐릭터 레벨 보너스",
+        "🧮 레벨 계산기: 1층부터 정상 진행하면 그 층 도착 때 몇 레벨인지 표시(10~60층 표 포함) + '이 층에 맞는 레벨로 맞추기' 버튼 (로비 전투 테스트 세팅·일시정지 개발자 도구)"
       ]]
     }; }
     // v60: 이번 버전 → 지금까지 한 것 → 해야 할 것 순서 (따로 여는 창)
