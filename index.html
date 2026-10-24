@@ -1355,7 +1355,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = true;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v54 · 2026-10-24";
+    const GAME_VERSION = "v55 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -2129,7 +2129,7 @@
         tiles: ["#3a3e46", "#23262c", "#33373e", "#1d2025"], bevel: "rgba(203, 213, 225, 0.14)", vignette: 0.62, ambient: "dust",
         shooterSpread: 1, shotSpeed: 5, shooterInterval: 4500, shotColor: "#f87171" },
       { id: "desert", name: "햇살 사막 유적", attackDesc: "원거리 몹: 단발 사격 (조금 빠름)", bright: true,
-        tiles: ["#e6d2a2", "#cdb179", "#dcc594", "#c2a46d"], bevel: "rgba(255, 251, 235, 0.55)", vignette: 0.28, ambient: "sun",
+        tiles: ["#c9b386", "#ab925f", "#bea679", "#a2885a"], bevel: "rgba(255, 251, 235, 0.3)", vignette: 0.34, ambient: "sun", // v55 밝기·채도 한 단계 낮춤 (예전 #e6d2a2…)
         shooterSpread: 1, shotSpeed: 5.6, shooterInterval: 4800, shotColor: "#ea580c" },
       { id: "neon", name: "네온 하이테크 연구소", attackDesc: "원거리 몹: 2갈래 레이저탄",
         tiles: ["#141c38", "#0a0f24", "#111830", "#080c1e"], bevel: "rgba(34, 211, 238, 0.4)", vignette: 0.55, ambient: "neon",
@@ -2141,7 +2141,7 @@
         tiles: ["#17344d", "#0a1d2e", "#123048", "#081826"], bevel: "rgba(165, 243, 252, 0.18)", vignette: 0.6, ambient: "snow",
         shooterSpread: 3, shotSpeed: 4.2, shooterInterval: 6500, shotColor: "#7dd3fc" },
       { id: "meadow", name: "햇빛 초원 유적", attackDesc: "원거리 몹: 느린 3갈래 씨앗탄", bright: true,
-        tiles: ["#a9cc7c", "#86ac58", "#9ec172", "#7ea452"], bevel: "rgba(247, 254, 231, 0.45)", vignette: 0.3, ambient: "leaf",
+        tiles: ["#8aa866", "#6b8a46", "#81a05e", "#668642"], bevel: "rgba(247, 254, 231, 0.26)", vignette: 0.36, ambient: "leaf", // v55 톤다운 (예전 #a9cc7c…)
         shooterSpread: 3, shotSpeed: 4.4, shooterInterval: 6200, shotColor: "#65a30d" },
       { id: "swamp", name: "독안개 늪", attackDesc: "원거리 몹: 큰 독 구슬 (느림)",
         tiles: ["#1c3324", "#0b1a10", "#18301f", "#08150c"], bevel: "rgba(134, 239, 172, 0.14)", vignette: 0.62, ambient: "fog",
@@ -2974,9 +2974,9 @@
         for (const side of [1, -1]) { // v48 양손에 하나씩 (왼손 도끼는 위아래 뒤집어 날이 바깥쪽)
           g.save();
           if (side < 0) { g.scale(1, -1); g.translate(-6, 2); }
-          glowLine(26, 44, 10, 20, W.glow);
-          metalBar(g, -2, 7.6, 35, 4.8, ["#a16207", "#57340f", "#1c0a02"]); // v50 도끼 크게 (날 0.88 → 1.3)
-          drawAxeHead(g, a, W, 31, 10, 1.3);
+          glowLine(22, 36, 11, 16, W.glow);
+          metalBar(g, 2, 8.8, 27, 4.4, ["#a16207", "#57340f", "#1c0a02"]); // v55: 몸을 가리지 않게 날 1.3 → 0.85, 자루를 손에서 바깥쪽으로
+          drawAxeHead(g, a, W, 27, 11, 0.85);
           g.restore();
         }
         return;
@@ -3674,6 +3674,11 @@
       if (costume) drawCostumeFrontBack(g, costume, p, t);
       if (armorItem) drawArmorFront(g, armorItem, t, "back");
       if (kind === "lancer") drawBackSpearsFront(g, weaponItemFor(equip, kind) || DEFAULT_SPEAR); // v48 등 뒤로 부채처럼 솟은 창 5자루
+      if (frontWeaponKind((weaponItemFor(equip, kind) || {}).id || null, skin) === "battleaxe") { // v55 버서커 도끼는 몸통 뒤 레이어
+        g.save(); g.translate(-4, 10 + bob); g.scale(1.12, 1.12); // 숨쉬기(bob)도 손과 똑같이
+        drawFrontAxesBack(g, weaponItemFor(equip, kind) || DEFAULT_AXE, t);
+        g.restore();
+      }
       for (const side of [-1, 1]) {
         g.fillStyle = frontShade(g, side * 8 - 5, side * 8 + 5, p.armor);
         roundRect(g, side * 8 * wide - 5, 24, 10, 18, 4);
@@ -4430,36 +4435,40 @@
     }
 
     // 버서커: 양손에 쥔 양날 배틀액스 2자루 — 자루 쥐는 곳을 각 손에 정확히 맞추고, 날은 머리 양옆 위로
+    // v55: 도끼 몸체는 drawFrontAxesBack 이 몸통보다 먼저(등 뒤 레이어) 그리고, 여기서는 팔·손만 (도끼를 쥔 손이 앞에 보임)
+    const FRONT_AXE_GRIPS = [[-12.9, 8.9, -0.62], [30, 8, 0.62]]; // [손 x, 손 y, 바깥으로 기운 각도] — 왼손 = drawHeroFront 왼손 (-18.5, 20)
     function drawFrontAxes(g, W, p, t) {
-      const lx = -12.9, ly = 8.9;                  // 왼손 (drawHeroFront 의 왼손 (-18.5, 20)을 무기 좌표로 옮긴 곳)
-      const rx = 30, ry = 8;
+      const [[lx, ly], [rx, ry]] = FRONT_AXE_GRIPS;
       drawFrontArm(g, p, rx, ry, true);
-      for (const [hx, hy, tilt] of [[lx, ly, -0.42], [rx, ry, 0.42]]) {
-        g.save();
-        g.translate(hx, hy);
-        g.rotate(tilt);
-        if (W !== DEFAULT_AXE) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.4 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 0, -44, 26); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
-        drawBattleAxeFront(g, W, tilt < 0 ? -1 : 1);
-        g.restore();
-      }
       drawFrontHand(g, lx, ly, 4.8);
       drawFrontHand(g, rx, ry);
     }
-    // 세워 든 양날 배틀액스 (손 = 원점, 자루는 위(-y)로). side: 바깥쪽 날을 조금 더 크게
+    // 등 뒤 레이어: 양손 배틀액스 2자루 (바깥쪽으로 기울여 머리·몸통과 겹치지 않게). drawHeroFront 가 몸통보다 먼저 호출 (무기 좌표계)
+    function drawFrontAxesBack(g, W, t) {
+      for (const [hx, hy, tilt] of FRONT_AXE_GRIPS) {
+        g.save();
+        g.translate(hx, hy);
+        g.rotate(tilt);
+        if (W !== DEFAULT_AXE) { g.globalCompositeOperation = "lighter"; g.globalAlpha = 0.4 + Math.sin(t / 200) * 0.15; drawGlow(g, W.glow, 0, -36, 20); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        drawBattleAxeFront(g, W, tilt < 0 ? -1 : 1);
+        g.restore();
+      }
+    }
+    // 세워 든 양날 배틀액스 (손 = 원점, 자루는 위(-y)로). v55: 몸 비례에 맞게 축소 (자루 62 → 50 · 날 1.55 → 1.1)
     function drawBattleAxeFront(g, W, side) {
-      metalBar(g, -2.6, -50, 5.2, 62, ["#a16207", "#57340f", "#1c0a02"]);   // 자루 (손 아래로 조금 남김)
+      metalBar(g, -2.3, -40, 4.6, 50, ["#a16207", "#57340f", "#1c0a02"]);   // 자루 (손 아래로 조금 남김)
       g.fillStyle = "#3f2a1d";                                                // 가죽 감김
-      for (let k = 0; k < 4; k++) g.fillRect(-3, -6 + k * 3.4, 6, 1.6);
-      shadedBall(g, 0, 13, 3.4, 3.4, 0, ["#e7e5e4", "#57534e", "#0c0a09"], "#0c0a09"); // 자루 끝 쇠 뭉치
+      for (let k = 0; k < 3; k++) g.fillRect(-2.7, -5 + k * 3.4, 5.4, 1.6);
+      shadedBall(g, 0, 10, 3, 3, 0, ["#e7e5e4", "#57534e", "#0c0a09"], "#0c0a09"); // 자루 끝 쇠 뭉치
       g.save();
-      g.translate(0, -44);
+      g.translate(0, -35);
       g.rotate(-Math.PI / 2);                     // drawAxeHead 는 +x 가 자루 끝 방향, 날은 ±y
       g.scale(1, side);
-      drawAxeHead(g, 0, W, 0, 0, 1.55, true);
+      drawAxeHead(g, 0, W, 0, 0, 1.1, true);
       g.restore();
       g.beginPath();                               // 맨 위 찌르는 창끝
-      g.moveTo(-2.6, -50); g.lineTo(0, -60); g.lineTo(2.6, -50); g.closePath();
-      g.fillStyle = frontShade(g, -2.6, 2.6, W.head); g.fill();
+      g.moveTo(-2.3, -40); g.lineTo(0, -48); g.lineTo(2.3, -40); g.closePath();
+      g.fillStyle = frontShade(g, -2.3, 2.3, W.head); g.fill();
       g.strokeStyle = "#0c0a09"; g.lineWidth = 0.8; g.stroke();
     }
 
@@ -4824,6 +4833,12 @@
               g.beginPath(); g.arc(x + 10 + Math.random() * 80, y + 10 + Math.random() * 80, 2.2, 0, Math.PI * 2); g.fill();
             }
           }
+          if (stage.bright) { // v55 밝은 맵: 은은한 명암 얼룩 + 타일 안쪽 그림자로 바닥을 한 단계 가라앉힘 (전경과 분리)
+            for (let i = 0; i < 5; i++) { g.fillStyle = "rgba(60, 38, 12, 0.07)"; g.beginPath(); g.ellipse(x + 10 + Math.random() * 80, y + 10 + Math.random() * 80, 12 + Math.random() * 18, 8 + Math.random() * 12, Math.random() * 3, 0, Math.PI * 2); g.fill(); }
+            const ig = g.createRadialGradient(x + 50, y + 50, 20, x + 50, y + 50, 72);
+            ig.addColorStop(0, "rgba(0, 0, 0, 0)"); ig.addColorStop(1, "rgba(50, 30, 8, 0.16)");
+            g.fillStyle = ig; g.fillRect(x, y, 100, 100);
+          }
           g.fillStyle = stage.bevel;
           g.fillRect(x, y, 100, 3);
           g.fillRect(x, y, 3, 100);
@@ -4904,6 +4919,61 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
+    // ===== v55: 밝은 맵(사막·초원) 가시성 보정 =====
+    // 밝은 바닥에서는 가산 합성("lighter") 빛 이펙트와 몹 윤곽이 묻힘 → 밝은 맵일 때만
+    //  ① 몹 스프라이트에 짙은 외곽선 (darkOutline: 스프라이트마다 한 번 만들어 캐시)
+    //  ② 내 탄환·스킬 투사체 아래에 짙은 받침 그림자 + 테두리, 번개 아래에 짙은 선 (drawBrightBacking)
+    function brightMap() { const st = currentStage(); return !!(st && st.bright); }
+    function darkOutline(s) {
+      if (s.dark) return s.dark;
+      try {
+        const c = document.createElement("canvas");
+        c.width = s.canvas.width; c.height = s.canvas.height;
+        const g = c.getContext("2d");
+        const o = Math.max(1, Math.round(1.6 * c.width / s.size));
+        for (const [dx, dy] of [[o, 0], [-o, 0], [0, o], [0, -o], [o, o], [-o, -o], [o, -o], [-o, o]]) g.drawImage(s.canvas, dx, dy);
+        g.globalCompositeOperation = "source-in";
+        g.fillStyle = "rgba(20, 10, 2, 0.9)";
+        g.fillRect(0, 0, c.width, c.height);
+        g.globalCompositeOperation = "source-over";
+        g.drawImage(s.canvas, 0, 0);
+        s.dark = { canvas: c, size: s.size };
+      } catch (e) { s.dark = s; }
+      return s.dark;
+    }
+    const BRIGHT_BACK = "rgba(25, 14, 4, 0.32)", BRIGHT_RIM = "rgba(25, 14, 4, 0.7)";
+    function drawBrightBacking(inView) {
+      if (!brightMap()) return;
+      const g = ctx;
+      const list = [];
+      for (const b of bullets) if (inView(b.x, b.y)) list.push([b.x, b.y, b.radius || 6]);
+      for (const m of homingMissiles) if (inView(m.x, m.y)) list.push([m.x, m.y, m.radius || 7]);
+      for (const b of boomerangs) if (inView(b.x, b.y)) list.push([b.x, b.y, b.radius || b.r || 12]);
+      for (const s of shurikens) if (inView(s.x, s.y)) list.push([s.x, s.y, s.radius || s.r || 10]);
+      for (const o of (player.orbitPos || [])) if (inView(o.x, o.y)) list.push([o.x, o.y, 11]);
+      if (!list.length && !lightningBolts.length) return;
+      g.save();
+      g.globalCompositeOperation = "source-over";
+      g.globalAlpha = 1;
+      g.beginPath();
+      for (const [x, y, r] of list) { g.moveTo(x + r * 1.8, y); g.arc(x, y, r * 1.8, 0, Math.PI * 2); }
+      g.fillStyle = BRIGHT_BACK; g.fill();
+      g.beginPath();
+      for (const [x, y, r] of list) { g.moveTo(x + r + 1.5, y); g.arc(x, y, r + 1.5, 0, Math.PI * 2); }
+      g.strokeStyle = BRIGHT_RIM; g.lineWidth = 2; g.stroke();
+      // 번개 (체인 라이트닝·연쇄 번개 등): 같은 경로에 짙은 굵은 선을 먼저
+      g.lineCap = "round"; g.lineJoin = "round";
+      for (const bl of lightningBolts) {
+        const pts = bl.points;
+        if (!pts || pts.length < 2) continue;
+        g.globalAlpha = Math.min(1, (bl.life / (bl.maxLife || 1)) * 1.6) * 0.55;
+        g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.strokeStyle = "#1c1206"; g.lineWidth = (bl.width || 3) + 4; g.stroke();
+      }
+      g.restore();
+    }
+
     // v54: 맵 테마 분위기 (화면 좌표, 월드 위 · 비네팅 아래). 가볍게: 그라데이션 몇 장 + 입자 수십 개
     //  sun 햇살 줄기 · leaf 나뭇잎 그늘과 꽃가루 · neon 주사선과 네온 번짐 · ember 불티 · snow 눈 · fog 독안개 · void 보랏빛 · dust 먼지
     function drawStageAmbient(t) {
@@ -4915,7 +4985,7 @@
       if (kind === "sun" || kind === "leaf") {
         // 왼쪽 위에서 비치는 따뜻한 햇빛 + 천천히 흔들리는 빛줄기
         const sg = g.createLinearGradient(0, 0, W * 0.8, H);
-        sg.addColorStop(0, kind === "sun" ? "rgba(255, 236, 170, 0.32)" : "rgba(255, 250, 200, 0.24)");
+        sg.addColorStop(0, kind === "sun" ? "rgba(255, 236, 170, 0.16)" : "rgba(255, 250, 200, 0.12)"); // v55 햇빛 번짐 절반
         sg.addColorStop(0.6, "rgba(255, 236, 170, 0)");
         g.fillStyle = sg;
         g.fillRect(0, 0, W, H);
@@ -4923,7 +4993,7 @@
         for (let k = 0; k < 3; k++) {
           const sway = Math.sin(t / 3000 + k * 1.7) * 30;
           const x0 = W * (0.1 + k * 0.28) + sway;
-          g.globalAlpha = 0.05 + 0.025 * Math.sin(t / 1700 + k);
+          g.globalAlpha = 0.03 + 0.015 * Math.sin(t / 1700 + k); // v55 빛줄기도 옅게
           g.beginPath();
           g.moveTo(x0, -10); g.lineTo(x0 + 70, -10); g.lineTo(x0 + 70 + H * 0.55, H + 10); g.lineTo(x0 + H * 0.55 - 40, H + 10);
           g.closePath();
@@ -5822,7 +5892,7 @@
     // ===== v54: 구조물 기반 몬스터 스폰 연출 =====
     // 화면 가장자리(위·아래 쪽을 더 자주)에 맵 테마에 맞는 소환 구조물을 세워 두고, 스폰할 때 문이 열리며(0.45초) 빛이 번쩍이고
     // 몬스터가 0.12초 간격으로 줄지어 나옴. 구조물은 장식이라 충돌·피격 없음. 보너스 게임·미리보기·보스전에는 없음
-    //  tower 차원문 탑 (사막·초원·공허) · container 버려진 컨테이너 (폐허·연구소) · rift 균열된 포탈 (용암·얼음·늪)
+    //  tower 😈 악마의 탑 (사막·초원·공허, v55: 신단과 구분되게 검붉은 뿔·눈·해골 문) · container 버려진 컨테이너 (폐허·연구소) · rift 균열된 포탈 (용암·얼음·늪)
     const GATE_KIND_BY_THEME = { ruin: "container", desert: "tower", neon: "container", lava: "rift", ice: "rift", meadow: "tower", swamp: "rift", void: "tower" };
     const GATE_TUNE = { max: 3, share: 0.6, openMs: 450, gapMs: 120, closeMs: 700, edgeOut: 18 };
     let spawnGates = []; // { x, y, kind, born, openAt, lastOut, queue: [roll 함수...] }
@@ -5886,11 +5956,14 @@
         if (gt.queue.length && playTimeMs - gt.openAt >= GATE_TUNE.openMs && playTimeMs - gt.lastOut >= GATE_TUNE.gapMs) {
           // 줄이 길면 한 번에 여러 마리 (후반 스폰 속도가 구조물 때문에 느려지지 않게)
           const burst = Math.max(1, Math.ceil(gt.queue.length / 4));
+          const gs = gateScale();
           for (let b = 0; b < burst && gt.queue.length; b++) {
             const rollFn = gt.queue.shift();
             if (monsters.length >= MAX_MONSTERS) continue;
             const a = Math.atan2(player.y - gt.y, player.x - gt.x) + (Math.random() - 0.5) * 1.1, d = 30 + Math.random() * 22;
-            spawnMonster(gt.x + Math.cos(a) * d, gt.y + Math.sin(a) * d, rollFn ? rollFn() : undefined);
+            const n0 = monsters.length;
+            spawnMonster(gt.x + Math.cos(a) * d * gs, gt.y + Math.sin(a) * d * gs, rollFn ? rollFn() : undefined);
+            if (monsters.length > n0) pushOutOfGates(monsters[monsters.length - 1], monsters[monsters.length - 1].radius, 0); // v55 구조물 안에 끼지 않게 문 앞으로
           }
           gt.lastOut = playTimeMs;
         }
@@ -5902,6 +5975,57 @@
         }
       }
     }
+    // ===== v55: 소환 구조물 크기 · 충돌 =====
+    // 레벨이 올라 화면이 축소(currentViewScale 0.68 → 0.45)되면 구조물을 키움: (0.68 / 축척)^1.5 → 최대 약 1.86배
+    // (화면에 보이는 크기도 약 1.23배로 커짐. 축척이 서서히 바뀌므로 크기도 서서히)
+    const GATE_BASE_VIEW = 0.68, GATE_GROW_POW = 1.5, GATE_SCALE_MAX = 1.9;
+    function gateScale() {
+      const vs = currentViewScale || GATE_BASE_VIEW;
+      return Math.max(1, Math.min(GATE_SCALE_MAX, Math.pow(GATE_BASE_VIEW / vs, GATE_GROW_POW)));
+    }
+    // 바닥에 닿는 부분(발판) 기준 충돌 모양. 탑 = 받침 타원 · 컨테이너 = 상자 사각형 · 균열 포탈 = 틈 타원
+    function gateCollider(gt) {
+      const s = gateScale();
+      if (gt.kind === "container") return { rect: true, x0: gt.x - 48 * s, x1: gt.x + 48 * s, y0: gt.y - 40 * s, y1: gt.y + 24 * s };
+      if (gt.kind === "tower") return { x: gt.x, y: gt.y + 4 * s, rx: 38 * s, ry: 24 * s };
+      return { x: gt.x, y: gt.y, rx: 46 * s, ry: 22 * s };
+    }
+    // 원(반지름 r)인 o 를 구조물 밖으로 밀어냄 (장애물처럼). slide > 0 이면 막힌 몹이 플레이어 쪽으로 옆으로 미끄러져 돌아감
+    function pushOutOfGates(o, r, slide) {
+      if (!spawnGates.length) return;
+      for (const gt of spawnGates) {
+        const c = gateCollider(gt);
+        const bx = o.x, by = o.y;
+        if (c.rect) {
+          const x0 = c.x0 - r, x1 = c.x1 + r, y0 = c.y0 - r, y1 = c.y1 + r;
+          if (o.x <= x0 || o.x >= x1 || o.y <= y0 || o.y >= y1) continue;
+          const pl = o.x - x0, pr = x1 - o.x, pt = o.y - y0, pb = y1 - o.y, m = Math.min(pl, pr, pt, pb); // 가장 얕게 파고든 쪽으로
+          if (m === pl) o.x = x0; else if (m === pr) o.x = x1; else if (m === pt) o.y = y0; else o.y = y1;
+        } else {
+          const ex = c.rx + r, ey = c.ry + r, dx = o.x - c.x, dy = o.y - c.y;
+          const q = (dx * dx) / (ex * ex) + (dy * dy) / (ey * ey);
+          if (q >= 1) continue;
+          if (q < 1e-6) { o.y = c.y + ey; continue; }
+          const k = 1 / Math.sqrt(q);
+          o.x = c.x + dx * k; o.y = c.y + dy * k;
+        }
+        if (slide) {
+          const nx = o.x - bx, ny = o.y - by, nl = fastHypot(nx, ny) || 1;
+          const tx = -ny / nl, ty = nx / nl;
+          // 돌아갈 방향은 부딪히기 시작할 때 한 번 정하고, 계속 닿아 있는 동안 유지 (매 칸 다시 고르면 플레이어가 바로 뒤에 있을 때 제자리에서 떪)
+          let side = o.gateSide;
+          if (!side || playTimeMs - (o.gateSideAt || -1e9) > 400) {
+            const along = tx * (player.x - o.x) + ty * (player.y - o.y);
+            side = Math.abs(along) > 25 ? (along > 0 ? 1 : -1) : (Math.random() < 0.5 ? -1 : 1);
+            o.gateSide = side;
+          }
+          o.gateSideAt = playTimeMs;
+          o.x += tx * side * slide;
+          o.y += ty * side * slide;
+        }
+      }
+    }
+
     // 열림 정도 0~1 (열리는 중 → 내보내는 동안 유지 → 닫힘)
     function gateOpenAmount(gt) {
       const now = playTimeMs;
@@ -5911,61 +6035,133 @@
     }
     function drawSpawnGates(g, t, inView) {
       if (!spawnGates.length || bossArena.active) return;
-      const st = currentStage();
+      const st = currentStage(), gs = gateScale();
       for (const gt of spawnGates) {
-        if (!inView(gt.x, gt.y)) continue;
+        if (!inView(gt.x, gt.y - 60 * gs) && !inView(gt.x, gt.y + 30 * gs)) continue; // 위로 솟은 탑 꼭대기만 보여도 그림
         const o = gateOpenAmount(gt);
         const flash = Math.max(0, 1 - Math.abs(playTimeMs - gt.openAt - GATE_TUNE.openMs) / 220); // 다 열리는 순간 번쩍
         const appear = Math.min(1, (playTimeMs - gt.born) / 500);                                     // 처음 세워질 때 솟아오름
         g.save();
         g.translate(gt.x, gt.y);
+        g.scale(gs, gs); // v55 화면이 축소되면 구조물도 커짐 (충돌 범위도 같은 배율)
         g.globalAlpha = appear;
-        if (gt.kind === "tower") drawGateTower(g, o, flash, t, st);
+        if (gt.kind === "tower") drawGateTower(g, o, flash, t, st, gt);
         else if (gt.kind === "container") drawGateContainer(g, o, flash, t, st);
         else drawGateRift(g, o, flash, t, st);
         g.restore();
       }
     }
     const GATE_GLOW = { ruin: "#f87171", desert: "#f59e0b", neon: "#22d3ee", lava: "#fb923c", ice: "#7dd3fc", meadow: "#a3e635", swamp: "#4ade80", void: "#c084fc" };
-    // 차원문 탑: 팔각 받침 + 위로 솟은 석탑(쿼터뷰라 화면 위쪽으로) + 꼭대기 수정 + 아래 아치문(열리면 빛이 쏟아짐)
-    function drawGateTower(g, o, flash, t, st) {
-      const glow = GATE_GLOW[st.theme] || "#c084fc", bright = st.bright;
-      drawShadow(g, 0, 10, 44);
-      g.beginPath();
-      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + Math.PI / 8; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 40, 6 + Math.sin(a) * 22); }
-      g.closePath();
-      g.fillStyle = bright ? "#b08a58" : "#334155"; g.fill();
-      g.strokeStyle = "rgba(0, 0, 0, 0.5)"; g.lineWidth = 2; g.stroke();
-      const stone = bright ? ["#fdf1d3", "#c89b62", "#6b4420"] : ["#94a3b8", "#475569", "#1e293b"];
-      g.fillStyle = frontShade(g, -22, 22, stone);
-      g.beginPath(); g.moveTo(-22, 8); g.lineTo(-17, -70); g.lineTo(17, -70); g.lineTo(22, 8); g.closePath(); g.fill();
-      g.strokeStyle = "rgba(0, 0, 0, 0.45)"; g.lineWidth = 1.5; g.stroke();
-      g.strokeStyle = "rgba(0, 0, 0, 0.22)"; g.lineWidth = 1;          // 돌 이음매
-      g.beginPath(); for (const y of [-12, -32, -52]) { g.moveTo(-20 + (y + 70) * 0.0, y); g.lineTo(20, y); } g.stroke();
-      g.fillStyle = frontShade(g, -26, 26, stone);                      // 꼭대기 테
-      roundRect(g, -25, -80, 50, 12, 4); g.fill();
+    // v55 😈 악마의 탑 (몹 소환): 버프 신단(돌 오벨리스크 + 떠 있는 색 구슬)과 한눈에 구분되게 — 맵 테마와 상관없이 항상 검붉은색
+    //  금 간 흑요석 받침(용암 틈 + 가시) → 울퉁불퉁한 검은 첨탑(뼈 가시 · 맥동하는 붉은 룬) → 꼭대기 굽은 뿔 두 개 + 플레이어를 노려보는 붉은 눈
+    //  → 아래 해골 턱 모양 문(쇠창살이 올라가며 열림, 안쪽 지옥불) · 주위로 피어오르는 검붉은 연기
+    function drawGateTower(g, o, flash, t, st, gt) {
+      const RED = "#ef4444", pulse = 0.55 + Math.sin(t / 260) * 0.25 + o * 0.35;
+      const baseA = g.globalAlpha; // 처음 세워질 때 솟아오르는 투명도 (drawSpawnGates)
+      drawShadow(g, 0, 10, 46);
+      // 바닥의 핏빛 기운
       g.globalCompositeOperation = "lighter";
-      g.globalAlpha *= 0.6 + Math.sin(t / 300) * 0.2 + o * 0.4;
-      drawGlow(g, glow, 0, -92, 22 + o * 12);
-      g.globalAlpha = 1;
+      g.globalAlpha = baseA * (0.35 + o * 0.3);
+      drawGlow(g, "#b91c1c", 0, 6, 62);
+      g.globalAlpha = baseA;
       g.globalCompositeOperation = "source-over";
-      g.beginPath(); g.moveTo(0, -106); g.lineTo(8, -92); g.lineTo(0, -80); g.lineTo(-8, -92); g.closePath(); // 떠 있는 수정
-      g.fillStyle = frontShade(g, -8, 8, ["#ffffff", glow, "#1e1b4b"]); g.fill();
-      // 아치문: 닫히면 어두운 돌문, 열리면 소용돌이 빛
-      g.beginPath(); g.moveTo(-12, 8); g.lineTo(-12, -16); g.quadraticCurveTo(0, -30, 12, -16); g.lineTo(12, 8); g.closePath();
-      g.fillStyle = "#0b0f1a"; g.fill();
+      // 흑요석 받침 (들쭉날쭉한 팔각) + 용암 틈 + 둘레 가시
+      g.beginPath();
+      for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5, rr = k % 2 ? 0.86 : 1; g[k ? "lineTo" : "moveTo"](Math.cos(a) * 42 * rr, 6 + Math.sin(a) * 23 * rr); }
+      g.closePath();
+      g.fillStyle = frontShade(g, -42, 42, ["#3f3f46", "#18181b", "#000000"]); g.fill();
+      g.strokeStyle = "#000"; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = `rgba(239, 68, 68, ${0.45 + pulse * 0.4})`; g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(-34, 8); g.lineTo(-22, 12); g.lineTo(-26, 20); g.moveTo(30, 4); g.lineTo(20, 11); g.lineTo(27, 18); g.moveTo(-6, 24); g.lineTo(2, 17); g.stroke();
+      g.fillStyle = "#e7e5e4";
+      for (const [sx, sy, sa] of [[-40, 4, -2.6], [40, 4, -0.5], [-30, 20, 2.4], [30, 20, 0.7]]) { // 받침 가시
+        g.save(); g.translate(sx, sy); g.rotate(sa);
+        g.beginPath(); g.moveTo(0, -3); g.lineTo(11, 0); g.lineTo(0, 3); g.closePath(); g.fill();
+        g.restore();
+      }
+      // 검은 첨탑 (위로 갈수록 좁고 비틀린 실루엣)
+      g.beginPath();
+      g.moveTo(-26, 8); g.lineTo(-22, -20); g.lineTo(-27, -34); g.lineTo(-17, -62); g.lineTo(-20, -74);
+      g.lineTo(-9, -88); g.lineTo(9, -88); g.lineTo(20, -74); g.lineTo(17, -62); g.lineTo(27, -34); g.lineTo(22, -20); g.lineTo(26, 8);
+      g.closePath();
+      g.fillStyle = frontShade(g, -27, 27, ["#52525b", "#1c1917", "#050505"]); g.fill();
+      g.strokeStyle = "#000"; g.lineWidth = 2; g.stroke();
+      // 뼈 가시 (양옆으로 튀어나옴)
+      g.fillStyle = frontShade(g, -40, 40, ["#fafaf9", "#d6d3d1", "#78716c"]);
+      for (const [sx, sy, dir] of [[-24, -28, -1], [24, -28, 1], [-18, -58, -1], [18, -58, 1]]) {
+        g.beginPath(); g.moveTo(sx, sy - 4); g.quadraticCurveTo(sx + dir * 12, sy - 6, sx + dir * 16, sy - 14); g.quadraticCurveTo(sx + dir * 9, sy - 2, sx, sy + 4); g.closePath(); g.fill();
+        g.strokeStyle = "rgba(0, 0, 0, 0.6)"; g.lineWidth = 0.8; g.stroke();
+      }
+      // 맥동하는 붉은 룬 (가산 합성)
+      g.globalCompositeOperation = "lighter";
+      g.strokeStyle = `rgba(248, 113, 113, ${0.35 + pulse * 0.5})`; g.lineWidth = 1.8;
+      g.beginPath();
+      g.moveTo(-8, -26); g.lineTo(0, -36); g.lineTo(8, -26); g.moveTo(0, -36); g.lineTo(0, -48);
+      g.moveTo(-6, -54); g.lineTo(6, -54); g.moveTo(-10, -14); g.lineTo(-4, -20); g.moveTo(10, -14); g.lineTo(4, -20);
+      g.stroke();
+      g.globalAlpha = baseA * (0.4 + pulse * 0.4);
+      drawGlow(g, RED, 0, -38, 18);
+      g.globalAlpha = baseA;
+      g.globalCompositeOperation = "source-over";
+      // 꼭대기: 굽은 악마 뿔 두 개
+      for (const side of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(side * 6, -86); g.quadraticCurveTo(side * 26, -92, side * 30, -116); g.quadraticCurveTo(side * 22, -100, side * 12, -94); g.lineTo(side * 9, -88);
+        g.closePath();
+        const hg = g.createLinearGradient(0, -88, 0, -116);
+        hg.addColorStop(0, "#1c1917"); hg.addColorStop(0.6, "#7f1d1d"); hg.addColorStop(1, "#fca5a5");
+        g.fillStyle = hg; g.fill();
+        g.strokeStyle = "#000"; g.lineWidth = 1.2; g.stroke();
+      }
+      // 붉은 눈 (세로 동공이 플레이어를 따라봄)
+      const px = gt ? player.x - gt.x : 0, py = gt ? player.y - gt.y : 1, pl = fastHypot(px, py) || 1;
+      const ex = 0, ey = -76, blink = (t % 4200) < 110 ? 0.15 : 1;
+      g.globalCompositeOperation = "lighter";
+      g.globalAlpha = baseA * (0.6 + o * 0.4);
+      drawGlow(g, RED, ex, ey, 20 + o * 10);
+      g.globalAlpha = baseA;
+      g.globalCompositeOperation = "source-over";
+      g.beginPath(); g.ellipse(ex, ey, 9, 5.5 * blink, 0, 0, Math.PI * 2);
+      g.fillStyle = "#fde047"; g.fill();
+      g.strokeStyle = "#450a0a"; g.lineWidth = 1.4; g.stroke();
+      g.beginPath(); g.ellipse(ex + px / pl * 3, ey + py / pl * 1.5, 1.8, 4.6 * blink, 0, 0, Math.PI * 2);
+      g.fillStyle = "#450a0a"; g.fill();
+      // 해골 턱 모양 문: 위 해골 이마 + 이빨 줄, 안쪽 어둠(열리면 지옥불)
+      g.beginPath(); g.moveTo(-14, 8); g.lineTo(-14, -12); g.quadraticCurveTo(0, -26, 14, -12); g.lineTo(14, 8); g.closePath();
+      g.fillStyle = "#050505"; g.fill();
       if (o > 0) {
         g.save(); g.clip();
         g.globalCompositeOperation = "lighter";
-        g.globalAlpha = o;
-        drawGlow(g, glow, 0, -6, 26);
-        drawGlow(g, "#ffffff", 0, -4, 10 * o);
+        g.globalAlpha = baseA * o;
+        drawGlow(g, "#f97316", 0, 0, 22);
+        drawGlow(g, RED, 0, -4, 28);
+        drawGlow(g, "#fde047", 0, 4, 8 * o);
         g.restore();
       }
-      const doorW = 12 * (1 - o);                                        // 두 짝 돌문이 양옆으로 밀려 열림
-      g.fillStyle = bright ? "#8a6a42" : "#1e293b";
-      g.fillRect(-12, -18, doorW, 26); g.fillRect(12 - doorW, -18, doorW, 26);
-      if (flash > 0) { g.globalCompositeOperation = "lighter"; g.globalAlpha = flash; drawGlow(g, "#ffffff", 0, -4, 60); drawGlow(g, glow, 0, -4, 90); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+      g.fillStyle = "#e7e5e4";                                       // 이빨 (문 위아래)
+      for (let k = -3; k <= 3; k++) {
+        g.beginPath(); g.moveTo(k * 4 - 2, -14 + Math.abs(k) * 0.9); g.lineTo(k * 4, -9 + Math.abs(k) * 0.9); g.lineTo(k * 4 + 2, -14 + Math.abs(k) * 0.9); g.closePath(); g.fill();
+      }
+      for (let k = -3; k <= 3; k++) { g.beginPath(); g.moveTo(k * 4 - 2, 8); g.lineTo(k * 4, 4); g.lineTo(k * 4 + 2, 8); g.closePath(); g.fill(); }
+      // 쇠창살: 열리면 위로 올라감
+      const lift = 22 * o;
+      g.save();
+      g.beginPath(); g.rect(-14, -12, 28, 20); g.clip();
+      g.strokeStyle = "#57534e"; g.lineWidth = 2.2;
+      g.beginPath();
+      for (let x = -10; x <= 10; x += 5) { g.moveTo(x, -12 - lift); g.lineTo(x, 8 - lift); }
+      g.moveTo(-14, -3 - lift); g.lineTo(14, -3 - lift);
+      g.stroke();
+      g.restore();
+      // 검붉은 연기 (위로 피어오름)
+      for (let k = 0; k < 5; k++) {
+        const q = ((t / 1400) + k / 5) % 1;
+        g.globalAlpha = baseA * (1 - q) * 0.45;
+        g.fillStyle = k % 2 ? "#1c1917" : "#450a0a";
+        g.beginPath(); g.arc(Math.sin(k * 2.1 + t / 700) * 14 + (k - 2) * 6, -90 - q * 40, 6 + q * 10, 0, Math.PI * 2); g.fill();
+      }
+      g.globalAlpha = baseA;
+      if (flash > 0) { g.globalCompositeOperation = "lighter"; g.globalAlpha = flash; drawGlow(g, "#fecaca", 0, -4, 60); drawGlow(g, RED, 0, -4, 95); g.globalAlpha = baseA; g.globalCompositeOperation = "source-over"; }
     }
     // 버려진 컨테이너: 녹슨 골판 상자 + 앞쪽 두 짝 문이 열리며 안쪽의 붉은 눈빛과 빛이 새어 나옴
     function drawGateContainer(g, o, flash, t, st) {
@@ -6504,6 +6700,7 @@
           o.y += ty * side * slide;
         }
       }
+      pushOutOfGates(o, r, slide); // v55 소환 구조물도 장애물처럼 막음 (플레이어·몹 공통)
     }
     // 플레이어 주변에서 장애물과 겹치지 않는 빈자리 (보스전 중이면 결계 안쪽)
     function findOpenSpot(minD, maxD) {
@@ -10961,7 +11158,7 @@
       const WS = meleeWeaponStyle(); // v38.1: 상점 무기 색이 휘두르는 검기·해머에도 반영
       const style = meleeStyle();
       const swingHead = () => {
-        if (style === "axe") { ctx.rotate(Math.PI / 2); drawAxeHead(ctx, 0, WS, 0, -6, 1.9); return; } // v48 버서커 회오리: 도끼날
+        if (style === "axe") { ctx.rotate(Math.PI / 2); drawAxeHead(ctx, 0, WS, 0, -6, 1.3); return; } // v48 버서커 회오리: 도끼날 (v55 1.9 → 1.3)
         if (WS.spikes) { shadedBall(ctx, 0, 0, 13, 13, 0, WS.head, "#0c0a09"); return; }
         metalBar(ctx, -12, -16, 24, 32, WS.head || DEFAULT_HAMMER.head);
       };
@@ -11050,7 +11247,7 @@
             ctx.save();
             ctx.translate(x + Math.cos(a1) * f.r * 0.82, y + Math.sin(a1) * f.r * 0.82);
             ctx.rotate(a1 + (ccw ? Math.PI : 0));
-            drawAxeHead(ctx, 0, WS, 0, -4, 1.7); // v50 휘두르는 도끼날 크게
+            drawAxeHead(ctx, 0, WS, 0, -4, 1.2); // v50 휘두르는 도끼날 (v55 1.7 → 1.2, 몸을 덜 가리게)
             ctx.restore();
           }
         } else if (f.kind === "slash") {
@@ -11709,7 +11906,7 @@
       const hp = Math.floor((10 + (player.level - 1) * 1.6) * monsterHpScale() * FIELD_GOBLIN.hpMult);
       const gob = { x: x, y: y, radius: 24, type: "normal", lookType: "goblin", fieldGoblin: true, speed: 0, baseSpeed: 0, walkCycle: 0,
         hp: hp, maxHp: hp, slowTimer: 0, shootTimer: 1e15, shootInterval: 1e9, isBoss: false, zig: Math.random() * 6, born: playTimeMs };
-      if (obstacles.length) pushOutOfObstacles(gob, gob.radius, 0);
+      if (obstacles.length || spawnGates.length) pushOutOfObstacles(gob, gob.radius, 0);
       monsters.push(gob);
       fieldGoblin.mob = gob;
       spawnBurst(x, y, "#facc15", 14, 6);
@@ -11810,7 +12007,7 @@
         spawnBurst(m.x, m.y, "#d6d3d1", 10, 5);
         m.x = player.x + Math.cos(a) * far;
         m.y = player.y + Math.sin(a) * far;
-        if (obstacles.length) pushOutOfObstacles(m, m.radius, 0);
+        if (obstacles.length || spawnGates.length) pushOutOfObstacles(m, m.radius, 0);
         spawnBurst(m.x, m.y, "#facc15", 10, 6);
         bonus.goblinBlinks++;
         if (sfxReady("gobBlink", 200)) sfxTone({ type: "triangle", freq: 1400, freqEnd: 400, dur: 0.18, vol: 0.06, wet: 0.4 });
@@ -12385,7 +12582,8 @@
         if (sfxReady("waveA", 160)) sfxNoise({ filter: "bandpass", freq: 700, freqEnd: 1800, q: 1.4, dur: 0.3, vol: 0.08 + lv * 0.012 });
       }
     }
-    const AXE_SIZE_MULT = 2; // v54: 회전 도끼 그림·판정 반지름 배율 (그림은 w.r 에 비례해서 같이 커짐)
+    const AXE_SIZE_MULT = 2; // v54: 회전 도끼 판정 반지름 배율 (피해는 그대로)
+    const AXE_DRAW_SCALE = 0.75; // v55: 그림은 판정보다 작게 (예전 그림 대비 1.5배) → 캐릭터·화면을 덜 가림
     // true 를 돌려주면 제거
     function updateStyleWave(w) {
       if (w.fade) return ++w.fade > WAVE_FADE;
@@ -12457,7 +12655,8 @@
       return false;
     }
     function drawStyleWave(w, timestamp) {
-      const col = waveColor(w), a = w.fade ? 1 - w.fade / WAVE_FADE : 1;
+      const col = waveColor(w);
+      let a = w.fade ? 1 - w.fade / WAVE_FADE : 1;
       if (a <= 0) return;
       if (w.style === "lance") {
         // 빛의 창: 꼬리(옅은 빛 막대) + 밝은 심지 + 창끝 다이아몬드 + 융합 장식
@@ -12494,15 +12693,19 @@
         return;
       }
       // 회전 도끼: 빙글빙글 도는 도끼날 2개 (쌍날) + 회전 잔상 고리 + 융합 빛
+      // v55: 그림은 판정(w.r)보다 작게(AXE_DRAW_SCALE) + 내 몸 근처로 돌아오면 옅어짐 → 캐릭터를 덮지 않음
+      const vr = w.r * AXE_DRAW_SCALE;
+      const near = Math.min(1, Math.max(0.25, (fastHypot(w.x - player.x, w.y - player.y) - 20) / 70));
+      a *= near;
       ctx.globalCompositeOperation = "lighter";
       ctx.globalAlpha = 0.35 * a;
-      ctx.beginPath(); ctx.arc(w.x, w.y, w.r * 0.95, w.spin, w.spin + 4.2);
-      ctx.strokeStyle = col; ctx.lineWidth = w.r * 0.35; ctx.stroke();
+      ctx.beginPath(); ctx.arc(w.x, w.y, vr * 0.95, w.spin, w.spin + 4.2);
+      ctx.strokeStyle = col; ctx.lineWidth = vr * 0.35; ctx.stroke();
       ctx.globalAlpha = 0.6 * a;
-      drawGlow(ctx, w.syn.fire ? "#fb923c" : (w.syn.frost ? "#bae6fd" : (w.syn.toxic ? "#a3e635" : (w.syn.bolt ? "#c4b5fd" : col))), w.x, w.y, w.r * 1.4);
+      drawGlow(ctx, w.syn.fire ? "#fb923c" : (w.syn.frost ? "#bae6fd" : (w.syn.toxic ? "#a3e635" : (w.syn.bolt ? "#c4b5fd" : col))), w.x, w.y, vr * 1.4);
       ctx.globalCompositeOperation = "source-over";
       ctx.globalAlpha = a;
-      const WS = meleeWeaponStyle(), k = w.r / 26;
+      const WS = meleeWeaponStyle(), k = vr / 26;
       ctx.save();
       ctx.translate(w.x, w.y);
       ctx.rotate(w.spin);
@@ -15224,7 +15427,7 @@
           m.x += Math.cos(angle) * m.speed;
           m.y += Math.sin(angle) * m.speed;
         }
-        if (obstacles.length) pushOutOfObstacles(m, m.radius, m.speed); // 보스 포함 모든 적이 장애물을 돌아서 접근
+        if (obstacles.length || spawnGates.length) pushOutOfObstacles(m, m.radius, m.speed); // 보스 포함 모든 적이 장애물을 돌아서 접근
         if (!stunned) m.walkCycle += 0.14;
 
         // 원거리 몹: 층에 따라 탄 속도·갈래 수가 다름 (2층 3갈래, 3층 고속 연사)
@@ -15898,6 +16101,7 @@
 
     function drawHumanMonster(m, timestamp) {
       const r = m.radius;
+      const brightNow = brightMap(); // v55 밝은 맵 외곽선
       drawShadow(ctx, m.x, m.y + r * 0.2, r);
 
       // 체력이 눈에 띄게 줄면 잠깐 하얗게 번쩍 (타격감)
@@ -15948,7 +16152,7 @@
       }
 
       const spr = th ? themedMonsterSprite(m.type, r, facing, th) : monsterSprite(m.lookType || (m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type), r, facing);
-      blit(ctx, spr, m.x, m.y);
+      blit(ctx, brightNow ? darkOutline(spr) : spr, m.x, m.y); // v55 밝은 맵이면 짙은 외곽선
       if (m.goblin || m.fieldGoblin) {
         // 💰 황금 고블린: 등에 멘 돈 자루 + 반짝임 + 이름표
         shadedBall(ctx, m.x - Math.cos(facing) * r * 0.55, m.y - Math.sin(facing) * r * 0.55, r * 0.42, r * 0.42, 0, ["#fde68a", "#a16207", "#422006"], "#1c0a02");
@@ -16949,6 +17153,7 @@
       }
       ctx.textBaseline = "alphabetic";
 
+      drawBrightBacking(inView); // v55 밝은 맵: 투사체·번개 아래 짙은 받침
       // 플레이어 총알: 발광 에너지탄 (빛이 겹치면 더 밝아지는 가산 합성)
       ctx.globalCompositeOperation = "lighter";
       // 탄환 잔상 꼬리: 평타 종류별로 묶어서 그림 (실탄은 가늘고 길게, 화염탄은 굵게)
@@ -17453,11 +17658,13 @@
       // v40: 필살기 중에는 공중으로 떠오름 (바닥 그림자는 제자리, 몸 주위에 속성 빛)
       const lift = ultLift();
       if (lift > 0) drawUltLiftUnder(lift, timestamp);
+      // v55: 버서커는 도끼(휘두르기·회전 도끼)를 캐릭터 뒤에 그려 몸·얼굴을 가리지 않게
+      const axeBehind = isMeleeChar() && meleeStyle() === "axe";
+      if (axeBehind) { drawMeleeWaves(timestamp); drawMeleeFx(timestamp); }
       drawHumanPlayer(player.x, player.y - lift, player.angle, timestamp);
       // v38: 대시 무적 중에는 반투명한 푸른 보호막(물방울)이 캐릭터를 감쌈
       if ((gameState === "playing" || gameState === "preview") && playTimeMs < player.invulnUntil && !ult.active) drawBarrierBubble(timestamp);
-      drawMeleeWaves(timestamp);
-      drawMeleeFx(timestamp);
+      if (!axeBehind) { drawMeleeWaves(timestamp); drawMeleeFx(timestamp); }
       drawUltWorld(timestamp);
       drawTrapsOverlay(ctx, timestamp, vx0, vy0, vx1, vy1);
       // v38: 적 탄환은 모든 이펙트 위(최상위)에 경고색 네온 + 검은 외곽선으로
