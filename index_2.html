@@ -1355,7 +1355,7 @@
     // ╚══════════════════════════════════════════════════════════════╝
     const IS_DEV_MODE = false;
     // 버전 표시 (로비 맨 아래 · 일시정지 창): 수정할 때마다 번호를 올리면 폰에서 최신 파일인지 바로 확인 가능
-    const GAME_VERSION = "v56 · 2026-10-24";
+    const GAME_VERSION = "v57 · 2026-10-24";
 
     let godMode = IS_DEV_MODE; // 무적 여부 (개발자 모드에서는 로비/일시정지 창의 버튼으로 켜고 끔)
     const CLEAR_LEVEL = 25;
@@ -2132,7 +2132,7 @@
         tiles: ["#c9b386", "#ab925f", "#bea679", "#a2885a"], bevel: "rgba(255, 251, 235, 0.3)", vignette: 0.34, ambient: "sun", // v55 밝기·채도 한 단계 낮춤 (예전 #e6d2a2…)
         shooterSpread: 1, shotSpeed: 5.6, shooterInterval: 4800, shotColor: "#ea580c" },
       { id: "neon", name: "네온 하이테크 연구소", attackDesc: "원거리 몹: 2갈래 레이저탄",
-        tiles: ["#141c38", "#0a0f24", "#111830", "#080c1e"], bevel: "rgba(34, 211, 238, 0.4)", vignette: 0.55, ambient: "neon",
+        tiles: ["#1a2033", "#10141f", "#171c2c", "#0e121c"], bevel: "rgba(34, 211, 238, 0.14)", vignette: 0.5, ambient: "neon", rim: true, // v57 회로·테두리 빛을 줄이고 몹에 밝은 테두리 (예전 #141c38… · 테두리 0.4)
         shooterSpread: 2, shotSpeed: 5.4, shooterInterval: 5500, shotColor: "#22d3ee" },
       { id: "lava", name: "화산 용암 지대", attackDesc: "원거리 몹: 빠른 단발 사격",
         tiles: ["#3b1a13", "#1c0a07", "#33160f", "#170806"], bevel: "rgba(251, 146, 60, 0.16)", vignette: 0.62, ambient: "ember",
@@ -4646,13 +4646,37 @@
         g.fillRect(-32, -32, 64, 64);
       });
     }
+    // v57: 한 프레임에 천 번 넘게 불리므로 색마다 바로 찾게 (문자열 키 만들기 생략)
+    const glowMemo = new Map();
     function drawGlow(g, color, x, y, r, core) {
-      g.drawImage(glowSprite(color, core).canvas, x - r, y - r, r * 2, r * 2);
+      let c;
+      if (core) c = glowSprite(color, core).canvas;
+      else if (!(c = glowMemo.get(color))) { c = glowSprite(color).canvas; glowMemo.set(color, c); }
+      g.drawImage(c, x - r, y - r, r * 2, r * 2);
+    }
+
+    // ===== v57: 스킬 난사 렉 줄이기 — 장식용 빛 입자 수 자동 조절 =====
+    // 고레벨에서 메테오 화염 장판·독 안개·노바·블랙홀·레이저 불씨가 한 프레임에 빛 그림을 1,300번 넘게 그려 폰에서 버벅임
+    //  ① fxQ: 실제 화면 갱신이 느려지면(평균 21ms 넘음 = 48fps 미만) 장식 입자 수를 최대 35%까지 줄이고, 회복되면 천천히 되돌림
+    //  ② fxCount(기본 개수, 같은 종류가 화면에 몇 개, 최소): 같은 장판이 많이 겹칠수록 하나당 입자 수를 줄임
+    //  피해·판정·지속시간은 그대로이고, 그림의 장식 입자만 줄어듦
+    let fxQ = 1, fxFrameAvg = 16.7, maxFxThisFrame = 0; // maxFxThisFrame: 이번 프레임 drawMaxFx 횟수 (draw 시작 때 0)
+    const FX_TUNE = { slowMs: 21, fastMs: 18, down: 0.03, up: 0.002, min: 0.35 }; // 되돌림은 천천히(약 5초) → 줄였다 늘렸다 출렁이지 않게
+    function updateFxQuality(frameDt) {
+      if (!(frameDt > 0) || frameDt > 60) return; // 탭 전환·일시정지 직후 튀는 값은 무시
+      fxFrameAvg += (frameDt - fxFrameAvg) * 0.1;
+      if (fxFrameAvg > FX_TUNE.slowMs) fxQ = Math.max(FX_TUNE.min, fxQ - FX_TUNE.down);
+      else if (fxFrameAvg < FX_TUNE.fastMs) fxQ = Math.min(1, fxQ + FX_TUNE.up);
+    }
+    function fxCount(base, same, min) {
+      const crowd = same > 3 ? Math.sqrt(3 / same) : 1;
+      return Math.max(min || 1, Math.round(base * fxQ * crowd));
     }
     // ✨ 만렙(Lv5) 스킬 공통 강조: 맥동하는 큰 빛 + 흰 심지 + 주위를 도는 반짝이 (가산 합성 "lighter" 상태에서 호출)
     function drawMaxFx(g, color, x, y, r, t, seed, sparks) {
       seed = seed || 0;
       sparks = sparks === undefined ? 3 : sparks;
+      if (fxQ < 0.7 || ++maxFxThisFrame > 16) sparks = Math.min(sparks, 1); // v57 느려지거나 만렙 강조가 한 화면에 많으면 반짝이 1개만
       const prev = g.globalAlpha;
       const pulse = 1 + Math.sin(t / 110 + seed) * 0.18;
       g.globalAlpha = prev * 0.55;
@@ -4809,16 +4833,17 @@
             for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(x + 12 + Math.random() * 76, y + 12 + Math.random() * 76, 2.5, 1.8, 0, 0, Math.PI * 2); g.fill(); }
           } else if (stage.obstacle === "neon") {
             // v54 네온 연구소: 금속 패널 + 빛나는 회로선 + 모서리 표시등
-            g.strokeStyle = "rgba(34, 211, 238, 0.22)"; g.lineWidth = 1.4;
+            // v57 몹이 묻히지 않게 회로선·표시등을 절반 이하로 (예전 0.22 · 0.2 · 0.55 · 0.6)
+            g.strokeStyle = "rgba(34, 211, 238, 0.09)"; g.lineWidth = 1.4;
             g.beginPath();
             g.moveTo(x + 8, y + 30); g.lineTo(x + 40, y + 30); g.lineTo(x + 52, y + 42); g.lineTo(x + 52, y + 92);
             g.moveTo(x + 92, y + 64); g.lineTo(x + 70, y + 64); g.lineTo(x + 62, y + 72);
             g.stroke();
-            g.strokeStyle = "rgba(232, 121, 249, 0.2)";
+            g.strokeStyle = "rgba(232, 121, 249, 0.08)";
             g.beginPath(); g.moveTo(x + 20, y + 92); g.lineTo(x + 20, y + 60); g.lineTo(x + 30, y + 50); g.stroke();
-            g.fillStyle = "rgba(34, 211, 238, 0.55)";
+            g.fillStyle = "rgba(34, 211, 238, 0.25)";
             for (const [px, py] of [[40, 30], [52, 92], [70, 64]]) g.fillRect(x + px - 1.5, y + py - 1.5, 3, 3);
-            g.fillStyle = "rgba(232, 121, 249, 0.6)"; g.fillRect(x + 88, y + 8, 4, 4);
+            g.fillStyle = "rgba(232, 121, 249, 0.28)"; g.fillRect(x + 88, y + 8, 4, 4);
           } else if (stage.obstacle === "meadow") {
             // v54 초원 유적: 풀 포기 + 작은 꽃 + 이끼 낀 판석
             g.fillStyle = "rgba(255, 255, 255, 0.12)";
@@ -4924,23 +4949,34 @@
     //  ① 몹 스프라이트에 짙은 외곽선 (darkOutline: 스프라이트마다 한 번 만들어 캐시)
     //  ② 내 탄환·스킬 투사체 아래에 짙은 받침 그림자 + 테두리, 번개 아래에 짙은 선 (drawBrightBacking)
     function brightMap() { const st = currentStage(); return !!(st && st.bright); }
-    function darkOutline(s) {
-      if (s.dark) return s.dark;
+    // v57: 어두운 바탕에 회로 무늬가 깔린 네온 연구소는 짙은 몹이 묻힘 → 밝은 테두리 (rimMap · lightOutline)
+    function rimMap() { const st = currentStage(); return !!(st && st.rim); }
+    // halo: 바깥에 한 겹 더 넓고 옅은 번짐 [색, 두께] (스프라이트에 구워 두므로 그릴 때 비용 없음)
+    function makeOutline(s, slot, color, px, halo) {
+      if (s[slot]) return s[slot];
       try {
         const c = document.createElement("canvas");
         c.width = s.canvas.width; c.height = s.canvas.height;
         const g = c.getContext("2d");
-        const o = Math.max(1, Math.round(1.6 * c.width / s.size));
-        for (const [dx, dy] of [[o, 0], [-o, 0], [0, o], [0, -o], [o, o], [-o, -o], [o, -o], [-o, o]]) g.drawImage(s.canvas, dx, dy);
-        g.globalCompositeOperation = "source-in";
-        g.fillStyle = "rgba(20, 10, 2, 0.9)";
-        g.fillRect(0, 0, c.width, c.height);
-        g.globalCompositeOperation = "source-over";
+        const ring = (col, w) => {
+          const t = document.createElement("canvas"); t.width = c.width; t.height = c.height;
+          const tg = t.getContext("2d");
+          const o = Math.max(1, Math.round(w * c.width / s.size));
+          for (const [dx, dy] of [[o, 0], [-o, 0], [0, o], [0, -o], [o, o], [-o, -o], [o, -o], [-o, o]]) tg.drawImage(s.canvas, dx, dy);
+          tg.globalCompositeOperation = "source-in";
+          tg.fillStyle = col;
+          tg.fillRect(0, 0, c.width, c.height);
+          g.drawImage(t, 0, 0);
+        };
+        if (halo) ring(halo[0], halo[1]);
+        ring(color, px);
         g.drawImage(s.canvas, 0, 0);
-        s.dark = { canvas: c, size: s.size };
-      } catch (e) { s.dark = s; }
-      return s.dark;
+        s[slot] = { canvas: c, size: s.size };
+      } catch (e) { s[slot] = s; }
+      return s[slot];
     }
+    function darkOutline(s) { return makeOutline(s, "dark", "rgba(20, 10, 2, 0.9)", 1.6); }
+    function lightOutline(s) { return makeOutline(s, "light", "rgba(224, 250, 255, 0.95)", 1.8, ["rgba(125, 211, 252, 0.3)", 3.6]); }
     const BRIGHT_BACK = "rgba(25, 14, 4, 0.32)", BRIGHT_RIM = "rgba(25, 14, 4, 0.7)";
     function drawBrightBacking(inView) {
       if (!brightMap()) return;
@@ -5019,9 +5055,9 @@
       } else if (kind === "neon") {
         // 네온 연구소: 가장자리 청록·자홍 번짐 + 느리게 내려가는 주사선
         const ng = g.createLinearGradient(0, 0, W, H);
-        ng.addColorStop(0, "rgba(34, 211, 238, 0.09)");
+        ng.addColorStop(0, "rgba(34, 211, 238, 0.05)"); // v57 번짐 약하게 (예전 0.09 · 0.1)
         ng.addColorStop(0.5, "rgba(0, 0, 0, 0)");
-        ng.addColorStop(1, "rgba(232, 121, 249, 0.1)");
+        ng.addColorStop(1, "rgba(232, 121, 249, 0.06)");
         g.fillStyle = ng;
         g.fillRect(0, 0, W, H);
         g.fillStyle = "rgba(148, 233, 255, 0.035)";
@@ -5061,7 +5097,8 @@
     let lowDetail = false; // 화면에 몬스터가 많으면 다리 애니메이션·피격 번쩍임을 생략
     let particles = [];
     function spawnBurst(x, y, color, count, speed) {
-      for (let i = 0; i < count && particles.length < MAX_PARTICLES; i++) {
+      const cap = MAX_PARTICLES * fxQ; // v57 화면이 느려지면 파티클 상한도 함께 줄임
+      for (let i = 0; i < count && particles.length < cap; i++) {
         const a = Math.random() * Math.PI * 2, v = speed * (0.4 + Math.random() * 0.8);
         particles.push({ x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 20 + Math.random() * 16, maxLife: 36, color: color, size: 3 + Math.random() * 4 });
       }
@@ -5202,6 +5239,7 @@
     function rebuildCanvasCaches() {
       for (const k in spriteCache) delete spriteCache[k];
       for (const k in tilePatterns) delete tilePatterns[k];
+      glowMemo.clear(); // v57 빛 스프라이트 바로가기도 함께
       resizeCanvas();
     }
     canvas.addEventListener("contextrestored", rebuildCanvasCaches);
@@ -14816,6 +14854,7 @@
           simAcc = 0;
         }
         syncIntroAudio(running());
+        if (running()) updateFxQuality(frameDt); // v57 실제 프레임 속도로 장식 입자 수 조절
         draw(gameNow);
         if (uiDirty) renderUI();
       }
@@ -16315,7 +16354,7 @@
 
     function drawHumanMonster(m, timestamp) {
       const r = m.radius;
-      const brightNow = brightMap(); // v55 밝은 맵 외곽선
+      const brightNow = brightMap(), rimNow = !brightNow && rimMap(); // v55 밝은 맵 짙은 외곽선 · v57 네온 맵 밝은 테두리
       drawShadow(ctx, m.x, m.y + r * 0.2, r);
 
       // 체력이 눈에 띄게 줄면 잠깐 하얗게 번쩍 (타격감)
@@ -16366,7 +16405,7 @@
       }
 
       const spr = th ? themedMonsterSprite(m.type, r, facing, th) : monsterSprite(m.lookType || (m.isBoss ? (m.isLateBoss ? "lateBoss" : "boss") : m.type), r, facing);
-      blit(ctx, brightNow ? darkOutline(spr) : spr, m.x, m.y); // v55 밝은 맵이면 짙은 외곽선
+      blit(ctx, brightNow ? darkOutline(spr) : (rimNow ? lightOutline(spr) : spr), m.x, m.y); // v55 밝은 맵이면 짙은 외곽선 · v57 네온은 밝은 테두리
       if (m.goblin || m.fieldGoblin) {
         // 💰 황금 고블린: 등에 멘 돈 자루 + 반짝임 + 이름표
         shadedBall(ctx, m.x - Math.cos(facing) * r * 0.55, m.y - Math.sin(facing) * r * 0.55, r * 0.42, r * 0.42, 0, ["#fde68a", "#a16207", "#422006"], "#1c0a02");
@@ -16597,6 +16636,7 @@
       ctx.setTransform(viewDpr, 0, 0, viewDpr, 0, 0); // v38: 고해상도 — 실제 픽셀은 viewDpr배, 좌표는 그대로 CSS 픽셀
       ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; // v45: 캔버스가 복구되거나 직전 프레임이 중간에 끊겨도 기본 상태로 시작
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      maxFxThisFrame = 0;
 
       ctx.save();
       if (shakePower > 0) ctx.translate((Math.random() - 0.5) * shakePower, (Math.random() - 0.5) * shakePower);
@@ -16711,7 +16751,7 @@
           ctx.lineWidth = 5;
           ctx.stroke();
           // 불벽을 따라 일렁이는 불꽃 혀
-          const n = 28;
+          const n = fxCount(28, 1, 12);
           for (let k = 0; k < n; k++) {
             const a = k / n * Math.PI * 2 + wave.currentRadius * 0.004;
             const flick = 0.6 + Math.sin(timestamp / 60 + k * 1.9) * 0.4;
@@ -16752,6 +16792,8 @@
       drawBossIntroWorld(ctx, timestamp);
 
       // ☄️ 메테오 화염 장판: 바닥의 그을음 + 일렁이는 불꽃 (끝날 때쯤 서서히 사그라듦)
+      let firesInView = 0; // v57 장판이 많이 겹치면 하나당 불꽃 수를 줄임
+      for (const fz of meteorFires) if (inView(fz.x, fz.y)) firesInView++;
       for (const fz of meteorFires) {
         if (!inView(fz.x, fz.y)) continue;
         const fade = Math.min(1, fz.life / 30);
@@ -16763,7 +16805,7 @@
         ctx.globalCompositeOperation = "lighter";
         ctx.globalAlpha = (0.32 + Math.sin(timestamp / 90 + fz.seed) * 0.08) * fade;
         drawGlow(ctx, fz.lv >= 5 ? "#facc15" : "#f97316", fz.x, fz.y, fz.radius * 1.15);
-        const flames = 6 + fz.lv * 2;
+        const flames = fxCount(6 + fz.lv * 2, firesInView, 3);
         for (let k = 0; k < flames; k++) {
           const a = fz.seed + k * 2.39996;
           const d = fz.radius * (0.2 + ((k * 0.618 + fz.seed) % 1) * 0.65);
@@ -16982,6 +17024,9 @@
       }
 
       // ☠️ 독 안개: 겹쳐 흐르는 연두빛 구름 덩어리 (사라질 때 옅어짐)
+      let cloudsInView = 0; // v57 독 안개가 많으면 덩어리·기포 수를 줄임
+      for (const c of poisonClouds) if (inView(c.x, c.y)) cloudsInView++;
+      const cloudBubbles = fxCount(5, cloudsInView, 2), cloudBlobs = fxCount(7, cloudsInView, 3);
       for (const c of poisonClouds) {
         if (!inView(c.x, c.y)) continue;
         const fade = Math.min(1, c.life / 40, (c.maxLife - c.life + 1) / 15);
@@ -17008,8 +17053,8 @@
             ctx.stroke();
           }
           ctx.lineCap = "butt";
-          for (let k = 0; k < 5; k++) {
-            const ph = (timestamp / 900 + k / 5 + c.seed) % 1;
+          for (let k = 0; k < cloudBubbles; k++) {
+            const ph = (timestamp / 900 + k / cloudBubbles + c.seed) % 1;
             const a = c.seed * 2 + k * 1.2566;
             const px = c.x + Math.cos(a) * c.r * 0.55, py = c.y + Math.sin(a) * c.r * 0.45;
             ctx.globalAlpha = 0.7 * fade * (1 - ph);
@@ -17029,10 +17074,10 @@
           ctx.lineDashOffset = 0;
           ctx.globalCompositeOperation = "source-over";
         }
-        for (let k = 0; k < 7; k++) {
+        for (let k = 0; k < cloudBlobs; k++) {
           const a = c.seed + k * 0.9 + timestamp / (1800 + k * 200);
           const d = c.r * (0.15 + (k % 3) * 0.22);
-          ctx.globalAlpha = 0.22 * fade;
+          ctx.globalAlpha = 0.22 * fade * (7 / cloudBlobs > 1.5 ? 1.25 : 1); // 덩어리가 줄면 조금 진하게 (안개 밀도 유지)
           drawGlow(ctx, k % 2 ? "#65a30d" : "#84cc16", c.x + Math.cos(a) * d, c.y + Math.sin(a) * d * 0.8, c.r * (0.55 + (k % 3) * 0.12));
         }
         ctx.globalAlpha = 0.5 * fade;
@@ -17148,7 +17193,7 @@
         // Lv2+: 바깥에서 중심으로 빨려 드는 입자
         if (lv >= 2) {
           // 블랙홀이 여러 개면 입자 수를 줄여 모바일에서도 버벅이지 않게
-          const n = Math.round((lv >= 4 ? 34 : (lv >= 3 ? 22 : 14)) / Math.sqrt(Math.max(1, vortices.length)));
+          const n = Math.max(4, Math.round((lv >= 4 ? 34 : (lv >= 3 ? 22 : 14)) * fxQ / Math.sqrt(Math.max(1, vortices.length))));
           for (let k = 0; k < n; k++) {
             const ph = (timestamp / (900 - lv * 80) + k * 0.137) % 1;  // 0(바깥) → 1(중심)
             const a = k * 2.39996 - v.spin * (1 + ph * 2);
@@ -17342,7 +17387,7 @@
       // 몬스터 (화면 안 몬스터가 많으면 간소화 모드)
       let visibleMonsters = 0;
       for (let m of monsters) if (inView(m.x, m.y)) visibleMonsters++;
-      lowDetail = visibleMonsters > 60;
+      lowDetail = visibleMonsters > (fxQ < 0.7 ? 35 : 60); // v57 화면이 느려지면 더 일찍 간략하게
       for (let m of monsters) {
         if (!m.isBoss && !inView(m.x, m.y)) continue;
         drawHumanMonster(m, timestamp);
@@ -17662,7 +17707,7 @@
           ctx.lineWidth = Math.max(1.5, W * 0.35);
           ctx.stroke();
           // 3) 빔에서 튀어 오르는 불씨
-          const embers = Math.min(14, Math.floor(len / 40) + 2 + player.laserLevel);
+          const embers = fxCount(Math.min(14, Math.floor(len / 40) + 2 + player.laserLevel), 1, 2);
           for (let k = 0; k < embers; k++) {
             const ph = (timestamp / 420 + k * 0.618) % 1;
             const d = ((k * 0.381 + timestamp / 2600) % 1) * len;
